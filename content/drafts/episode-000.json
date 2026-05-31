@@ -4,6 +4,13 @@
   "theme": "番組紹介",
   "durationTargetMinutes": 2,
   "description": "放課後の知識箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
+  "type": "anniversary",
+  "durationType": "normal",
+  "tags": [
+    "番組紹介",
+    "AI制作",
+    "知識ラジオ"
+  ],
   "themes": [
     "番組紹介",
     "AI制作",

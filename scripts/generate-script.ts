@@ -1,11 +1,13 @@
 import path from "node:path";
 
 import {
+  contentRoot,
   draftDir,
   ensureProductionDirs,
   getStringArg,
   listJsonFiles,
   parseArgs,
+  readJsonFile,
   writeJsonFile,
 } from "./lib/episode-fs";
 import { EpisodeScript } from "./lib/episode-schema";
@@ -42,11 +44,16 @@ function buildTemplateScript(options: {
   durationTargetMinutes: number;
   description: string;
   themes: string[];
+  memoryPhrase?: string;
 }): EpisodeScript {
   const now = new Date().toISOString();
+  const { memoryPhrase, ...scriptOptions } = options;
 
   return {
-    ...options,
+    ...scriptOptions,
+    tags: options.themes,
+    type: "regular",
+    durationType: options.durationTargetMinutes >= 45 ? "long" : "normal",
     createdAt: now,
     updatedAt: now,
     speakers: [
@@ -84,17 +91,37 @@ function buildTemplateScript(options: {
         id: "bunkei",
         name: "文系担当",
         voice: "bunkei",
-        text: "聞き終わったあとに、少しだけ考え続けられるくらいの余白があるといいですね。",
+        text: memoryPhrase
+          ? `聞き終わったあとに、少しだけ考え続けられるくらいの余白があるといいですね。${memoryPhrase}`
+          : "聞き終わったあとに、少しだけ考え続けられるくらいの余白があるといいですね。",
       },
     ],
   };
+}
+
+async function readProgramMemoryHints() {
+  try {
+    const memory = await readJsonFile<{
+      recurringPhrases?: string[];
+      runningJokes?: string[];
+    }>(path.join(contentRoot, "memory", "program-memory.json"));
+
+    return {
+      phrase: memory.recurringPhrases?.[0],
+      runningJoke: memory.runningJokes?.[0],
+    };
+  } catch {
+    return {};
+  }
 }
 
 async function main() {
   await ensureProductionDirs();
 
   const args = parseArgs();
-  const title = getStringArg(args, "title", "AIは本当に考えているのか")!;
+  const title =
+    getStringArg(args, "title") ??
+    "雨の日に考える、AIは本当に考えているのか";
   const theme = getStringArg(args, "theme", "AIと思考")!;
   const id = getStringArg(args, "id") ?? (await createSequentialEpisodeId());
   const durationTargetMinutes = Number(getStringArg(args, "minutes", "5"));
@@ -106,6 +133,7 @@ async function main() {
       ?.split(",")
       .map((themeName) => themeName.trim())
       .filter(Boolean) ?? inferThemes(title, theme);
+  const memoryHints = await readProgramMemoryHints();
   const script = buildTemplateScript({
     id,
     title,
@@ -113,6 +141,7 @@ async function main() {
     durationTargetMinutes,
     description,
     themes,
+    memoryPhrase: memoryHints.phrase,
   });
   const outputPath = path.join(draftDir, `${id}.json`);
 

@@ -1,6 +1,14 @@
 export type SpeakerId = "rikei" | "bunkei";
 
 export type VoiceId = "rikei" | "bunkei" | string;
+export type EpisodeType =
+  | "regular"
+  | "special"
+  | "news"
+  | "movie"
+  | "weather"
+  | "anniversary";
+export type EpisodeDurationType = "normal" | "long";
 
 export type EpisodeSpeakerLine = {
   id: SpeakerId;
@@ -29,7 +37,10 @@ export type EpisodeScript = {
   theme: string;
   durationTargetMinutes: number;
   description: string;
+  durationType?: EpisodeDurationType;
+  tags?: string[];
   themes: string[];
+  type?: EpisodeType;
   speakers: EpisodeSpeakerLine[];
   createdAt: string;
   updatedAt: string;
@@ -41,9 +52,12 @@ export type BuiltEpisode = {
   title: string;
   description: string;
   audioUrl: string;
+  durationType: EpisodeDurationType;
   publishedAt: string;
   duration: string;
+  tags: string[];
   themes: string[];
+  type: EpisodeType;
   speakers: {
     science: string;
     humanities: string;

@@ -4,6 +4,12 @@
   "theme": "AIと思考",
   "durationTargetMinutes": 5,
   "description": "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "AI",
+    "哲学"
+  ],
   "themes": [
     "AI",
     "哲学"

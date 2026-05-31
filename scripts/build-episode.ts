@@ -54,8 +54,11 @@ function toEpisodeSnippet(episode: BuiltEpisode) {
   title: ${JSON.stringify(episode.title)},
   description: ${JSON.stringify(episode.description)},
   audioUrl: ${JSON.stringify(episode.audioUrl)},
+  type: ${JSON.stringify(episode.type)},
+  durationType: ${JSON.stringify(episode.durationType)},
   publishedAt: ${JSON.stringify(episode.publishedAt)},
   duration: ${JSON.stringify(episode.duration)},
+  tags: ${JSON.stringify(episode.tags)},
   themes: ${JSON.stringify(episode.themes)},
   speakers: ${JSON.stringify(episode.speakers, null, 2)},
   productionStatus: "published",
@@ -117,8 +120,13 @@ async function main() {
     title: reviewedScript.title,
     description: reviewedScript.description,
     audioUrl,
+    type:
+      reviewedScript.type ??
+      (reviewedScript.id === "episode-000" ? "anniversary" : "regular"),
+    durationType: reviewedScript.durationType ?? "normal",
     publishedAt,
     duration: formatDuration(reviewedScript.durationTargetMinutes),
+    tags: reviewedScript.tags ?? reviewedScript.themes,
     themes: reviewedScript.themes,
     speakers: {
       science: "理系担当",

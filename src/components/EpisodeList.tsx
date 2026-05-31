@@ -1,4 +1,11 @@
-import { Episode } from "@/data/episodes";
+import {
+  Episode,
+  getDurationTypeLabel,
+  getEpisodeDurationType,
+  getEpisodeTags,
+  getEpisodeType,
+  getEpisodeTypeLabel,
+} from "@/data/episodes";
 
 type EpisodeListProps = {
   episodes: Episode[];
@@ -41,12 +48,20 @@ export function EpisodeList({
                 <p className="text-xs text-slate-400">
                   {episode.publishedAt} / {episode.duration}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-cyan-100/20 bg-cyan-100/[0.1] px-2.5 py-1 text-xs text-cyan-50">
+                    {getEpisodeTypeLabel(getEpisodeType(episode))}
+                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-xs text-slate-300">
+                    {getDurationTypeLabel(getEpisodeDurationType(episode))}
+                  </span>
+                </div>
                 <h3 className="mt-1 text-base font-semibold leading-7 text-slate-50">
                   {episode.title}
                 </h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {episode.themes.map((theme) => (
+                {getEpisodeTags(episode).map((theme) => (
                   <span
                     className="rounded-full border border-cyan-100/15 bg-cyan-100/10 px-2.5 py-1 text-xs text-cyan-100"
                     key={theme}

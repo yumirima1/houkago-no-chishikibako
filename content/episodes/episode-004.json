@@ -3,8 +3,14 @@
   "title": "AIは本当に考えているのか",
   "description": "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
   "audioUrl": "/audio/episode-004.mp3",
+  "type": "regular",
+  "durationType": "normal",
   "publishedAt": "2026-05-31",
   "duration": "05:00",
+  "tags": [
+    "AI",
+    "哲学"
+  ],
   "themes": [
     "AI",
     "哲学"
