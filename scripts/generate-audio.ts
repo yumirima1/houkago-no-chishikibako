@@ -73,7 +73,7 @@ async function main() {
   const wavs = await Promise.all(
     wavPaths.map(async (wavPath) => parsePcm16Wav(await readFile(wavPath))),
   );
-  const combinedWav = concatWavs(wavs);
+  const combinedWav = concatWavs(wavs, 460);
   const combinedWavPath = path.join(episodeAudioDir, `${script.id}.wav`);
   const mp3Path = path.join(publicAudioDir, `${script.id}.mp3`);
 

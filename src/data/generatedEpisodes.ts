@@ -4,41 +4,13 @@ import type { Episode } from "./episodes";
 // Edit content/episodes/*.json, then run npm run episode:build.
 export const generatedEpisodes: Episode[] = [
   {
-    id: "episode-001",
-    title: "AIは本当に考えているのか",
-    description: "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
-    audioUrl: "/audio/episode-001.mp3",
+    id: "episode-000",
+    title: "はじめまして、放課後の知識箱です",
+    description: "放課後の知識箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
+    audioUrl: "/audio/episode-000.mp3",
     publishedAt: "2026-05-31",
-    duration: "05:00",
-    themes: ["AI","哲学"],
-    speakers: {
-    "science": "理系担当",
-    "humanities": "文系担当"
-  },
-    productionStatus: "published",
-  },
-  {
-    id: "episode-002",
-    title: "なぜ人は陰謀論を信じるのか",
-    description: "なぜ人は陰謀論を信じるのかについて、理系担当と文系担当が静かな会話形式で考えます。",
-    audioUrl: "/audio/episode-002.mp3",
-    publishedAt: "2026-05-31",
-    duration: "05:00",
-    themes: ["心理学"],
-    speakers: {
-    "science": "理系担当",
-    "humanities": "文系担当"
-  },
-    productionStatus: "published",
-  },
-  {
-    id: "episode-003",
-    title: "AIは本当に考えているのか",
-    description: "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
-    audioUrl: "/audio/episode-003.mp3",
-    publishedAt: "2026-05-31",
-    duration: "05:00",
-    themes: ["AI","哲学"],
+    duration: "02:00",
+    themes: ["番組紹介","AI制作","知識ラジオ"],
     speakers: {
     "science": "理系担当",
     "humanities": "文系担当"

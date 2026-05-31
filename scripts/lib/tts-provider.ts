@@ -14,13 +14,42 @@ export type TtsProvider = {
 type VoicevoxConfig = {
   endpoint: string;
   voices: Record<string, number>;
+  voiceProfiles: Record<
+    string,
+    {
+      intonationScale: number;
+      pauseLength: number;
+      postPhonemeLength: number;
+      prePhonemeLength: number;
+      speedScale: number;
+      volumeScale: number;
+    }
+  >;
 };
 
 const defaultVoicevoxConfig: VoicevoxConfig = {
   endpoint: process.env.VOICEVOX_ENDPOINT ?? "http://127.0.0.1:50021",
   voices: {
-    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 3),
-    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 2),
+    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 13),
+    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 8),
+  },
+  voiceProfiles: {
+    rikei: {
+      intonationScale: 0.88,
+      pauseLength: 0.72,
+      postPhonemeLength: 0.32,
+      prePhonemeLength: 0.18,
+      speedScale: 0.88,
+      volumeScale: 0.92,
+    },
+    bunkei: {
+      intonationScale: 0.95,
+      pauseLength: 0.78,
+      postPhonemeLength: 0.36,
+      prePhonemeLength: 0.2,
+      speedScale: 0.9,
+      volumeScale: 0.9,
+    },
   },
 };
 
@@ -50,6 +79,10 @@ export class VoicevoxProvider implements TtsProvider {
         ...defaultVoicevoxConfig.voices,
         ...config.voices,
       },
+      voiceProfiles: {
+        ...defaultVoicevoxConfig.voiceProfiles,
+        ...config.voiceProfiles,
+      },
     };
   }
 
@@ -67,6 +100,28 @@ export class VoicevoxProvider implements TtsProvider {
     }
 
     return speakerId;
+  }
+
+  private applyVoiceProfile(audioQuery: unknown, voice: VoiceId) {
+    if (!audioQuery || typeof audioQuery !== "object") {
+      return audioQuery;
+    }
+
+    const profile = this.config.voiceProfiles[voice];
+
+    if (!profile) {
+      return audioQuery;
+    }
+
+    return {
+      ...audioQuery,
+      intonationScale: profile.intonationScale,
+      pauseLength: profile.pauseLength,
+      postPhonemeLength: profile.postPhonemeLength,
+      prePhonemeLength: profile.prePhonemeLength,
+      speedScale: profile.speedScale,
+      volumeScale: profile.volumeScale,
+    };
   }
 
   async assertAvailable() {
@@ -109,7 +164,7 @@ export class VoicevoxProvider implements TtsProvider {
         );
       }
 
-      const audioQuery = await queryResponse.json();
+      const audioQuery = this.applyVoiceProfile(await queryResponse.json(), voice);
       const synthesisResponse = await fetch(
         `${this.config.endpoint}/synthesis?${new URLSearchParams({
           speaker: String(speaker),

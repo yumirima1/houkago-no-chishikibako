@@ -1,4 +1,4 @@
-import { copyFile, stat, writeFile } from "node:fs/promises";
+import { stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -39,14 +39,13 @@ async function ensureAudioFile(id: string) {
     return `/audio/${audioFileName}`;
   }
 
-  const samplePath = path.join(publicAudioDir, "sample.mp3");
-
-  if (await fileExists(samplePath)) {
-    await copyFile(samplePath, targetPath);
-    return `/audio/${audioFileName}`;
-  }
-
-  return "/audio/sample.mp3";
+  throw new Error(
+    [
+      `Audio file is missing: ${path.relative(process.cwd(), targetPath)}`,
+      "Run npm run episode:audio before npm run episode:build.",
+      "デモ音源への自動フォールバックは初回体験改善のため廃止しました。",
+    ].join("\n"),
+  );
 }
 
 function toEpisodeSnippet(episode: BuiltEpisode) {

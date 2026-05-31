@@ -1,0 +1,14 @@
+{
+  id: "episode-000",
+  title: "はじめまして、放課後の知識箱です",
+  description: "放課後の知識箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
+  audioUrl: "/audio/episode-000.mp3",
+  publishedAt: "2026-05-31",
+  duration: "02:00",
+  themes: ["番組紹介","AI制作","知識ラジオ"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}
