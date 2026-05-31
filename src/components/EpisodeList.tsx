@@ -2,9 +2,15 @@ import { Episode } from "@/data/episodes";
 
 type EpisodeListProps = {
   episodes: Episode[];
+  onSelectEpisode: (episodeId: string) => void;
+  selectedEpisodeId: string;
 };
 
-export function EpisodeList({ episodes }: EpisodeListProps) {
+export function EpisodeList({
+  episodes,
+  onSelectEpisode,
+  selectedEpisodeId,
+}: EpisodeListProps) {
   return (
     <section aria-labelledby="episode-list-title">
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -19,9 +25,16 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
 
       <div className="grid gap-3">
         {episodes.map((episode) => (
-          <article
-            className="rounded-lg border border-white/10 bg-white/[0.055] p-4 backdrop-blur-sm transition-colors hover:border-cyan-200/30 hover:bg-white/[0.075]"
+          <button
+            aria-current={episode.id === selectedEpisodeId}
+            className={`rounded-lg border p-4 text-left backdrop-blur-sm transition-colors hover:border-cyan-200/30 hover:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
+              episode.id === selectedEpisodeId
+                ? "border-cyan-200/40 bg-cyan-100/10"
+                : "border-white/10 bg-white/[0.055]"
+            }`}
             key={episode.id}
+            onClick={() => onSelectEpisode(episode.id)}
+            type="button"
           >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
@@ -50,7 +63,7 @@ export function EpisodeList({ episodes }: EpisodeListProps) {
             <p className="mt-3 text-xs text-slate-500">
               {episode.speakers.science} / {episode.speakers.humanities}
             </p>
-          </article>
+          </button>
         ))}
       </div>
     </section>

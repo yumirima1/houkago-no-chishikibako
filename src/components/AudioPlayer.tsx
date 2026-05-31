@@ -4,9 +4,13 @@ import { Episode } from "@/data/episodes";
 
 type AudioPlayerProps = {
   episode: Episode;
+  onPlaybackChange?: (isPlaying: boolean) => void;
 };
 
-export function AudioPlayer({ episode }: AudioPlayerProps) {
+export function AudioPlayer({
+  episode,
+  onPlaybackChange,
+}: AudioPlayerProps) {
   return (
     <section
       className="rounded-lg border border-white/10 bg-slate-950/72 p-5 shadow-2xl shadow-black/30 backdrop-blur-md sm:p-6"
@@ -25,8 +29,12 @@ export function AudioPlayer({ episode }: AudioPlayerProps) {
       </div>
 
       <audio
+        key={episode.id}
         className="w-full accent-cyan-200"
         controls
+        onEnded={() => onPlaybackChange?.(false)}
+        onPause={() => onPlaybackChange?.(false)}
+        onPlay={() => onPlaybackChange?.(true)}
         preload="metadata"
         src={episode.audioUrl}
       >
