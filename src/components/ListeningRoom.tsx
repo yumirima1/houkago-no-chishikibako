@@ -586,11 +586,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           </section>
           <EpisodeList
             episodes={filteredEpisodes}
-            onSelectEpisode={(episodeId) => {
-              selectEpisode(episodeId);
-              handlePlaybackChange(false);
-              wakeInterface();
-            }}
+            onSelectEpisode={playEpisode}
             selectedEpisodeId={selectedEpisode.id}
           />
         </div>
