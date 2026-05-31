@@ -60,9 +60,8 @@ function reinforceSpeakerRole(line: EpisodeSpeakerLine, changes: string[]) {
     return `${line.text} 仕組みとして見ると、ここが大事です。`;
   }
 
-  if (line.id === "bunkei" && !/たとえ|疑問|でも|なぜ|でしょう|ですね/.test(line.text)) {
-    changes.push("文系担当の発話に、疑問や例えの視点を補いました。");
-    return `${line.text} たとえるなら、私たちの日常の迷いにも近いですね。`;
+  if (line.id === "bunkei" && !/待って|でも|それ|ちょっと|なんで|本当|急に|分かる/.test(line.text)) {
+    changes.push("文系担当の発話は、定型の哲学変換を追加せずリスナー目線として確認しました。");
   }
 
   return line.text;
@@ -120,7 +119,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
       checks: {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
-        roleSeparation: "理系担当は仕組み、文系担当は疑問と例えの役割を確認しました。",
+        roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
         naturalConversation: "同じ話者が続く箇所を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
