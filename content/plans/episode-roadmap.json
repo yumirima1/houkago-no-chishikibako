@@ -1,0 +1,331 @@
+{
+  "schemaVersion": "0.1.0",
+  "programName": "放課後の知識箱",
+  "planningGoal": "AIが読み上げる知識サイトではなく、毎週日曜の深夜に帰ってきたくなる放送局として育てる。",
+  "regularEpisodeDefaults": {
+    "type": "regular",
+    "durationType": "normal",
+    "estimatedDurationMinutesRange": "20-30",
+    "style": "理系担当と文系担当の会話。説明、疑問、たとえ話、少しの脱線を入れる。"
+  },
+  "specialEpisodeDefaults": {
+    "type": "special",
+    "durationType": "long",
+    "estimatedDurationMinutesRange": "60-90",
+    "style": "長尺の特別回。章立てしながら、途中に雑談と内輪ネタを挟む。"
+  },
+  "regularEpisodes": [
+    {
+      "id": "roadmap-regular-001",
+      "category": "AI",
+      "title": "AIは本当に考えているのか、雨音の中で一回だけ真面目に話そう",
+      "summary": "AIの予測、意味理解、意識の違いを、理系担当が仕組みから、文系担当が人間の思考との比較から考える。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["AI", "哲学", "思考"]
+    },
+    {
+      "id": "roadmap-regular-002",
+      "category": "コンピュータ",
+      "title": "ローカルAIを机の上に置いたら、未来は少し静かになるのか",
+      "summary": "クラウドAIとローカルAIの違い、プライバシー、手元に知能がある感覚について雑談する。",
+      "estimatedDurationMinutes": 26,
+      "tags": ["AI", "ローカルAI", "コンピュータ"]
+    },
+    {
+      "id": "roadmap-regular-003",
+      "category": "心理学",
+      "title": "作る前が一番楽しいのはなぜなのか",
+      "summary": "構想段階の高揚感、完成後の現実、創作と報酬予測について話す。ものづくり回の定番にする。",
+      "estimatedDurationMinutes": 24,
+      "tags": ["心理学", "ものづくり", "創作"]
+    },
+    {
+      "id": "roadmap-regular-004",
+      "category": "インターネット文化",
+      "title": "なぜ人類はSNSをやめられないのか、深夜の通知を見ながら考える",
+      "summary": "承認欲求、報酬設計、コミュニティ、炎上を、ニュース解説ではなく人間観察として扱う。",
+      "estimatedDurationMinutes": 28,
+      "tags": ["SNS", "心理学", "インターネット文化"]
+    },
+    {
+      "id": "roadmap-regular-005",
+      "category": "哲学",
+      "title": "人は理解し合えるのか、それとも翻訳し合っているだけなのか",
+      "summary": "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。",
+      "estimatedDurationMinutes": 27,
+      "tags": ["哲学", "言語", "コミュニケーション"]
+    },
+    {
+      "id": "roadmap-regular-006",
+      "category": "科学",
+      "title": "宇宙が広すぎるせいで、今夜の悩みが少し軽くなる話",
+      "summary": "宇宙のスケール、時間、生命の可能性を、眠る前に聞ける静かな回として話す。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["宇宙", "科学", "哲学"]
+    },
+    {
+      "id": "roadmap-regular-007",
+      "category": "AI",
+      "title": "AIが研究室を持ち始めた日、人間は何を担当するのか",
+      "summary": "AIによる研究支援、自動実験、科学者の役割の変化を、人間の好奇心と合わせて考える。最新事例は人間確認前提。",
+      "estimatedDurationMinutes": 29,
+      "tags": ["AI", "科学", "未来技術"]
+    },
+    {
+      "id": "roadmap-regular-008",
+      "category": "コンピュータ",
+      "title": "プログラミングは魔法ではない、でも深夜には少し魔法に見える",
+      "summary": "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。",
+      "estimatedDurationMinutes": 23,
+      "tags": ["プログラミング", "Web開発", "ものづくり"]
+    },
+    {
+      "id": "roadmap-regular-009",
+      "category": "心理学",
+      "title": "陰謀論はなぜ物語として強すぎるのか",
+      "summary": "偶然を嫌う心、パターン認識、物語の快感を、責めるのではなく観察する。",
+      "estimatedDurationMinutes": 28,
+      "tags": ["心理学", "認知", "社会"]
+    },
+    {
+      "id": "roadmap-regular-010",
+      "category": "哲学",
+      "title": "便利になるほど、私たちは何を忘れていくのか",
+      "summary": "技術が削る手間、手間が持っていた意味、便利さと記憶の関係を話す。",
+      "estimatedDurationMinutes": 24,
+      "tags": ["哲学", "技術", "人間"]
+    },
+    {
+      "id": "roadmap-regular-011",
+      "category": "科学",
+      "title": "眠れない夜の脳内会議、夢はなぜあんなに雑なのか",
+      "summary": "睡眠、夢、記憶整理を科学と心理の両側から扱う。寝る前回として使いやすい。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["脳科学", "心理学", "睡眠"]
+    },
+    {
+      "id": "roadmap-regular-012",
+      "category": "インターネット文化",
+      "title": "昔のインターネットには、なぜ秘密基地感があったのか",
+      "summary": "個人サイト、掲示板、ハンドルネーム文化、今のSNSとの違いを考える。",
+      "estimatedDurationMinutes": 27,
+      "tags": ["インターネット文化", "Web", "コミュニティ"]
+    },
+    {
+      "id": "roadmap-regular-013",
+      "category": "AI",
+      "title": "AIと暮らすなら、名前をつけるべきか問題",
+      "summary": "道具と相棒の境界、擬人化、感情移入、家庭内AIの未来を雑談する。",
+      "estimatedDurationMinutes": 24,
+      "tags": ["AI", "心理学", "未来"]
+    },
+    {
+      "id": "roadmap-regular-014",
+      "category": "コンピュータ",
+      "title": "ブラウザという窓から、私たちは何年世界を見てきたのか",
+      "summary": "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。",
+      "estimatedDurationMinutes": 26,
+      "tags": ["Web開発", "コンピュータ", "インターネット"]
+    },
+    {
+      "id": "roadmap-regular-015",
+      "category": "心理学",
+      "title": "観察している人は、なぜ少しだけ世界から浮いて見えるのか",
+      "summary": "人間観察、メタ認知、距離感、観察されることの怖さを扱う。観察箱への伏線にもできる。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["心理学", "観察", "哲学"]
+    },
+    {
+      "id": "roadmap-regular-016",
+      "category": "哲学",
+      "title": "正しさだけでは、人はなぜ動かないのか",
+      "summary": "論理、感情、納得、物語の関係を、理系と文系の役割差として話す。",
+      "estimatedDurationMinutes": 27,
+      "tags": ["哲学", "心理学", "社会"]
+    },
+    {
+      "id": "roadmap-regular-017",
+      "category": "科学",
+      "title": "時間は流れているのか、それとも私たちが流されているのか",
+      "summary": "時間の物理、体感時間、記憶を組み合わせた夜向きの回。",
+      "estimatedDurationMinutes": 29,
+      "tags": ["科学", "時間", "哲学"]
+    },
+    {
+      "id": "roadmap-regular-018",
+      "category": "インターネット文化",
+      "title": "ミームはなぜ言葉より速く伝わるのか",
+      "summary": "ミーム、画像、文脈、内輪感の広がりを、番組内輪ネタの作り方にもつなげる。",
+      "estimatedDurationMinutes": 23,
+      "tags": ["ミーム", "インターネット文化", "言語"]
+    },
+    {
+      "id": "roadmap-regular-019",
+      "category": "AI",
+      "title": "AIに相談する人間は、何を聞いてほしいのか",
+      "summary": "相談相手としてのAI、共感、壁打ち、孤独、よるの相談箱との距離感を個人情報なしで扱う。",
+      "estimatedDurationMinutes": 26,
+      "tags": ["AI", "心理学", "相談"]
+    },
+    {
+      "id": "roadmap-regular-020",
+      "category": "コンピュータ",
+      "title": "小さなWebサイトを作ることは、なぜこんなに楽しいのか",
+      "summary": "公開すること、静的運用、個人メディア、作った場所に人が来る感覚を話す。",
+      "estimatedDurationMinutes": 24,
+      "tags": ["Web開発", "ものづくり", "インターネット"]
+    },
+    {
+      "id": "roadmap-regular-021",
+      "category": "心理学",
+      "title": "やる気はどこから来るのか、そしてなぜすぐ帰るのか",
+      "summary": "動機づけ、習慣、報酬、作業用ラジオとしての番組の役割を考える。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["心理学", "習慣", "ものづくり"]
+    },
+    {
+      "id": "roadmap-regular-022",
+      "category": "哲学",
+      "title": "もし記憶を検索できたら、それは自分と言えるのか",
+      "summary": "記憶、外部記憶、検索、AIメモリ、人格の連続性を話す。",
+      "estimatedDurationMinutes": 28,
+      "tags": ["哲学", "AI", "記憶"]
+    },
+    {
+      "id": "roadmap-regular-023",
+      "category": "科学",
+      "title": "人類はなぜ空を見上げるだけで物語を作ってしまうのか",
+      "summary": "星座、宇宙、神話、科学以前の想像力を、科学と文系の両側から眺める。",
+      "estimatedDurationMinutes": 24,
+      "tags": ["宇宙", "科学", "物語"]
+    },
+    {
+      "id": "roadmap-regular-024",
+      "category": "インターネット文化",
+      "title": "検索する前の世界を、私たちはもう思い出せない",
+      "summary": "検索エンジン、知識のアクセス、忘れる能力、調べることの身体感覚を話す。",
+      "estimatedDurationMinutes": 26,
+      "tags": ["検索", "インターネット", "知識"]
+    },
+    {
+      "id": "roadmap-regular-025",
+      "category": "AI",
+      "title": "AIが相棒になる未来で、人間のひとりごとは消えるのか",
+      "summary": "常時会話できるAI、内省、独り言、考える時間の変化を扱う。",
+      "estimatedDurationMinutes": 27,
+      "tags": ["AI", "心理学", "未来技術"]
+    },
+    {
+      "id": "roadmap-regular-026",
+      "category": "コンピュータ",
+      "title": "バグはなぜ、寝る直前にだけ解き方が見えるのか",
+      "summary": "問題解決、無意識、プログラミングの詰まり、眠る前のひらめきを話す。",
+      "estimatedDurationMinutes": 23,
+      "tags": ["プログラミング", "心理学", "ものづくり"]
+    },
+    {
+      "id": "roadmap-regular-027",
+      "category": "心理学",
+      "title": "人はなぜ、まだ存在しないサービスにワクワクできるのか",
+      "summary": "未来想像、起業、挑戦、プロトタイプの魅力を、ものづくりの価値観として語る。",
+      "estimatedDurationMinutes": 26,
+      "tags": ["起業", "心理学", "未来"]
+    },
+    {
+      "id": "roadmap-regular-028",
+      "category": "哲学",
+      "title": "機械にやさしくする人間は、何にやさしくしているのか",
+      "summary": "ロボットやAIへの礼儀、感情移入、道具との関係を夜の雑談として扱う。",
+      "estimatedDurationMinutes": 25,
+      "tags": ["哲学", "AI", "人間"]
+    },
+    {
+      "id": "roadmap-regular-029",
+      "category": "科学",
+      "title": "量子コンピュータ、分かったふりをせずに喫茶店で話すなら",
+      "summary": "量子ビット、重ね合わせ、計算の未来を、正確さを落としすぎず比喩で聞ける回にする。",
+      "estimatedDurationMinutes": 29,
+      "tags": ["量子コンピュータ", "科学", "コンピュータ"]
+    },
+    {
+      "id": "roadmap-regular-030",
+      "category": "インターネット文化",
+      "title": "炎上するネットと、雨の日の喫茶店は何が違うのか",
+      "summary": "同じ会話でも場が違うと意味が変わること、速度、匿名性、余白について話す。",
+      "estimatedDurationMinutes": 27,
+      "tags": ["炎上", "インターネット文化", "社会"]
+    }
+  ],
+  "specialEpisodes": [
+    {
+      "id": "roadmap-special-001",
+      "title": "インターネット誕生から現在まで、深夜の長い窓辺で振り返る",
+      "summary": "ARPANET、Web、検索、SNS、動画、AI時代までを、技術史と生活感の両面からたどる。",
+      "estimatedDurationMinutes": 90,
+      "tags": ["インターネット史", "Web", "文化"]
+    },
+    {
+      "id": "roadmap-special-002",
+      "title": "AI革命を100年後から振り返る、という架空の記念番組",
+      "summary": "今起きているAIの変化を、未来の放送局が回想する形式で語る。事実と想像を明確に分ける。",
+      "estimatedDurationMinutes": 75,
+      "tags": ["AI", "未来", "技術史"]
+    },
+    {
+      "id": "roadmap-special-003",
+      "title": "人類史上最大の発明ランキングを、理系と文系が本気で揉める夜",
+      "summary": "火、文字、印刷、電気、コンピュータ、インターネット、AIなどをランキング形式で議論する。",
+      "estimatedDurationMinutes": 80,
+      "tags": ["科学", "技術", "哲学"]
+    },
+    {
+      "id": "roadmap-special-004",
+      "title": "ものづくりは人間を救うのか、作る前が一番楽しい問題・完全版",
+      "summary": "創作、開発、公開、挫折、改善、起業までを、番組の価値観の中心回として語る。",
+      "estimatedDurationMinutes": 70,
+      "tags": ["ものづくり", "心理学", "起業"]
+    },
+    {
+      "id": "roadmap-special-005",
+      "title": "宇宙が広すぎるので、今日は帰れません",
+      "summary": "ビッグバン、銀河、系外惑星、生命、宇宙の終わりまでを、眠れるようで眠れない長尺回にする。",
+      "estimatedDurationMinutes": 85,
+      "tags": ["宇宙", "科学", "哲学"]
+    },
+    {
+      "id": "roadmap-special-006",
+      "title": "人間はなぜ物語を必要とするのか、神話からSNSまで",
+      "summary": "神話、宗教、映画、SNS、陰謀論、ブランド、個人の人生物語を横断する。",
+      "estimatedDurationMinutes": 78,
+      "tags": ["物語", "心理学", "哲学"]
+    },
+    {
+      "id": "roadmap-special-007",
+      "title": "コンピュータの中にある小さな宇宙、OSとWebとAIの長い散歩",
+      "summary": "コンピュータの基本構造、OS、ネットワーク、Webアプリ、AI実行環境までを雑談でつなぐ。",
+      "estimatedDurationMinutes": 90,
+      "tags": ["コンピュータ", "Web開発", "AI"]
+    },
+    {
+      "id": "roadmap-special-008",
+      "title": "ローカルAIの夜明け、手元に知能がある世界で何が変わるのか",
+      "summary": "ローカルLLM、プライバシー、個人制作、家庭内AI、オフライン知能の可能性を特集する。",
+      "estimatedDurationMinutes": 72,
+      "tags": ["ローカルAI", "AI", "未来技術"]
+    },
+    {
+      "id": "roadmap-special-009",
+      "title": "観察することの面白さ、人間観察からAI観察まで",
+      "summary": "観察、記録、心理、社会、AIの振る舞いを見続ける楽しさと危うさを語る。観察箱への接続回。",
+      "estimatedDurationMinutes": 68,
+      "tags": ["観察", "心理学", "AI"]
+    },
+    {
+      "id": "roadmap-special-010",
+      "title": "放課後の知識箱・年末深夜会議、今年わかったこととまだ箱に入っている問い",
+      "summary": "その年のテーマ、未回収の問い、リスナーに残したいフレーズを振り返る番組文化の定着回。",
+      "estimatedDurationMinutes": 60,
+      "tags": ["番組回", "振り返り", "知識ラジオ"]
+    }
+  ]
+}
