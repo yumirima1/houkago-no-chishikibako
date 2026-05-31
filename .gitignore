@@ -20,6 +20,10 @@
 # production
 /build
 
+# generated audio intermediates
+/generated-audio/*
+!/generated-audio/.gitkeep
+
 # misc
 .DS_Store
 *.pem
