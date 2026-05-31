@@ -122,6 +122,398 @@ body {
   animation: quiet-blink 16s ease-in-out infinite;
 }
 
+.background-mode-overlay {
+  --ambient-accent: rgba(125, 211, 252, 0.88);
+  --ambient-accent-soft: rgba(125, 211, 252, 0.16);
+  --ambient-text: rgba(241, 245, 249, 0.92);
+  --ambient-muted: rgba(203, 213, 225, 0.58);
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  overflow: hidden;
+  color: var(--ambient-text);
+  text-shadow: 0 0 18px rgba(15, 23, 42, 0.9);
+  transition: opacity 600ms ease;
+}
+
+.background-mode-overlay-room {
+  --ambient-accent: rgba(147, 197, 253, 0.9);
+  --ambient-accent-soft: rgba(147, 197, 253, 0.16);
+}
+
+.background-mode-overlay-desk {
+  --ambient-accent: rgba(252, 211, 77, 0.86);
+  --ambient-accent-soft: rgba(252, 211, 77, 0.14);
+}
+
+.background-mode-overlay-window {
+  --ambient-accent: rgba(125, 211, 252, 0.9);
+  --ambient-accent-soft: rgba(125, 211, 252, 0.18);
+}
+
+.background-mode-overlay.is-dimmed .ambient-stage,
+.background-mode-overlay.is-dimmed .ambient-controls,
+.background-mode-overlay.is-dimmed .ambient-nav {
+  opacity: 0.08;
+}
+
+.background-mode-overlay.is-dimmed .ambient-controls,
+.background-mode-overlay.is-dimmed .ambient-nav {
+  pointer-events: none;
+}
+
+.background-mode-overlay.is-dimmed .ambient-show-ui {
+  opacity: 0.45;
+}
+
+.ambient-show-ui {
+  position: absolute;
+  top: clamp(1rem, 3vw, 1.75rem);
+  right: clamp(1rem, 3vw, 2rem);
+  min-height: 2.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 999px;
+  padding: 0 1rem;
+  color: rgba(241, 245, 249, 0.84);
+  background: rgba(2, 6, 23, 0.12);
+  box-shadow: 0 0 26px var(--ambient-accent-soft);
+  backdrop-filter: blur(10px);
+}
+
+.ambient-nav {
+  position: absolute;
+  left: clamp(1rem, 3vw, 2rem);
+  top: clamp(1rem, 3vw, 1.75rem);
+  display: grid;
+  gap: 0.6rem;
+  max-width: 12rem;
+  transition: opacity 500ms ease;
+}
+
+.ambient-nav button,
+.ambient-nav span {
+  width: fit-content;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 999px;
+  padding: 0.52rem 0.8rem;
+  color: rgba(226, 232, 240, 0.68);
+  background: rgba(2, 6, 23, 0.08);
+  box-shadow: 0 0 20px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(8px);
+  font-size: 0.82rem;
+}
+
+.ambient-mode-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.ambient-mode-buttons button.is-active {
+  border-color: color-mix(in srgb, var(--ambient-accent) 46%, transparent);
+  color: rgba(248, 250, 252, 0.92);
+  background: var(--ambient-accent-soft);
+}
+
+.ambient-stage {
+  position: absolute;
+  inset: clamp(4.8rem, 10vh, 6rem) 1rem auto;
+  display: grid;
+  justify-items: center;
+  gap: clamp(1.1rem, 3vh, 2.2rem);
+  pointer-events: none;
+  transition: opacity 500ms ease;
+}
+
+.ambient-clock {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(72vw, 24rem);
+  aspect-ratio: 1;
+}
+
+.ambient-clock-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border: 1px solid color-mix(in srgb, var(--ambient-accent) 30%, transparent);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(248, 250, 252, 0.05), transparent 58%),
+    radial-gradient(circle, var(--ambient-accent-soft), transparent 66%);
+  box-shadow:
+    0 0 42px var(--ambient-accent-soft),
+    inset 0 0 46px rgba(226, 232, 240, 0.035);
+}
+
+.ambient-clock-ring::before,
+.ambient-clock-ring::after {
+  position: absolute;
+  content: "";
+  border-radius: 999px;
+}
+
+.ambient-clock-ring::before {
+  inset: 8%;
+  border: 1px solid rgba(226, 232, 240, 0.055);
+}
+
+.ambient-clock-ring::after {
+  inset: 18%;
+  border: 1px dashed color-mix(in srgb, var(--ambient-accent) 18%, transparent);
+  animation: ambient-ring-breathe 8s ease-in-out infinite;
+}
+
+.clock-mark {
+  position: absolute;
+  width: 0.36rem;
+  height: 0.36rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ambient-accent) 58%, transparent);
+  box-shadow: 0 0 16px var(--ambient-accent-soft);
+}
+
+.clock-mark-12 {
+  top: 8.5%;
+}
+
+.clock-mark-3 {
+  right: 8.5%;
+}
+
+.clock-mark-6 {
+  bottom: 8.5%;
+}
+
+.clock-mark-9 {
+  left: 8.5%;
+}
+
+.ambient-clock-label {
+  position: absolute;
+  top: 30%;
+  margin: 0;
+  color: var(--ambient-muted);
+  font-size: clamp(0.64rem, 1.9vw, 0.78rem);
+  letter-spacing: 0.32em;
+}
+
+.ambient-clock-time {
+  color: rgba(248, 250, 252, 0.94);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: clamp(2.6rem, 11vw, 5.7rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0;
+  tab-size: 4;
+}
+
+.ambient-episode {
+  width: min(86vw, 52rem);
+  text-align: center;
+}
+
+.ambient-episode-number,
+.ambient-episode-meta {
+  margin: 0;
+  color: var(--ambient-muted);
+  font-size: clamp(0.8rem, 2.4vw, 0.95rem);
+}
+
+.ambient-episode h2 {
+  margin: 0.6rem auto 0;
+  max-width: 48rem;
+  color: rgba(248, 250, 252, 0.94);
+  font-size: clamp(1.35rem, 5vw, 3rem);
+  font-weight: 650;
+  line-height: 1.18;
+}
+
+.ambient-episode-meta {
+  margin-top: 0.75rem;
+}
+
+.ambient-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 0.9rem;
+}
+
+.ambient-tags span {
+  border: 1px solid color-mix(in srgb, var(--ambient-accent) 20%, transparent);
+  border-radius: 999px;
+  padding: 0.36rem 0.65rem;
+  color: rgba(226, 232, 240, 0.72);
+  background: rgba(2, 6, 23, 0.08);
+  backdrop-filter: blur(6px);
+  font-size: 0.78rem;
+}
+
+.ambient-controls {
+  position: absolute;
+  inset-inline: clamp(1rem, 4vw, 4rem);
+  bottom: clamp(1.2rem, 5vh, 3rem);
+  display: grid;
+  gap: clamp(1rem, 2.6vh, 1.35rem);
+  transition: opacity 500ms ease;
+}
+
+.ambient-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.48rem, 2vw, 1rem);
+}
+
+.ambient-round-control,
+.ambient-play-control {
+  border: 1px solid color-mix(in srgb, var(--ambient-accent) 26%, transparent);
+  color: rgba(248, 250, 252, 0.92);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(248, 250, 252, 0.08), transparent 58%),
+    rgba(2, 6, 23, 0.12);
+  box-shadow:
+    0 0 30px var(--ambient-accent-soft),
+    inset 0 0 24px rgba(226, 232, 240, 0.035);
+  backdrop-filter: blur(10px);
+}
+
+.ambient-round-control {
+  width: clamp(3rem, 11vw, 4rem);
+  height: clamp(3rem, 11vw, 4rem);
+  border-radius: 999px;
+  font-size: 0.84rem;
+}
+
+.ambient-small-control {
+  width: clamp(2.75rem, 10vw, 3.55rem);
+  height: clamp(2.75rem, 10vw, 3.55rem);
+  color: rgba(226, 232, 240, 0.76);
+}
+
+.ambient-play-control {
+  min-width: clamp(5.9rem, 24vw, 8rem);
+  min-height: clamp(4rem, 14vw, 5.2rem);
+  border-radius: 999px;
+  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  font-weight: 650;
+}
+
+.ambient-round-control:disabled {
+  opacity: 0.3;
+}
+
+.ambient-progress-shell {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(0.7rem, 2vw, 1rem);
+}
+
+.ambient-progress-time {
+  color: rgba(226, 232, 240, 0.58);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.78rem;
+}
+
+.ambient-progress {
+  position: relative;
+  display: block;
+  height: 2.25rem;
+}
+
+.ambient-progress::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  content: "";
+  background: rgba(226, 232, 240, 0.13);
+  box-shadow: 0 0 20px rgba(226, 232, 240, 0.05);
+}
+
+.ambient-progress-fill {
+  position: absolute;
+  top: calc(50% - 1px);
+  left: 0;
+  height: 2px;
+  background: var(--ambient-accent);
+  box-shadow: 0 0 18px var(--ambient-accent);
+  pointer-events: none;
+}
+
+.ambient-progress input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@keyframes ambient-ring-breathe {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.52;
+    transform: scale(1.025);
+  }
+}
+
+@media (max-width: 640px) {
+  .ambient-nav {
+    top: auto;
+    right: 1rem;
+    bottom: 7.8rem;
+    left: 1rem;
+    display: flex;
+    max-width: none;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  .ambient-mode-buttons {
+    flex-wrap: nowrap;
+  }
+
+  .ambient-stage {
+    top: 4.5rem;
+    gap: 1rem;
+  }
+
+  .ambient-clock {
+    width: min(78vw, 18rem);
+  }
+
+  .ambient-episode {
+    width: min(92vw, 32rem);
+  }
+
+  .ambient-controls {
+    inset-inline: 0.9rem;
+    bottom: 1rem;
+  }
+
+  .ambient-progress-shell {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .ambient-progress-time:last-child {
+    justify-self: end;
+    margin-top: -1.4rem;
+  }
+}
+
 @keyframes rain-shift {
   from {
     transform: translate3d(0, -80px, 0);

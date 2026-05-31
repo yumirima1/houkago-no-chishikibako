@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import {
@@ -40,99 +41,6 @@ function getNextSundayUpdateLabel() {
   }
 
   return `${next.getFullYear()}年${next.getMonth() + 1}月${next.getDate()}日 03:00`;
-}
-
-function parseDuration(duration: string) {
-  const [minutes = "0", seconds = "0"] = duration.split(":");
-  return Number(minutes) * 60 + Number(seconds);
-}
-
-function formatTime(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) {
-    return "00:00";
-  }
-
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
-}
-
-type MiniPlayerProps = {
-  currentTime: number;
-  duration: number;
-  episode: Episode;
-  isPlaying: boolean;
-  onSeek: (value: number) => void;
-  onShowInterface: () => void;
-  onTogglePlayback: () => void;
-};
-
-function BackgroundMiniPlayer({
-  currentTime,
-  duration,
-  episode,
-  isPlaying,
-  onSeek,
-  onShowInterface,
-  onTogglePlayback,
-}: MiniPlayerProps) {
-  const displayDuration = duration > 0 ? duration : parseDuration(episode.duration);
-
-  return (
-    <div className="fixed inset-x-4 bottom-5 z-20 mx-auto max-w-3xl rounded-lg border border-white/10 bg-slate-950/62 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:bottom-7 sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/60">
-            Background mode
-          </p>
-          <h2 className="mt-2 truncate text-base font-semibold text-slate-50 sm:text-lg">
-            {episode.title}
-          </h2>
-        </div>
-        <div className="shrink-0">
-          <p className="mb-1 text-xs uppercase tracking-[0.24em] text-slate-500">
-            Tokyo
-          </p>
-          <Clock />
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center">
-        <button
-          className="min-h-11 rounded-md border border-cyan-100/20 bg-cyan-100/[0.12] px-4 text-sm font-medium text-cyan-50 transition-colors hover:bg-cyan-100/[0.18] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-          onClick={onTogglePlayback}
-          type="button"
-        >
-          {isPlaying ? "一時停止" : "再生"}
-        </button>
-
-        <label className="grid gap-2 text-xs text-slate-400">
-          <span className="sr-only">再生位置</span>
-          <input
-            className="w-full accent-cyan-200"
-            max={displayDuration || 0}
-            min={0}
-            onChange={(event) => onSeek(Number(event.currentTarget.value))}
-            step={1}
-            type="range"
-            value={Math.min(currentTime, displayDuration || 0)}
-          />
-          <span className="font-mono tabular-nums">
-            {formatTime(currentTime)} / {formatTime(displayDuration)}
-          </span>
-        </label>
-
-        <button
-          className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-100 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-          onClick={onShowInterface}
-          type="button"
-        >
-          UIを表示
-        </button>
-      </div>
-    </div>
-  );
 }
 
 type FeatureEpisodeCardProps = {
@@ -209,6 +117,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
+  const [isBackgroundOverlayVisible, setIsBackgroundOverlayVisible] =
+    useState(true);
 
   const selectedEpisode = useMemo(
     () =>
@@ -251,10 +161,18 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     );
   }, [listEpisodes, selectedTags]);
   const showInterface = !isInterfaceHidden;
+  const selectedEpisodeIndex = useMemo(
+    () => episodes.findIndex((episode) => episode.id === selectedEpisode.id),
+    [episodes, selectedEpisode.id],
+  );
+  const hasPreviousEpisode = selectedEpisodeIndex > 0;
+  const hasNextEpisode =
+    selectedEpisodeIndex > -1 && selectedEpisodeIndex < episodes.length - 1;
 
   const wakeInterface = useCallback(() => {
     setLastInteractionAt(Date.now());
     setIsInterfaceHidden(false);
+    setIsBackgroundOverlayVisible(true);
   }, []);
 
   const markActivity = useCallback(() => {
@@ -278,6 +196,25 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     setCurrentTime(value);
   }, []);
 
+  const seekBy = useCallback(
+    (seconds: number) => {
+      const audio = audioRef.current;
+
+      if (!audio) {
+        return;
+      }
+
+      const nextTime = Math.min(
+        Math.max(0, audio.currentTime + seconds),
+        duration || audio.duration || audio.currentTime + seconds,
+      );
+
+      audio.currentTime = nextTime;
+      setCurrentTime(nextTime);
+    },
+    [duration],
+  );
+
   const selectEpisode = useCallback((episodeId: string) => {
     setCurrentTime(0);
     setDuration(0);
@@ -297,6 +234,21 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       wakeInterface();
     },
     [selectEpisode, selectedEpisode.id, wakeInterface],
+  );
+
+  const goToAdjacentEpisode = useCallback(
+    (direction: -1 | 1) => {
+      const nextEpisode = episodes[selectedEpisodeIndex + direction];
+
+      if (!nextEpisode) {
+        return;
+      }
+
+      selectEpisode(nextEpisode.id);
+      setShouldAutoPlayNext(isPlaying);
+      setIsBackgroundOverlayVisible(true);
+    },
+    [episodes, isPlaying, selectEpisode, selectedEpisodeIndex],
   );
 
   const togglePlayback = useCallback(() => {
@@ -367,6 +319,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
     const timer = window.setTimeout(() => {
       setIsInterfaceHidden(true);
+      setIsBackgroundOverlayVisible(true);
     }, AUTO_HIDE_MS);
 
     return () => window.clearTimeout(timer);
@@ -402,13 +355,24 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       <RainyNightBackground mode={backgroundMode} />
 
       {!showInterface ? (
-        <BackgroundMiniPlayer
+        <BackgroundModeOverlay
+          backgroundMode={backgroundMode}
           currentTime={currentTime}
           duration={duration}
           episode={selectedEpisode}
+          hasNextEpisode={hasNextEpisode}
+          hasPreviousEpisode={hasPreviousEpisode}
           isPlaying={isPlaying}
+          isVisible={isBackgroundOverlayVisible}
+          onChangeBackgroundMode={setBackgroundMode}
+          onNextEpisode={() => goToAdjacentEpisode(1)}
+          onPreviousEpisode={() => goToAdjacentEpisode(-1)}
           onSeek={handleSeek}
+          onSeekBy={seekBy}
           onShowInterface={wakeInterface}
+          onToggleOverlay={() =>
+            setIsBackgroundOverlayVisible((isVisible) => !isVisible)
+          }
           onTogglePlayback={togglePlayback}
         />
       ) : null}
@@ -437,25 +401,37 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             </p>
           </div>
 
-          <div
-            className="flex w-full gap-1 rounded-lg border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md sm:w-auto"
-            aria-label="背景モード"
-            role="group"
-          >
-            {backgroundModes.map((mode) => (
-              <button
-                className={`min-h-10 flex-1 rounded-md px-3 text-sm transition-colors sm:flex-none ${
-                  mode.id === backgroundMode
-                    ? "bg-cyan-100/[0.16] text-cyan-50"
-                    : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
-                }`}
-                key={mode.id}
-                onClick={() => setBackgroundMode(mode.id)}
-                type="button"
-              >
-                {mode.label}
-              </button>
-            ))}
+          <div className="flex flex-col gap-2 sm:items-end">
+            <div
+              className="flex w-full gap-1 rounded-lg border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md sm:w-auto"
+              aria-label="背景モード"
+              role="group"
+            >
+              {backgroundModes.map((mode) => (
+                <button
+                  className={`min-h-10 flex-1 rounded-md px-3 text-sm transition-colors sm:flex-none ${
+                    mode.id === backgroundMode
+                      ? "bg-cyan-100/[0.16] text-cyan-50"
+                      : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
+                  }`}
+                  key={mode.id}
+                  onClick={() => setBackgroundMode(mode.id)}
+                  type="button"
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+            <button
+              className="min-h-10 w-full rounded-lg border border-cyan-100/15 bg-cyan-100/[0.08] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.13] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-auto"
+              onClick={() => {
+                setIsBackgroundOverlayVisible(true);
+                setIsInterfaceHidden(true);
+              }}
+              type="button"
+            >
+              背景モード
+            </button>
           </div>
         </header>
 
