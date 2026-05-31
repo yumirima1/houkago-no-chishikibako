@@ -2,9 +2,10 @@
   "id": "episode-017",
   "title": "AIと暮らすなら、名前をつけるべきか問題",
   "description": "道具と相棒の境界、擬人化、感情移入、家庭内AIの未来を雑談する。",
+  "audioUrl": "/audio/episode-017.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-08-30",
+  "publishedAt": "2026-05-31",
   "duration": "24:00",
   "tags": [
     "AI",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-013",
-    "category": "AI",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-017.json",
+    "durationTargetMinutes": 24,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

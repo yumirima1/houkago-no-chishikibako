@@ -1,0 +1,17 @@
+{
+  id: "episode-009",
+  title: "人は理解し合えるのか、それとも翻訳し合っているだけなのか",
+  description: "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。",
+  audioUrl: "/audio/episode-009.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "27:00",
+  tags: ["哲学","言語","コミュニケーション"],
+  themes: ["哲学","言語","コミュニケーション"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

@@ -1,0 +1,17 @@
+{
+  id: "episode-007",
+  title: "作る前が一番楽しいのはなぜなのか",
+  description: "構想段階の高揚感、完成後の現実、創作と報酬予測について話す。ものづくり回の定番にする。",
+  audioUrl: "/audio/episode-007.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "24:00",
+  tags: ["心理学","ものづくり","創作"],
+  themes: ["心理学","ものづくり","創作"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

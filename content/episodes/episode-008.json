@@ -2,9 +2,10 @@
   "id": "episode-008",
   "title": "なぜ人類はSNSをやめられないのか、深夜の通知を見ながら考える",
   "description": "承認欲求、報酬設計、コミュニティ、炎上を、ニュース解説ではなく人間観察として扱う。",
+  "audioUrl": "/audio/episode-008.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-06-28",
+  "publishedAt": "2026-05-31",
   "duration": "28:00",
   "tags": [
     "インターネット文化",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-004",
-    "category": "インターネット文化",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-008.json",
+    "durationTargetMinutes": 28,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

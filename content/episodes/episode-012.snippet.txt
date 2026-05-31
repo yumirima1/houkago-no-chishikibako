@@ -1,0 +1,17 @@
+{
+  id: "episode-012",
+  title: "プログラミングは魔法ではない、でも深夜には少し魔法に見える",
+  description: "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。",
+  audioUrl: "/audio/episode-012.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "23:00",
+  tags: ["コンピュータ","プログラミング","Web開発","ものづくり"],
+  themes: ["コンピュータ","プログラミング","Web開発","ものづくり"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

@@ -1,0 +1,71 @@
+{
+  "id": "episode-013",
+  "title": "陰謀論はなぜ物語として強すぎるのか",
+  "theme": "心理学",
+  "durationTargetMinutes": 28,
+  "description": "偶然を嫌う心、パターン認識、物語の快感を、責めるのではなく観察する。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "心理学",
+    "認知",
+    "社会"
+  ],
+  "themes": [
+    "心理学",
+    "認知",
+    "社会"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「陰謀論はなぜ物語として強すぎるのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "偶然を嫌う心、パターン認識、物語の快感を、責めるのではなく観察する。 仕組みとして見ると、ここが大事です。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。 たとえるなら、私たちの日常の迷いにも近いですね。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.916Z",
+  "updatedAt": "2026-05-31T13:27:46.720Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-009",
+    "category": "心理学",
+    "seededBy": "npm run episode:seed"
+  },
+  "review": {
+    "reviewedAt": "2026-05-31T13:27:46.720Z",
+    "status": "reviewed",
+    "checks": {
+      "misinformationRisk": "断定表現を弱め、検証が必要な表現を残しにくくしました。",
+      "readability": "長すぎる文と余分な空白を簡易調整しました。",
+      "roleSeparation": "理系担当は仕組み、文系担当は疑問と例えの役割を確認しました。",
+      "naturalConversation": "同じ話者が続く箇所を警告として記録します。",
+      "narrationEase": "句点と文の長さを読み上げ向けに整えました。"
+    },
+    "warnings": [
+      "目標時間が20分を超えています。v0.3では短めの構成を推奨します。"
+    ],
+    "changes": [
+      "理系担当の発話に、仕組みやデータの視点を補いました。",
+      "文系担当の発話に、疑問や例えの視点を補いました。"
+    ]
+  }
+}

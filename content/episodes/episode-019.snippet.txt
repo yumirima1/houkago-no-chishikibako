@@ -1,0 +1,17 @@
+{
+  id: "episode-019",
+  title: "観察している人は、なぜ少しだけ世界から浮いて見えるのか",
+  description: "人間観察、メタ認知、距離感、観察されることの怖さを扱う。観察箱への伏線にもできる。",
+  audioUrl: "/audio/episode-019.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "25:00",
+  tags: ["心理学","観察","哲学"],
+  themes: ["心理学","観察","哲学"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

@@ -2,9 +2,10 @@
   "id": "episode-016",
   "title": "昔のインターネットには、なぜ秘密基地感があったのか",
   "description": "個人サイト、掲示板、ハンドルネーム文化、今のSNSとの違いを考える。",
+  "audioUrl": "/audio/episode-016.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-08-23",
+  "publishedAt": "2026-05-31",
   "duration": "27:00",
   "tags": [
     "インターネット文化",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-012",
-    "category": "インターネット文化",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-016.json",
+    "durationTargetMinutes": 27,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

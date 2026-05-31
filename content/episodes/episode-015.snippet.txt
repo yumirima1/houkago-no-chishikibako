@@ -1,0 +1,17 @@
+{
+  id: "episode-015",
+  title: "眠れない夜の脳内会議、夢はなぜあんなに雑なのか",
+  description: "睡眠、夢、記憶整理を科学と心理の両側から扱う。寝る前回として使いやすい。",
+  audioUrl: "/audio/episode-015.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "25:00",
+  tags: ["科学","脳科学","心理学","睡眠"],
+  themes: ["科学","脳科学","心理学","睡眠"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

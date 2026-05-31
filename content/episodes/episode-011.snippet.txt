@@ -1,0 +1,17 @@
+{
+  id: "episode-011",
+  title: "AIが研究室を持ち始めた日、人間は何を担当するのか",
+  description: "AIによる研究支援、自動実験、科学者の役割の変化を、人間の好奇心と合わせて考える。最新事例は人間確認前提。",
+  audioUrl: "/audio/episode-011.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "29:00",
+  tags: ["AI","科学","未来技術"],
+  themes: ["AI","科学","未来技術"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

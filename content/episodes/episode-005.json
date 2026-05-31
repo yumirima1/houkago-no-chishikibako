@@ -2,9 +2,10 @@
   "id": "episode-005",
   "title": "AIは本当に考えているのか、雨音の中で一回だけ真面目に話そう",
   "description": "AIの予測、意味理解、意識の違いを、理系担当が仕組みから、文系担当が人間の思考との比較から考える。",
+  "audioUrl": "/audio/episode-005.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-06-07",
+  "publishedAt": "2026-05-31",
   "duration": "25:00",
   "tags": [
     "AI",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-001",
-    "category": "AI",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-005.json",
+    "durationTargetMinutes": 25,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

@@ -1,0 +1,17 @@
+{
+  id: "episode-018",
+  title: "ブラウザという窓から、私たちは何年世界を見てきたのか",
+  description: "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。",
+  audioUrl: "/audio/episode-018.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "26:00",
+  tags: ["コンピュータ","Web開発","インターネット"],
+  themes: ["コンピュータ","Web開発","インターネット"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

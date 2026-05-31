@@ -2,9 +2,10 @@
   "id": "episode-024",
   "title": "小さなWebサイトを作ることは、なぜこんなに楽しいのか",
   "description": "公開すること、静的運用、個人メディア、作った場所に人が来る感覚を話す。",
+  "audioUrl": "/audio/episode-024.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-10-18",
+  "publishedAt": "2026-05-31",
   "duration": "24:00",
   "tags": [
     "コンピュータ",
@@ -22,11 +23,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-020",
-    "category": "コンピュータ",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-024.json",
+    "durationTargetMinutes": 24,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

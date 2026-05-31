@@ -2,9 +2,10 @@
   "id": "episode-012",
   "title": "プログラミングは魔法ではない、でも深夜には少し魔法に見える",
   "description": "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。",
+  "audioUrl": "/audio/episode-012.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-07-26",
+  "publishedAt": "2026-05-31",
   "duration": "23:00",
   "tags": [
     "コンピュータ",
@@ -22,11 +23,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-008",
-    "category": "コンピュータ",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-012.json",
+    "durationTargetMinutes": 23,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

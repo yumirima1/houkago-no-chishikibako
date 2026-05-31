@@ -2,9 +2,10 @@
   "id": "episode-014",
   "title": "便利になるほど、私たちは何を忘れていくのか",
   "description": "技術が削る手間、手間が持っていた意味、便利さと記憶の関係を話す。",
+  "audioUrl": "/audio/episode-014.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-08-09",
+  "publishedAt": "2026-05-31",
   "duration": "24:00",
   "tags": [
     "哲学",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-010",
-    "category": "哲学",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-014.json",
+    "durationTargetMinutes": 24,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

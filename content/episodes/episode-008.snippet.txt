@@ -1,0 +1,17 @@
+{
+  id: "episode-008",
+  title: "なぜ人類はSNSをやめられないのか、深夜の通知を見ながら考える",
+  description: "承認欲求、報酬設計、コミュニティ、炎上を、ニュース解説ではなく人間観察として扱う。",
+  audioUrl: "/audio/episode-008.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "28:00",
+  tags: ["インターネット文化","SNS","心理学"],
+  themes: ["インターネット文化","SNS","心理学"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

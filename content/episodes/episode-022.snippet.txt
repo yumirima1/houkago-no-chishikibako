@@ -1,0 +1,17 @@
+{
+  id: "episode-022",
+  title: "ミームはなぜ言葉より速く伝わるのか",
+  description: "ミーム、画像、文脈、内輪感の広がりを、番組内輪ネタの作り方にもつなげる。",
+  audioUrl: "/audio/episode-022.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "23:00",
+  tags: ["インターネット文化","ミーム","言語"],
+  themes: ["インターネット文化","ミーム","言語"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

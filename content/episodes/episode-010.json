@@ -2,9 +2,10 @@
   "id": "episode-010",
   "title": "宇宙が広すぎるせいで、今夜の悩みが少し軽くなる話",
   "description": "宇宙のスケール、時間、生命の可能性を、眠る前に聞ける静かな回として話す。",
+  "audioUrl": "/audio/episode-010.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-07-12",
+  "publishedAt": "2026-05-31",
   "duration": "25:00",
   "tags": [
     "科学",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-006",
-    "category": "科学",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-010.json",
+    "durationTargetMinutes": 25,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }

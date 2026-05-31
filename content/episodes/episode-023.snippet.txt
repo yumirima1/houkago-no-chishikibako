@@ -1,0 +1,17 @@
+{
+  id: "episode-023",
+  title: "AIに相談する人間は、何を聞いてほしいのか",
+  description: "相談相手としてのAI、共感、壁打ち、孤独、よるの相談箱との距離感を個人情報なしで扱う。",
+  audioUrl: "/audio/episode-023.mp3",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-05-31",
+  duration: "26:00",
+  tags: ["AI","心理学","相談"],
+  themes: ["AI","心理学","相談"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "published",
+}

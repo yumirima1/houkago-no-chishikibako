@@ -2,9 +2,10 @@
   "id": "episode-013",
   "title": "陰謀論はなぜ物語として強すぎるのか",
   "description": "偶然を嫌う心、パターン認識、物語の快感を、責めるのではなく観察する。",
+  "audioUrl": "/audio/episode-013.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-08-02",
+  "publishedAt": "2026-05-31",
   "duration": "28:00",
   "tags": [
     "心理学",
@@ -20,11 +21,13 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "draft",
+  "productionStatus": "published",
   "source": {
-    "roadmapPath": "content/plans/episode-roadmap.json",
-    "roadmapId": "roadmap-regular-009",
-    "category": "心理学",
-    "seededBy": "npm run episode:seed"
+    "reviewedScriptPath": "content/reviewed/episode-013.json",
+    "durationTargetMinutes": 28,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
   }
 }
