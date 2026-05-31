@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   BackgroundMode,
+  backgroundModeProfiles,
   RainyNightBackground,
 } from "@/components/RainyNightBackground";
 import {
@@ -23,12 +24,6 @@ const clockFormatter = new Intl.DateTimeFormat("ja-JP", {
   second: "2-digit",
   timeZone: "Asia/Tokyo",
 });
-
-const modeLabels: Record<BackgroundMode, string> = {
-  desk: "デスク",
-  room: "夜の部屋",
-  window: "雨の窓",
-};
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -179,14 +174,14 @@ export function BackgroundModeOverlay({
           背景を選ぶ
         </button>
         <div className="ambient-mode-buttons">
-          {(Object.keys(modeLabels) as BackgroundMode[]).map((mode) => (
+          {backgroundModeProfiles.map(({ id, label }) => (
             <button
-              className={mode === backgroundMode ? "is-active" : ""}
-              key={mode}
-              onClick={() => onChangeBackgroundMode(mode)}
+              className={id === backgroundMode ? "is-active" : ""}
+              key={id}
+              onClick={() => onChangeBackgroundMode(id)}
               type="button"
             >
-              {modeLabels[mode]}
+              {label}
             </button>
           ))}
         </div>

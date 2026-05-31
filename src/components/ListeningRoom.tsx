@@ -8,6 +8,7 @@ import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import {
   BackgroundMode,
+  backgroundModeProfiles,
   RainyNightBackground,
 } from "@/components/RainyNightBackground";
 import {
@@ -21,11 +22,8 @@ import {
 
 const AUTO_HIDE_MS = 30_000;
 
-const backgroundModes: { id: BackgroundMode; label: string }[] = [
-  { id: "room", label: "夜の部屋" },
-  { id: "desk", label: "デスク" },
-  { id: "window", label: "雨の窓" },
-];
+const backgroundModes: { id: BackgroundMode; label: string }[] =
+  backgroundModeProfiles;
 
 function blurActiveElement() {
   if (typeof document === "undefined" || typeof HTMLElement === "undefined") {

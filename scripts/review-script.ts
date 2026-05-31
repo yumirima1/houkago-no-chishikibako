@@ -92,8 +92,20 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
     warnings.push("理系担当と文系担当の両方が含まれているか確認してください。");
   }
 
-  if (script.durationTargetMinutes > 20) {
-    warnings.push("目標時間が20分を超えています。v0.3では短めの構成を推奨します。");
+  const durationType = script.durationType ?? "normal";
+
+  if (
+    durationType === "normal" &&
+    (script.durationTargetMinutes < 20 || script.durationTargetMinutes > 30)
+  ) {
+    warnings.push("通常回は20〜30分を目標にしてください。");
+  }
+
+  if (
+    durationType === "long" &&
+    (script.durationTargetMinutes < 60 || script.durationTargetMinutes > 90)
+  ) {
+    warnings.push("長尺回は60〜90分を目標にしてください。");
   }
 
   const now = new Date().toISOString();

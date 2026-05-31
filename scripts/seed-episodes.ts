@@ -13,6 +13,7 @@ import {
 } from "./lib/episode-fs";
 import { writeGeneratedEpisodesFile } from "./lib/episode-site-data";
 import { EpisodeType } from "./lib/episode-schema";
+import { buildRadioScript } from "./lib/radio-script-builder";
 
 type RoadmapEpisode = {
   category: string;
@@ -84,42 +85,18 @@ async function main() {
     const tags = [...new Set([roadmapEpisode.category, ...roadmapEpisode.tags])];
     const now = new Date().toISOString();
     const scriptDraft = {
-      id,
-      title: roadmapEpisode.title,
-      theme: roadmapEpisode.category,
-      durationTargetMinutes: roadmapEpisode.estimatedDurationMinutes,
-      description: roadmapEpisode.summary,
-      type: "regular" satisfies EpisodeType,
-      durationType: "normal",
-      tags,
-      themes: tags,
-      speakers: [
-        {
-          id: "rikei",
-          name: "理系担当",
-          voice: "rikei",
-          text: `今日は「${roadmapEpisode.title}」について、仕組みとデータの側から少し整理してみます。`,
-        },
-        {
-          id: "bunkei",
-          name: "文系担当",
-          voice: "bunkei",
-          text: "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。",
-        },
-        {
-          id: "rikei",
-          name: "理系担当",
-          voice: "rikei",
-          text: roadmapEpisode.summary,
-        },
-        {
-          id: "bunkei",
-          name: "文系担当",
-          voice: "bunkei",
-          text: "答えを急がずに、データとロマンの間へ一度置いてみましょう。",
-        },
-      ],
-      createdAt: now,
+      ...buildRadioScript({
+        id,
+        title: roadmapEpisode.title,
+        theme: roadmapEpisode.category,
+        durationTargetMinutes: roadmapEpisode.estimatedDurationMinutes,
+        description: roadmapEpisode.summary,
+        type: "regular" satisfies EpisodeType,
+        durationType: "normal",
+        tags,
+        themes: tags,
+        createdAt: now,
+      }),
       updatedAt: now,
       source: {
         roadmapPath: toProjectPath(roadmapPath),

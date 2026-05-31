@@ -10,7 +10,11 @@ import {
   readJsonFile,
   writeJsonFile,
 } from "./lib/episode-fs";
-import { EpisodeScript } from "./lib/episode-schema";
+import { EpisodeDurationType } from "./lib/episode-schema";
+import {
+  buildRadioScript,
+  getRadioScriptStats,
+} from "./lib/radio-script-builder";
 
 function inferThemes(title: string, theme: string) {
   const text = `${title} ${theme}`;
@@ -37,68 +41,6 @@ async function createSequentialEpisodeId() {
   return `episode-${String(nextNumber).padStart(3, "0")}`;
 }
 
-function buildTemplateScript(options: {
-  id: string;
-  title: string;
-  theme: string;
-  durationTargetMinutes: number;
-  description: string;
-  themes: string[];
-  memoryPhrase?: string;
-}): EpisodeScript {
-  const now = new Date().toISOString();
-  const { memoryPhrase, ...scriptOptions } = options;
-
-  return {
-    ...scriptOptions,
-    tags: options.themes,
-    type: "regular",
-    durationType: options.durationTargetMinutes >= 45 ? "long" : "normal",
-    createdAt: now,
-    updatedAt: now,
-    speakers: [
-      {
-        id: "rikei",
-        name: "理系担当",
-        voice: "rikei",
-        text: `今日は「${options.theme}」を、仕組みの側から整理してみます。まず大事なのは、言葉の印象だけで判断しないことです。`,
-      },
-      {
-        id: "bunkei",
-        name: "文系担当",
-        voice: "bunkei",
-        text: "なるほど。でも、仕組みが分かっても、私たちが日常で感じる疑問はまだ残りそうですね。",
-      },
-      {
-        id: "rikei",
-        name: "理系担当",
-        voice: "rikei",
-        text: "その通りです。科学や技術の説明では、できることと、まだ分かっていないことを分けて話す必要があります。",
-      },
-      {
-        id: "bunkei",
-        name: "文系担当",
-        voice: "bunkei",
-        text: "たとえるなら、地図を持つことと、実際に街を歩くことの違いに近いかもしれません。",
-      },
-      {
-        id: "rikei",
-        name: "理系担当",
-        voice: "rikei",
-        text: "今回のテーマも、断定しすぎず、データや研究で言える範囲から見ていくのがよさそうです。",
-      },
-      {
-        id: "bunkei",
-        name: "文系担当",
-        voice: "bunkei",
-        text: memoryPhrase
-          ? `聞き終わったあとに、少しだけ考え続けられるくらいの余白があるといいですね。${memoryPhrase}`
-          : "聞き終わったあとに、少しだけ考え続けられるくらいの余白があるといいですね。",
-      },
-    ],
-  };
-}
-
 async function readProgramMemoryHints() {
   try {
     const memory = await readJsonFile<{
@@ -115,6 +57,16 @@ async function readProgramMemoryHints() {
   }
 }
 
+async function readExistingDraftMetadata(id: string) {
+  try {
+    return await readJsonFile<{ createdAt?: string; source?: unknown }>(
+      path.join(draftDir, `${id}.json`),
+    );
+  } catch {
+    return {};
+  }
+}
+
 async function main() {
   await ensureProductionDirs();
 
@@ -125,6 +77,8 @@ async function main() {
   const theme = getStringArg(args, "theme", "AIと思考")!;
   const id = getStringArg(args, "id") ?? (await createSequentialEpisodeId());
   const durationTargetMinutes = Number(getStringArg(args, "minutes", "5"));
+  const durationType: EpisodeDurationType =
+    durationTargetMinutes >= 45 ? "long" : "normal";
   const description =
     getStringArg(args, "description") ??
     `${title}について、理系担当と文系担当が静かな会話形式で考えます。`;
@@ -134,19 +88,33 @@ async function main() {
       .map((themeName) => themeName.trim())
       .filter(Boolean) ?? inferThemes(title, theme);
   const memoryHints = await readProgramMemoryHints();
-  const script = buildTemplateScript({
-    id,
-    title,
-    theme,
-    durationTargetMinutes,
-    description,
-    themes,
-    memoryPhrase: memoryHints.phrase,
-  });
+  const existingDraft = await readExistingDraftMetadata(id);
+  const script = {
+    ...buildRadioScript({
+      id,
+      title,
+      theme,
+      durationTargetMinutes,
+      durationType,
+      description,
+      type: durationType === "long" ? "special" : "regular",
+      themes,
+      memoryPhrase: memoryHints.phrase,
+      runningJoke: memoryHints.runningJoke,
+      createdAt: existingDraft.createdAt,
+    }),
+    ...(existingDraft.source ? { source: existingDraft.source } : {}),
+  };
   const outputPath = path.join(draftDir, `${id}.json`);
+  const stats = getRadioScriptStats(script);
 
   await writeJsonFile(outputPath, script);
   console.log(`Draft script created: ${path.relative(process.cwd(), outputPath)}`);
+  console.log(`Script characters: ${stats.characterCount}`);
+  console.log(`Estimated playback: ${stats.estimatedMinutes.toFixed(1)} minutes`);
+  console.log(
+    `Speaker balance: rikei ${stats.balance.rikei}, bunkei ${stats.balance.bunkei}`,
+  );
 }
 
 main().catch((error: unknown) => {

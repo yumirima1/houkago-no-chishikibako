@@ -1,7 +1,7 @@
 {
   id: "episode-005",
   title: "AIは本当に考えているのか、雨音の中で一回だけ真面目に話そう",
-  description: "AIの予測、意味理解、意識の違いを、理系担当が仕組みから、文系担当が人間の思考との比較から考える。",
+  description: "AIの予測、意味理解、意識の違いを、タルタルが仕組みから、かなが人間の思考との比較から考える。",
   audioUrl: "/audio/episode-005.mp3",
   type: "regular",
   durationType: "normal",
