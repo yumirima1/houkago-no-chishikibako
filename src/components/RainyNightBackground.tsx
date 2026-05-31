@@ -2,21 +2,25 @@ export type BackgroundMode = "room" | "desk" | "window";
 
 export const backgroundModeProfiles: Array<{
   id: BackgroundMode;
+  imageUrl: string;
   label: string;
   tags: string[];
 }> = [
   {
     id: "room",
+    imageUrl: "/backgrounds/lofi-pc-room.png",
     label: "深夜のPC部屋",
     tags: ["AI", "コンピュータ", "プログラミング", "Web開発", "ローカルAI"],
   },
   {
     id: "desk",
+    imageUrl: "/backgrounds/rainy-cafe.png",
     label: "雨のカフェ",
     tags: ["心理学", "哲学", "相談", "ものづくり"],
   },
   {
     id: "window",
+    imageUrl: "/backgrounds/night-library.png",
     label: "夜の図書館",
     tags: ["科学", "宇宙", "言語", "物語", "知識ラジオ"],
   },
@@ -45,80 +49,28 @@ export function RainyNightBackground({
   className = "pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050812]",
   mode,
 }: RainyNightBackgroundProps) {
+  const profile =
+    backgroundModeProfiles.find((backgroundProfile) => backgroundProfile.id === mode) ??
+    backgroundModeProfiles[0];
+
   return (
     <div className={className}>
       <div className={`night-scene night-scene-${mode}`} />
+      <div
+        className="night-scene-image"
+        style={{ backgroundImage: `url(${profile.imageUrl})` }}
+      />
+      <div className={`night-scene-atmosphere night-scene-atmosphere-${mode}`} />
       <div className="lofi-vignette" />
       <div className="rainy-lines" />
       <div className="rain-drops" />
+      <div className={`window-glow-layer window-glow-layer-${mode}`} />
+      <div className={`steam-layer steam-layer-${mode}`}>
+        <span className="steam steam-a" />
+        <span className="steam steam-b" />
+        <span className="steam steam-c" />
+      </div>
       <div className="room-grain" />
-
-      {mode === "room" ? (
-        <div className="lofi-scene lofi-pc-room">
-          <div className="pc-window">
-            <div className="grid h-full grid-cols-2 grid-rows-3 gap-px p-3">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div
-                  className="bg-cyan-100/[0.035]"
-                  key={index}
-                />
-              ))}
-            </div>
-          </div>
-          <div className="pc-desk">
-            <div className="pc-monitor">
-              <span />
-              <span />
-              <span />
-            </div>
-            <div className="pc-keyboard" />
-            <div className="desk-mug">
-              <span className="steam steam-a" />
-              <span className="steam steam-b" />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {mode === "desk" ? (
-        <div className="lofi-scene lofi-cafe">
-          <div className="cafe-window">
-            <div className="window-light" />
-          </div>
-          <div className="cafe-counter">
-            <div className="cafe-lamp" />
-            <div className="cafe-cup">
-              <span className="steam steam-a" />
-              <span className="steam steam-b" />
-            </div>
-            <div className="cafe-notebook" />
-          </div>
-        </div>
-      ) : null}
-
-      {mode === "window" ? (
-        <div className="lofi-scene lofi-library">
-          <div className="library-shelves">
-            {Array.from({ length: 24 }).map((_, index) => (
-              <span key={index} />
-            ))}
-          </div>
-          <div className="observatory-window">
-            <div className="observatory-arc" />
-            <div className="window-light" />
-          </div>
-          <div className="reading-table">
-            <div className="table-lamp" />
-            <div className="open-book" />
-            <div className="desk-mug">
-              <span className="steam steam-a" />
-              <span className="steam steam-b" />
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      <div className="quiet-eyelid" />
       <div className="night-floor" />
     </div>
   );

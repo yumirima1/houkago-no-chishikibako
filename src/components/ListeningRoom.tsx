@@ -25,6 +25,34 @@ const AUTO_HIDE_MS = 30_000;
 const backgroundModes: { id: BackgroundMode; label: string }[] =
   backgroundModeProfiles;
 
+function isBackgroundMode(value: string | null): value is BackgroundMode {
+  return backgroundModes.some((mode) => mode.id === value);
+}
+
+function getInitialBackgroundMode() {
+  if (typeof window !== "undefined") {
+    const requestedMode = new URLSearchParams(window.location.search).get(
+      "background",
+    );
+
+    if (isBackgroundMode(requestedMode)) {
+      return requestedMode;
+    }
+  }
+
+  return "room";
+}
+
+function shouldStartInBackgroundMode() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+
+  return params.get("ambient") === "1";
+}
+
 function blurActiveElement() {
   if (typeof document === "undefined" || typeof HTMLElement === "undefined") {
     return;
@@ -117,12 +145,16 @@ type ListeningRoomProps = {
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [selectedEpisodeId, setSelectedEpisodeId] = useState(episodes[0]?.id);
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("room");
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
+    getInitialBackgroundMode(),
+  );
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
-  const [isInterfaceHidden, setIsInterfaceHidden] = useState(false);
+  const [isInterfaceHidden, setIsInterfaceHidden] = useState(
+    shouldStartInBackgroundMode,
+  );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
