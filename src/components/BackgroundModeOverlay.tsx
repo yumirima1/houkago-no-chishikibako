@@ -2,13 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { BackgroundMode } from "@/components/RainyNightBackground";
+import {
+  BackgroundMode,
+  RainyNightBackground,
+} from "@/components/RainyNightBackground";
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeProductionStatusLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
+  hasPlayableAudio,
 } from "@/data/episodes";
 
 const clockFormatter = new Intl.DateTimeFormat("ja-JP", {
@@ -111,12 +116,14 @@ export function BackgroundModeOverlay({
   onToggleOverlay,
   onTogglePlayback,
 }: BackgroundModeOverlayProps) {
+  const [isModePickerOpen, setIsModePickerOpen] = useState(false);
   const displayDuration = duration > 0 ? duration : parseDuration(episode.duration);
   const progress = displayDuration
     ? Math.min(100, Math.max(0, (currentTime / displayDuration) * 100))
     : 0;
   const tags = getEpisodeTags(episode);
   const typeLabel = getEpisodeTypeLabel(getEpisodeType(episode));
+  const isPlayable = hasPlayableAudio(episode);
   const episodeNumber = useMemo(
     () => episode.id.replace(/^episode-/, "#").replace(/^#0+/, "#"),
     [episode.id],
@@ -133,6 +140,11 @@ export function BackgroundModeOverlay({
         }
       }}
     >
+      <RainyNightBackground
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050812]"
+        mode={backgroundMode}
+      />
+
       <button
         className="ambient-show-ui"
         onClick={onShowInterface}
@@ -142,13 +154,30 @@ export function BackgroundModeOverlay({
       </button>
 
       <nav
-        className="ambient-nav"
+        className={`ambient-nav ${isModePickerOpen ? "is-open" : ""}`}
         onClick={(event) => event.stopPropagation()}
         aria-label="背景モード内ナビゲーション"
       >
-        <button type="button">エピソード一覧</button>
-        <button type="button">タグから探す</button>
-        <span>背景を選ぶ</span>
+        <button
+          className="ambient-nav-secondary"
+          type="button"
+        >
+          エピソード一覧
+        </button>
+        <button
+          className="ambient-nav-secondary"
+          type="button"
+        >
+          タグから探す
+        </button>
+        <button
+          aria-expanded={isModePickerOpen}
+          className="ambient-mode-toggle"
+          onClick={() => setIsModePickerOpen((isOpen) => !isOpen)}
+          type="button"
+        >
+          背景を選ぶ
+        </button>
         <div className="ambient-mode-buttons">
           {(Object.keys(modeLabels) as BackgroundMode[]).map((mode) => (
             <button
@@ -177,6 +206,9 @@ export function BackgroundModeOverlay({
           <h2>{episode.title}</h2>
           <p className="ambient-episode-meta">
             {typeLabel} / {getEpisodeDurationLabel(episode)} / {episode.duration}
+            {!isPlayable
+              ? ` / ${getEpisodeProductionStatusLabel(episode.productionStatus)}`
+              : ""}
           </p>
           <div className="ambient-tags">
             {tags.map((tag) => (
@@ -212,10 +244,11 @@ export function BackgroundModeOverlay({
           <button
             aria-label={isPlaying ? "一時停止" : "再生"}
             className="ambient-play-control"
+            disabled={!isPlayable}
             onClick={onTogglePlayback}
             type="button"
           >
-            {isPlaying ? "一時停止" : "再生"}
+            {!isPlayable ? "準備中" : isPlaying ? "一時停止" : "再生"}
           </button>
           <button
             aria-label="15秒送る"
@@ -247,6 +280,7 @@ export function BackgroundModeOverlay({
             <input
               max={displayDuration || 0}
               min={0}
+              disabled={!isPlayable}
               onChange={(event) => onSeek(Number(event.currentTarget.value))}
               step={1}
               type="range"

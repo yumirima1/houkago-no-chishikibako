@@ -5,9 +5,11 @@ import type { RefObject } from "react";
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeProductionStatusLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
+  hasPlayableAudio,
 } from "@/data/episodes";
 
 type AudioPlayerProps = {
@@ -28,6 +30,7 @@ export function AudioPlayer({
   onTimeUpdate,
 }: AudioPlayerProps) {
   const episodeType = getEpisodeType(episode);
+  const isPlayable = hasPlayableAudio(episode);
 
   return (
     <section
@@ -49,31 +52,42 @@ export function AudioPlayer({
             <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-slate-300">
               {getEpisodeDurationLabel(episode)}
             </span>
+            {!isPlayable ? (
+              <span className="rounded-full border border-amber-100/20 bg-amber-100/[0.1] px-2.5 py-1 text-xs text-amber-100">
+                {getEpisodeProductionStatusLabel(episode.productionStatus)}
+              </span>
+            ) : null}
           </div>
         </div>
         <p className="font-mono text-sm text-slate-300">{episode.duration}</p>
       </div>
 
-      <audio
-        key={episode.id}
-        ref={audioRef}
-        className="w-full accent-cyan-200"
-        controls
-        onEnded={() => {
-          onPlaybackChange?.(false);
-          onEnded?.();
-        }}
-        onLoadedMetadata={(event) =>
-          onLoadedMetadata?.(event.currentTarget.duration)
-        }
-        onPause={() => onPlaybackChange?.(false)}
-        onPlay={() => onPlaybackChange?.(true)}
-        onTimeUpdate={(event) => onTimeUpdate?.(event.currentTarget.currentTime)}
-        preload="metadata"
-        src={episode.audioUrl}
-      >
-        お使いのブラウザは音声再生に対応していません。
-      </audio>
+      {isPlayable ? (
+        <audio
+          key={episode.id}
+          ref={audioRef}
+          className="w-full accent-cyan-200"
+          controls
+          onEnded={() => {
+            onPlaybackChange?.(false);
+            onEnded?.();
+          }}
+          onLoadedMetadata={(event) =>
+            onLoadedMetadata?.(event.currentTarget.duration)
+          }
+          onPause={() => onPlaybackChange?.(false)}
+          onPlay={() => onPlaybackChange?.(true)}
+          onTimeUpdate={(event) => onTimeUpdate?.(event.currentTarget.currentTime)}
+          preload="metadata"
+          src={episode.audioUrl}
+        >
+          お使いのブラウザは音声再生に対応していません。
+        </audio>
+      ) : (
+        <div className="rounded-md border border-amber-100/15 bg-amber-100/[0.055] p-4 text-sm leading-7 text-amber-50/85">
+          この回は準備中です。原稿と音声が完成すると、ここから再生できるようになります。
+        </div>
+      )}
 
       <p className="mt-4 rounded-md border border-white/10 bg-white/[0.045] p-4 text-sm leading-7 text-slate-200">
         {episode.description}

@@ -1,0 +1,53 @@
+{
+  "id": "episode-005",
+  "title": "AIは本当に考えているのか、雨音の中で一回だけ真面目に話そう",
+  "theme": "AI",
+  "durationTargetMinutes": 25,
+  "description": "AIの予測、意味理解、意識の違いを、理系担当が仕組みから、文系担当が人間の思考との比較から考える。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "AI",
+    "哲学",
+    "思考"
+  ],
+  "themes": [
+    "AI",
+    "哲学",
+    "思考"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「AIは本当に考えているのか、雨音の中で一回だけ真面目に話そう」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "AIの予測、意味理解、意識の違いを、理系担当が仕組みから、文系担当が人間の思考との比較から考える。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.894Z",
+  "updatedAt": "2026-05-31T11:59:41.894Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-001",
+    "category": "AI",
+    "seededBy": "npm run episode:seed"
+  }
+}

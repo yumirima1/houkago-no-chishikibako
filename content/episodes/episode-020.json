@@ -1,0 +1,30 @@
+{
+  "id": "episode-020",
+  "title": "正しさだけでは、人はなぜ動かないのか",
+  "description": "論理、感情、納得、物語の関係を、理系と文系の役割差として話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-09-20",
+  "duration": "27:00",
+  "tags": [
+    "哲学",
+    "心理学",
+    "社会"
+  ],
+  "themes": [
+    "哲学",
+    "心理学",
+    "社会"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "draft",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-016",
+    "category": "哲学",
+    "seededBy": "npm run episode:seed"
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "id": "episode-012",
+  "title": "プログラミングは魔法ではない、でも深夜には少し魔法に見える",
+  "theme": "コンピュータ",
+  "durationTargetMinutes": 23,
+  "description": "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "コンピュータ",
+    "プログラミング",
+    "Web開発",
+    "ものづくり"
+  ],
+  "themes": [
+    "コンピュータ",
+    "プログラミング",
+    "Web開発",
+    "ものづくり"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「プログラミングは魔法ではない、でも深夜には少し魔法に見える」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.914Z",
+  "updatedAt": "2026-05-31T11:59:41.914Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-008",
+    "category": "コンピュータ",
+    "seededBy": "npm run episode:seed"
+  }
+}

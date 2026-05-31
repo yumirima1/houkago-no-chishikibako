@@ -1,0 +1,53 @@
+{
+  "id": "episode-009",
+  "title": "人は理解し合えるのか、それとも翻訳し合っているだけなのか",
+  "theme": "哲学",
+  "durationTargetMinutes": 27,
+  "description": "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "哲学",
+    "言語",
+    "コミュニケーション"
+  ],
+  "themes": [
+    "哲学",
+    "言語",
+    "コミュニケーション"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「人は理解し合えるのか、それとも翻訳し合っているだけなのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.905Z",
+  "updatedAt": "2026-05-31T11:59:41.905Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-005",
+    "category": "哲学",
+    "seededBy": "npm run episode:seed"
+  }
+}

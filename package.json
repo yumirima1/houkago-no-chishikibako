@@ -11,6 +11,7 @@
     "episode:review": "tsx scripts/review-script.ts",
     "episode:audio": "tsx scripts/generate-audio.ts",
     "episode:build": "tsx scripts/build-episode.ts",
+    "episode:seed": "tsx scripts/seed-episodes.ts",
     "episode:pipeline": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts",
     "episode:publish": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts",
     "episode:weekly": "tsx scripts/weekly-episode.ts"

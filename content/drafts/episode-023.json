@@ -1,0 +1,53 @@
+{
+  "id": "episode-023",
+  "title": "AIに相談する人間は、何を聞いてほしいのか",
+  "theme": "AI",
+  "durationTargetMinutes": 26,
+  "description": "相談相手としてのAI、共感、壁打ち、孤独、よるの相談箱との距離感を個人情報なしで扱う。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "AI",
+    "心理学",
+    "相談"
+  ],
+  "themes": [
+    "AI",
+    "心理学",
+    "相談"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「AIに相談する人間は、何を聞いてほしいのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "相談相手としてのAI、共感、壁打ち、孤独、よるの相談箱との距離感を個人情報なしで扱う。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.940Z",
+  "updatedAt": "2026-05-31T11:59:41.940Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-019",
+    "category": "AI",
+    "seededBy": "npm run episode:seed"
+  }
+}

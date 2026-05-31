@@ -1,0 +1,55 @@
+{
+  "id": "episode-015",
+  "title": "眠れない夜の脳内会議、夢はなぜあんなに雑なのか",
+  "theme": "科学",
+  "durationTargetMinutes": 25,
+  "description": "睡眠、夢、記憶整理を科学と心理の両側から扱う。寝る前回として使いやすい。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "科学",
+    "脳科学",
+    "心理学",
+    "睡眠"
+  ],
+  "themes": [
+    "科学",
+    "脳科学",
+    "心理学",
+    "睡眠"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「眠れない夜の脳内会議、夢はなぜあんなに雑なのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "睡眠、夢、記憶整理を科学と心理の両側から扱う。寝る前回として使いやすい。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.920Z",
+  "updatedAt": "2026-05-31T11:59:41.920Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-011",
+    "category": "科学",
+    "seededBy": "npm run episode:seed"
+  }
+}

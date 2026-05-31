@@ -1,0 +1,30 @@
+{
+  "id": "episode-021",
+  "title": "時間は流れているのか、それとも私たちが流されているのか",
+  "description": "時間の物理、体感時間、記憶を組み合わせた夜向きの回。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-09-27",
+  "duration": "29:00",
+  "tags": [
+    "科学",
+    "時間",
+    "哲学"
+  ],
+  "themes": [
+    "科学",
+    "時間",
+    "哲学"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "draft",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-017",
+    "category": "科学",
+    "seededBy": "npm run episode:seed"
+  }
+}

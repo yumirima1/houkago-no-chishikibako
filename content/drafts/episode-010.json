@@ -1,0 +1,53 @@
+{
+  "id": "episode-010",
+  "title": "宇宙が広すぎるせいで、今夜の悩みが少し軽くなる話",
+  "theme": "科学",
+  "durationTargetMinutes": 25,
+  "description": "宇宙のスケール、時間、生命の可能性を、眠る前に聞ける静かな回として話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "科学",
+    "宇宙",
+    "哲学"
+  ],
+  "themes": [
+    "科学",
+    "宇宙",
+    "哲学"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「宇宙が広すぎるせいで、今夜の悩みが少し軽くなる話」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "宇宙のスケール、時間、生命の可能性を、眠る前に聞ける静かな回として話す。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.909Z",
+  "updatedAt": "2026-05-31T11:59:41.909Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-006",
+    "category": "科学",
+    "seededBy": "npm run episode:seed"
+  }
+}

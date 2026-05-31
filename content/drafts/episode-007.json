@@ -1,0 +1,53 @@
+{
+  "id": "episode-007",
+  "title": "作る前が一番楽しいのはなぜなのか",
+  "theme": "心理学",
+  "durationTargetMinutes": 24,
+  "description": "構想段階の高揚感、完成後の現実、創作と報酬予測について話す。ものづくり回の定番にする。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "心理学",
+    "ものづくり",
+    "創作"
+  ],
+  "themes": [
+    "心理学",
+    "ものづくり",
+    "創作"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「作る前が一番楽しいのはなぜなのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "構想段階の高揚感、完成後の現実、創作と報酬予測について話す。ものづくり回の定番にする。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.900Z",
+  "updatedAt": "2026-05-31T11:59:41.900Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-003",
+    "category": "心理学",
+    "seededBy": "npm run episode:seed"
+  }
+}

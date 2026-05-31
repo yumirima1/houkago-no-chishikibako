@@ -16,6 +16,7 @@ import {
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
+  hasPlayableAudio,
 } from "@/data/episodes";
 
 const AUTO_HIDE_MS = 30_000;
@@ -25,6 +26,16 @@ const backgroundModes: { id: BackgroundMode; label: string }[] = [
   { id: "desk", label: "デスク" },
   { id: "window", label: "雨の窓" },
 ];
+
+function blurActiveElement() {
+  if (typeof document === "undefined" || typeof HTMLElement === "undefined") {
+    return;
+  }
+
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
 
 function getNextSundayUpdateLabel() {
   const jstNow = new Date(
@@ -134,6 +145,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     () =>
       [...episodes]
         .filter((episode) => episode.id !== firstListenEpisode?.id)
+        .filter((episode) => hasPlayableAudio(episode))
         .sort((first, second) =>
           second.publishedAt.localeCompare(first.publishedAt),
         )[0],
@@ -188,19 +200,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const handleSeek = useCallback((value: number) => {
     const audio = audioRef.current;
 
-    if (!audio) {
+    if (!audio || !hasPlayableAudio(selectedEpisode)) {
       return;
     }
 
     audio.currentTime = value;
     setCurrentTime(value);
-  }, []);
+  }, [selectedEpisode]);
 
   const seekBy = useCallback(
     (seconds: number) => {
       const audio = audioRef.current;
 
-      if (!audio) {
+      if (!audio || !hasPlayableAudio(selectedEpisode)) {
         return;
       }
 
@@ -212,7 +224,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       audio.currentTime = nextTime;
       setCurrentTime(nextTime);
     },
-    [duration],
+    [duration, selectedEpisode],
   );
 
   const selectEpisode = useCallback((episodeId: string) => {
@@ -223,6 +235,15 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
   const playEpisode = useCallback(
     (episodeId: string) => {
+      const targetEpisode = episodes.find((episode) => episode.id === episodeId);
+
+      if (targetEpisode && !hasPlayableAudio(targetEpisode)) {
+        selectEpisode(episodeId);
+        handlePlaybackChange(false);
+        wakeInterface();
+        return;
+      }
+
       if (episodeId === selectedEpisode.id) {
         void audioRef.current?.play();
         wakeInterface();
@@ -233,7 +254,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       setShouldAutoPlayNext(true);
       wakeInterface();
     },
-    [selectEpisode, selectedEpisode.id, wakeInterface],
+    [episodes, handlePlaybackChange, selectEpisode, selectedEpisode.id, wakeInterface],
   );
 
   const goToAdjacentEpisode = useCallback(
@@ -245,7 +266,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       }
 
       selectEpisode(nextEpisode.id);
-      setShouldAutoPlayNext(isPlaying);
+      setShouldAutoPlayNext(isPlaying && hasPlayableAudio(nextEpisode));
+      if (!hasPlayableAudio(nextEpisode)) {
+        setIsPlaying(false);
+      }
       setIsBackgroundOverlayVisible(true);
     },
     [episodes, isPlaying, selectEpisode, selectedEpisodeIndex],
@@ -254,7 +278,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const togglePlayback = useCallback(() => {
     const audio = audioRef.current;
 
-    if (!audio) {
+    if (!audio || !hasPlayableAudio(selectedEpisode)) {
       return;
     }
 
@@ -264,13 +288,15 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
 
     audio.pause();
-  }, []);
+  }, [selectedEpisode]);
 
   const handleEpisodeEnded = useCallback(() => {
     const currentIndex = episodes.findIndex(
       (episode) => episode.id === selectedEpisode.id,
     );
-    const nextEpisode = episodes[currentIndex + 1];
+    const nextEpisode = episodes
+      .slice(currentIndex + 1)
+      .find((episode) => hasPlayableAudio(episode));
 
     setCurrentTime(0);
 
@@ -318,6 +344,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
 
     const timer = window.setTimeout(() => {
+      blurActiveElement();
       setIsInterfaceHidden(true);
       setIsBackgroundOverlayVisible(true);
     }, AUTO_HIDE_MS);
@@ -337,6 +364,25 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
     return () => window.clearTimeout(timer);
   }, [selectedEpisode.id, shouldAutoPlayNext]);
+
+  useEffect(() => {
+    if (isInterfaceHidden) {
+      blurActiveElement();
+    }
+  }, [isInterfaceHidden]);
+
+  useEffect(() => {
+    if (!isInterfaceHidden) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isInterfaceHidden]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -425,6 +471,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             <button
               className="min-h-10 w-full rounded-lg border border-cyan-100/15 bg-cyan-100/[0.08] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.13] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-auto"
               onClick={() => {
+                blurActiveElement();
                 setIsBackgroundOverlayVisible(true);
                 setIsInterfaceHidden(true);
               }}

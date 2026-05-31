@@ -1,0 +1,30 @@
+{
+  "id": "episode-018",
+  "title": "ブラウザという窓から、私たちは何年世界を見てきたのか",
+  "description": "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-09-06",
+  "duration": "26:00",
+  "tags": [
+    "コンピュータ",
+    "Web開発",
+    "インターネット"
+  ],
+  "themes": [
+    "コンピュータ",
+    "Web開発",
+    "インターネット"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "draft",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-014",
+    "category": "コンピュータ",
+    "seededBy": "npm run episode:seed"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "id": "episode-022",
+  "title": "ミームはなぜ言葉より速く伝わるのか",
+  "theme": "インターネット文化",
+  "durationTargetMinutes": 23,
+  "description": "ミーム、画像、文脈、内輪感の広がりを、番組内輪ネタの作り方にもつなげる。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "インターネット文化",
+    "ミーム",
+    "言語"
+  ],
+  "themes": [
+    "インターネット文化",
+    "ミーム",
+    "言語"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「ミームはなぜ言葉より速く伝わるのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "ミーム、画像、文脈、内輪感の広がりを、番組内輪ネタの作り方にもつなげる。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.937Z",
+  "updatedAt": "2026-05-31T11:59:41.937Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-018",
+    "category": "インターネット文化",
+    "seededBy": "npm run episode:seed"
+  }
+}

@@ -9,6 +9,7 @@ export type EpisodeType =
   | "weather"
   | "anniversary";
 export type EpisodeDurationType = "normal" | "long";
+export type EpisodeProductionStatus = "published" | "draft" | "reviewing" | "planned";
 
 export type EpisodeSpeakerLine = {
   id: SpeakerId;
@@ -62,7 +63,7 @@ export type BuiltEpisode = {
     science: string;
     humanities: string;
   };
-  productionStatus: "published";
+  productionStatus: EpisodeProductionStatus;
   source: {
     reviewedScriptPath: string;
     durationTargetMinutes: number;

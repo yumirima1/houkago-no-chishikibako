@@ -9,12 +9,13 @@ export type EpisodeType =
   | "anniversary";
 
 export type EpisodeDurationType = "normal" | "long";
+export type EpisodeProductionStatus = "published" | "draft" | "reviewing" | "planned";
 
 export type Episode = {
   id: string;
   title: string;
   description: string;
-  audioUrl: string;
+  audioUrl?: string;
   durationType?: EpisodeDurationType;
   publishedAt: string;
   duration: string;
@@ -25,7 +26,7 @@ export type Episode = {
     science: string;
     humanities: string;
   };
-  productionStatus: "published" | "draft" | "reviewing";
+  productionStatus: EpisodeProductionStatus;
 };
 
 const manualEpisodes: Episode[] = [];
@@ -82,4 +83,21 @@ export function getEpisodeDurationLabel(episode: Episode) {
   }
 
   return getDurationTypeLabel(getEpisodeDurationType(episode));
+}
+
+export function getEpisodeProductionStatusLabel(
+  status: EpisodeProductionStatus,
+) {
+  const labels: Record<EpisodeProductionStatus, string> = {
+    draft: "準備中",
+    planned: "企画中",
+    published: "公開中",
+    reviewing: "校閲中",
+  };
+
+  return labels[status];
+}
+
+export function hasPlayableAudio(episode: Episode) {
+  return episode.productionStatus === "published" && Boolean(episode.audioUrl);
 }

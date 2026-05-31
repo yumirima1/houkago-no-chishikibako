@@ -1,9 +1,11 @@
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeProductionStatusLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
+  hasPlayableAudio,
 } from "@/data/episodes";
 
 type EpisodeListProps = {
@@ -30,18 +32,21 @@ export function EpisodeList({
       </div>
 
       <div className="grid gap-3">
-        {episodes.map((episode) => (
-          <button
-            aria-current={episode.id === selectedEpisodeId}
-            className={`rounded-lg border p-4 text-left backdrop-blur-sm transition-colors hover:border-cyan-200/30 hover:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
-              episode.id === selectedEpisodeId
-                ? "border-cyan-200/40 bg-cyan-100/10"
-                : "border-white/10 bg-white/[0.055]"
-            }`}
-            key={episode.id}
-            onClick={() => onSelectEpisode(episode.id)}
-            type="button"
-          >
+        {episodes.map((episode) => {
+          const isPlayable = hasPlayableAudio(episode);
+
+          return (
+            <button
+              aria-current={episode.id === selectedEpisodeId}
+              className={`rounded-lg border p-4 text-left backdrop-blur-sm transition-colors hover:border-cyan-200/30 hover:bg-white/[0.075] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
+                episode.id === selectedEpisodeId
+                  ? "border-cyan-200/40 bg-cyan-100/10"
+                  : "border-white/10 bg-white/[0.055]"
+              }`}
+              key={episode.id}
+              onClick={() => onSelectEpisode(episode.id)}
+              type="button"
+            >
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <p className="text-xs text-slate-400">
@@ -54,6 +59,11 @@ export function EpisodeList({
                   <span className="rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-xs text-slate-300">
                     {getEpisodeDurationLabel(episode)}
                   </span>
+                  {!isPlayable ? (
+                    <span className="rounded-full border border-amber-100/20 bg-amber-100/[0.1] px-2.5 py-1 text-xs text-amber-100">
+                      {getEpisodeProductionStatusLabel(episode.productionStatus)}
+                    </span>
+                  ) : null}
                 </div>
                 <h3 className="mt-1 text-base font-semibold leading-7 text-slate-50">
                   {episode.title}
@@ -78,7 +88,8 @@ export function EpisodeList({
               {episode.speakers.science} / {episode.speakers.humanities}
             </p>
           </button>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

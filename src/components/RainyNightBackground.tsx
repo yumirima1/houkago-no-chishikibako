@@ -1,12 +1,16 @@
 export type BackgroundMode = "room" | "desk" | "window";
 
 type RainyNightBackgroundProps = {
+  className?: string;
   mode: BackgroundMode;
 };
 
-export function RainyNightBackground({ mode }: RainyNightBackgroundProps) {
+export function RainyNightBackground({
+  className = "pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050812]",
+  mode,
+}: RainyNightBackgroundProps) {
   return (
-    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050812]">
+    <div className={className}>
       <div className={`night-scene night-scene-${mode}`} />
       <div className="absolute inset-x-0 top-0 h-2/3 opacity-50 rainy-lines" />
       <div className="absolute bottom-[-12rem] left-1/2 h-96 w-[44rem] -translate-x-1/2 rounded-full bg-cyan-300/8 blur-3xl" />

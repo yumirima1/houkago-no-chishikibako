@@ -1,0 +1,53 @@
+{
+  "id": "episode-020",
+  "title": "正しさだけでは、人はなぜ動かないのか",
+  "theme": "哲学",
+  "durationTargetMinutes": 27,
+  "description": "論理、感情、納得、物語の関係を、理系と文系の役割差として話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "哲学",
+    "心理学",
+    "社会"
+  ],
+  "themes": [
+    "哲学",
+    "心理学",
+    "社会"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「正しさだけでは、人はなぜ動かないのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "論理、感情、納得、物語の関係を、理系と文系の役割差として話す。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.932Z",
+  "updatedAt": "2026-05-31T11:59:41.932Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-016",
+    "category": "哲学",
+    "seededBy": "npm run episode:seed"
+  }
+}

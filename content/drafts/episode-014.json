@@ -1,0 +1,53 @@
+{
+  "id": "episode-014",
+  "title": "便利になるほど、私たちは何を忘れていくのか",
+  "theme": "哲学",
+  "durationTargetMinutes": 24,
+  "description": "技術が削る手間、手間が持っていた意味、便利さと記憶の関係を話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "哲学",
+    "技術",
+    "人間"
+  ],
+  "themes": [
+    "哲学",
+    "技術",
+    "人間"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「便利になるほど、私たちは何を忘れていくのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "技術が削る手間、手間が持っていた意味、便利さと記憶の関係を話す。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.918Z",
+  "updatedAt": "2026-05-31T11:59:41.918Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-010",
+    "category": "哲学",
+    "seededBy": "npm run episode:seed"
+  }
+}

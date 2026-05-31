@@ -1,0 +1,53 @@
+{
+  "id": "episode-019",
+  "title": "観察している人は、なぜ少しだけ世界から浮いて見えるのか",
+  "theme": "心理学",
+  "durationTargetMinutes": 25,
+  "description": "人間観察、メタ認知、距離感、観察されることの怖さを扱う。観察箱への伏線にもできる。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "心理学",
+    "観察",
+    "哲学"
+  ],
+  "themes": [
+    "心理学",
+    "観察",
+    "哲学"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「観察している人は、なぜ少しだけ世界から浮いて見えるのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "人間観察、メタ認知、距離感、観察されることの怖さを扱う。観察箱への伏線にもできる。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.930Z",
+  "updatedAt": "2026-05-31T11:59:41.930Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-015",
+    "category": "心理学",
+    "seededBy": "npm run episode:seed"
+  }
+}

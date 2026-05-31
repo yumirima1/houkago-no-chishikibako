@@ -1,0 +1,30 @@
+{
+  "id": "episode-006",
+  "title": "ローカルAIを机の上に置いたら、未来は少し静かになるのか",
+  "description": "クラウドAIとローカルAIの違い、プライバシー、手元に知能がある感覚について雑談する。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-06-14",
+  "duration": "26:00",
+  "tags": [
+    "コンピュータ",
+    "AI",
+    "ローカルAI"
+  ],
+  "themes": [
+    "コンピュータ",
+    "AI",
+    "ローカルAI"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "draft",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-002",
+    "category": "コンピュータ",
+    "seededBy": "npm run episode:seed"
+  }
+}

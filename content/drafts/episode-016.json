@@ -1,0 +1,53 @@
+{
+  "id": "episode-016",
+  "title": "昔のインターネットには、なぜ秘密基地感があったのか",
+  "theme": "インターネット文化",
+  "durationTargetMinutes": 27,
+  "description": "個人サイト、掲示板、ハンドルネーム文化、今のSNSとの違いを考える。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "インターネット文化",
+    "Web",
+    "コミュニティ"
+  ],
+  "themes": [
+    "インターネット文化",
+    "Web",
+    "コミュニティ"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「昔のインターネットには、なぜ秘密基地感があったのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "個人サイト、掲示板、ハンドルネーム文化、今のSNSとの違いを考える。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.923Z",
+  "updatedAt": "2026-05-31T11:59:41.923Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-012",
+    "category": "インターネット文化",
+    "seededBy": "npm run episode:seed"
+  }
+}

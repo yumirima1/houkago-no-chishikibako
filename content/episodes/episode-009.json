@@ -1,0 +1,30 @@
+{
+  "id": "episode-009",
+  "title": "人は理解し合えるのか、それとも翻訳し合っているだけなのか",
+  "description": "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-07-05",
+  "duration": "27:00",
+  "tags": [
+    "哲学",
+    "言語",
+    "コミュニケーション"
+  ],
+  "themes": [
+    "哲学",
+    "言語",
+    "コミュニケーション"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "draft",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-005",
+    "category": "哲学",
+    "seededBy": "npm run episode:seed"
+  }
+}

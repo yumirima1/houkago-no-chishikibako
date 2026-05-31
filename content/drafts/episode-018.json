@@ -1,0 +1,53 @@
+{
+  "id": "episode-018",
+  "title": "ブラウザという窓から、私たちは何年世界を見てきたのか",
+  "theme": "コンピュータ",
+  "durationTargetMinutes": 26,
+  "description": "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "tags": [
+    "コンピュータ",
+    "Web開発",
+    "インターネット"
+  ],
+  "themes": [
+    "コンピュータ",
+    "Web開発",
+    "インターネット"
+  ],
+  "speakers": [
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "今日は「ブラウザという窓から、私たちは何年世界を見てきたのか」について、仕組みとデータの側から少し整理してみます。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "タイトルだけで、もう夜に考えると危険なやつですね。人間の感じ方も一緒に見ていきたいです。"
+    },
+    {
+      "id": "rikei",
+      "name": "理系担当",
+      "voice": "rikei",
+      "text": "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。"
+    },
+    {
+      "id": "bunkei",
+      "name": "文系担当",
+      "voice": "bunkei",
+      "text": "答えを急がずに、データとロマンの間へ一度置いてみましょう。"
+    }
+  ],
+  "createdAt": "2026-05-31T11:59:41.928Z",
+  "updatedAt": "2026-05-31T11:59:41.928Z",
+  "source": {
+    "roadmapPath": "content/plans/episode-roadmap.json",
+    "roadmapId": "roadmap-regular-014",
+    "category": "コンピュータ",
+    "seededBy": "npm run episode:seed"
+  }
+}
