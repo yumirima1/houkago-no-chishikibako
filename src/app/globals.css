@@ -30,6 +30,35 @@ body {
   background: rgba(125, 211, 252, 0.25);
 }
 
+.night-scene {
+  position: absolute;
+  inset: 0;
+  transition:
+    background 700ms ease,
+    opacity 700ms ease;
+}
+
+.night-scene-room {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(59, 130, 246, 0.18), transparent 25%),
+    radial-gradient(circle at 78% 12%, rgba(125, 211, 252, 0.1), transparent 22%),
+    linear-gradient(180deg, #07111f 0%, #050812 52%, #03040a 100%);
+}
+
+.night-scene-desk {
+  background:
+    radial-gradient(circle at 52% 66%, rgba(110, 231, 183, 0.2), transparent 24%),
+    radial-gradient(circle at 30% 72%, rgba(245, 158, 11, 0.08), transparent 18%),
+    linear-gradient(180deg, #06120f 0%, #050812 54%, #020309 100%);
+}
+
+.night-scene-window {
+  background:
+    radial-gradient(circle at 70% 32%, rgba(56, 189, 248, 0.18), transparent 22%),
+    radial-gradient(circle at 25% 40%, rgba(99, 102, 241, 0.12), transparent 26%),
+    linear-gradient(180deg, #07101d 0%, #040714 58%, #020308 100%);
+}
+
 .rainy-lines {
   background-image:
     linear-gradient(115deg, transparent 0 42%, rgba(186, 230, 253, 0.18) 43% 44%, transparent 45% 100%),
@@ -43,6 +72,54 @@ body {
     radial-gradient(circle, rgba(186, 230, 253, 0.2) 0 1px, transparent 2px),
     linear-gradient(180deg, rgba(186, 230, 253, 0.16), transparent 36%);
   background-size: 42px 64px, 18px 92px;
+  animation: rain-drop-shift 18s linear infinite;
+}
+
+.room-monitor,
+.desk-monitor,
+.keyboard-glow,
+.window-light {
+  animation: soft-light 7s ease-in-out infinite;
+}
+
+.room-window {
+  animation: window-glow 9s ease-in-out infinite;
+}
+
+.coffee-cup .steam {
+  position: absolute;
+  bottom: 3.6rem;
+  display: block;
+  width: 1px;
+  height: 3rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0), rgba(226, 232, 240, 0.24), rgba(226, 232, 240, 0));
+  filter: blur(1px);
+  animation: steam-rise 5.8s ease-in-out infinite;
+}
+
+.coffee-cup .steam-a {
+  left: 1.55rem;
+}
+
+.coffee-cup .steam-b {
+  left: 2.7rem;
+  animation-delay: 1.7s;
+}
+
+.window-light {
+  position: absolute;
+  right: 18%;
+  top: 22%;
+  width: 7rem;
+  height: 7rem;
+  border-radius: 999px;
+  background: rgba(125, 211, 252, 0.07);
+  filter: blur(22px);
+}
+
+.quiet-eyelid {
+  animation: quiet-blink 16s ease-in-out infinite;
 }
 
 @keyframes rain-shift {
@@ -52,6 +129,67 @@ body {
 
   to {
     transform: translate3d(-140px, 140px, 0);
+  }
+}
+
+@keyframes rain-drop-shift {
+  from {
+    background-position: 0 0, 0 -80px;
+  }
+
+  to {
+    background-position: 28px 140px, 0 160px;
+  }
+}
+
+@keyframes soft-light {
+  0%,
+  100% {
+    opacity: 0.62;
+    filter: brightness(0.96);
+  }
+
+  50% {
+    opacity: 0.88;
+    filter: brightness(1.12);
+  }
+}
+
+@keyframes window-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 58px rgba(125, 211, 252, 0.06);
+  }
+
+  50% {
+    box-shadow: 0 0 82px rgba(125, 211, 252, 0.1);
+  }
+}
+
+@keyframes steam-rise {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scaleY(0.8);
+  }
+
+  45% {
+    opacity: 0.68;
+    transform: translate3d(5px, -10px, 0) scaleY(1.2);
+  }
+}
+
+@keyframes quiet-blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.12;
+    transform: translateX(-50%) scaleY(1);
+  }
+
+  86% {
+    opacity: 0.28;
+    transform: translateX(-50%) scaleY(0.28);
   }
 }
 

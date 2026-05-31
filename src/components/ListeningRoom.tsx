@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { Clock } from "@/components/Clock";
@@ -19,16 +19,114 @@ const backgroundModes: { id: BackgroundMode; label: string }[] = [
   { id: "window", label: "雨の窓" },
 ];
 
+function parseDuration(duration: string) {
+  const [minutes = "0", seconds = "0"] = duration.split(":");
+  return Number(minutes) * 60 + Number(seconds);
+}
+
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00";
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+type MiniPlayerProps = {
+  currentTime: number;
+  duration: number;
+  episode: Episode;
+  isPlaying: boolean;
+  onSeek: (value: number) => void;
+  onShowInterface: () => void;
+  onTogglePlayback: () => void;
+};
+
+function BackgroundMiniPlayer({
+  currentTime,
+  duration,
+  episode,
+  isPlaying,
+  onSeek,
+  onShowInterface,
+  onTogglePlayback,
+}: MiniPlayerProps) {
+  const displayDuration = duration > 0 ? duration : parseDuration(episode.duration);
+
+  return (
+    <div className="fixed inset-x-4 bottom-5 z-20 mx-auto max-w-3xl rounded-lg border border-white/10 bg-slate-950/62 p-4 shadow-2xl shadow-black/40 backdrop-blur-md sm:bottom-7 sm:p-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/60">
+            Background mode
+          </p>
+          <h2 className="mt-2 truncate text-base font-semibold text-slate-50 sm:text-lg">
+            {episode.title}
+          </h2>
+        </div>
+        <div className="shrink-0">
+          <p className="mb-1 text-xs uppercase tracking-[0.24em] text-slate-500">
+            Tokyo
+          </p>
+          <Clock />
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr_auto] sm:items-center">
+        <button
+          className="min-h-11 rounded-md border border-cyan-100/20 bg-cyan-100/[0.12] px-4 text-sm font-medium text-cyan-50 transition-colors hover:bg-cyan-100/[0.18] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+          onClick={onTogglePlayback}
+          type="button"
+        >
+          {isPlaying ? "一時停止" : "再生"}
+        </button>
+
+        <label className="grid gap-2 text-xs text-slate-400">
+          <span className="sr-only">再生位置</span>
+          <input
+            className="w-full accent-cyan-200"
+            max={displayDuration || 0}
+            min={0}
+            onChange={(event) => onSeek(Number(event.currentTarget.value))}
+            step={1}
+            type="range"
+            value={Math.min(currentTime, displayDuration || 0)}
+          />
+          <span className="font-mono tabular-nums">
+            {formatTime(currentTime)} / {formatTime(displayDuration)}
+          </span>
+        </label>
+
+        <button
+          className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-100 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+          onClick={onShowInterface}
+          type="button"
+        >
+          UIを表示
+        </button>
+      </div>
+    </div>
+  );
+}
+
 type ListeningRoomProps = {
   episodes: Episode[];
 };
 
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [selectedEpisodeId, setSelectedEpisodeId] = useState(episodes[0]?.id);
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>("room");
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
   const [isInterfaceHidden, setIsInterfaceHidden] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
 
   const selectedEpisode = useMemo(
     () =>
@@ -37,6 +135,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     [episodes, selectedEpisodeId],
   );
 
+  const allTags = useMemo(
+    () => [...new Set(episodes.flatMap((episode) => episode.themes))].sort(),
+    [episodes],
+  );
+  const filteredEpisodes = useMemo(() => {
+    if (selectedTags.length === 0) {
+      return episodes;
+    }
+
+    return episodes.filter((episode) =>
+      selectedTags.every((tag) => episode.themes.includes(tag)),
+    );
+  }, [episodes, selectedTags]);
   const showInterface = !isInterfaceHidden;
 
   const wakeInterface = useCallback(() => {
@@ -44,12 +155,72 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     setIsInterfaceHidden(false);
   }, []);
 
+  const markActivity = useCallback(() => {
+    if (!isInterfaceHidden) {
+      setLastInteractionAt(Date.now());
+    }
+  }, [isInterfaceHidden]);
+
   const handlePlaybackChange = useCallback((nextIsPlaying: boolean) => {
     setIsPlaying(nextIsPlaying);
+  }, []);
 
-    if (!nextIsPlaying) {
-      setIsInterfaceHidden(false);
+  const handleSeek = useCallback((value: number) => {
+    const audio = audioRef.current;
+
+    if (!audio) {
+      return;
     }
+
+    audio.currentTime = value;
+    setCurrentTime(value);
+  }, []);
+
+  const selectEpisode = useCallback((episodeId: string) => {
+    setCurrentTime(0);
+    setDuration(0);
+    setSelectedEpisodeId(episodeId);
+  }, []);
+
+  const togglePlayback = useCallback(() => {
+    const audio = audioRef.current;
+
+    if (!audio) {
+      return;
+    }
+
+    if (audio.paused) {
+      void audio.play();
+      return;
+    }
+
+    audio.pause();
+  }, []);
+
+  const handleEpisodeEnded = useCallback(() => {
+    const currentIndex = episodes.findIndex(
+      (episode) => episode.id === selectedEpisode.id,
+    );
+    const nextEpisode = episodes[currentIndex + 1];
+
+    setCurrentTime(0);
+
+    if (!nextEpisode) {
+      setIsPlaying(false);
+      setShouldAutoPlayNext(false);
+      return;
+    }
+
+    selectEpisode(nextEpisode.id);
+    setShouldAutoPlayNext(true);
+  }, [episodes, selectEpisode, selectedEpisode.id]);
+
+  const toggleTag = useCallback((tag: string) => {
+    setSelectedTags((currentTags) =>
+      currentTags.includes(tag)
+        ? currentTags.filter((currentTag) => currentTag !== tag)
+        : [...currentTags, tag],
+    );
   }, []);
 
   useEffect(() => {
@@ -62,15 +233,15 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     ];
 
     activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, wakeInterface, { passive: true });
+      window.addEventListener(eventName, markActivity, { passive: true });
     });
 
     return () => {
       activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, wakeInterface);
+        window.removeEventListener(eventName, markActivity);
       });
     };
-  }, [wakeInterface]);
+  }, [markActivity]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -84,6 +255,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     return () => window.clearTimeout(timer);
   }, [isPlaying, lastInteractionAt]);
 
+  useEffect(() => {
+    if (!shouldAutoPlayNext) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void audioRef.current?.play();
+      setShouldAutoPlayNext(false);
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [selectedEpisode.id, shouldAutoPlayNext]);
+
   if (!selectedEpisode) {
     return null;
   }
@@ -92,17 +276,17 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     <main className="relative min-h-screen overflow-hidden text-slate-100">
       <RainyNightBackground mode={backgroundMode} />
 
-      <button
-        className={`fixed right-5 top-5 z-20 rounded-full border border-white/10 bg-slate-950/55 px-4 py-2 text-sm text-slate-200 backdrop-blur-md transition-opacity hover:bg-slate-900/80 focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
-          showInterface
-            ? "pointer-events-none opacity-0"
-            : "pointer-events-auto opacity-100"
-        }`}
-        onClick={wakeInterface}
-        type="button"
-      >
-        UIを表示
-      </button>
+      {!showInterface ? (
+        <BackgroundMiniPlayer
+          currentTime={currentTime}
+          duration={duration}
+          episode={selectedEpisode}
+          isPlaying={isPlaying}
+          onSeek={handleSeek}
+          onShowInterface={wakeInterface}
+          onTogglePlayback={togglePlayback}
+        />
+      ) : null}
 
       <div
         className={`mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-700 sm:px-8 lg:px-10 ${
@@ -180,34 +364,64 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               <Clock />
             </div>
             <AudioPlayer
+              audioRef={audioRef}
               episode={selectedEpisode}
+              onEnded={handleEpisodeEnded}
+              onLoadedMetadata={(nextDuration) => setDuration(nextDuration)}
               onPlaybackChange={handlePlaybackChange}
+              onTimeUpdate={setCurrentTime}
             />
           </div>
         </section>
 
         <div className="pb-14">
+          <section
+            aria-label="タグ検索"
+            className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"
+          >
+            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-sm font-semibold text-slate-100">タグ検索</h2>
+              {selectedTags.length > 0 ? (
+                <button
+                  className="text-left text-sm text-cyan-100 transition-colors hover:text-cyan-50"
+                  onClick={() => setSelectedTags([])}
+                  type="button"
+                >
+                  絞り込みを解除
+                </button>
+              ) : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((tag) => {
+                const isSelected = selectedTags.includes(tag);
+
+                return (
+                  <button
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
+                      isSelected
+                        ? "border-cyan-100/40 bg-cyan-100/[0.16] text-cyan-50"
+                        : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/[0.08]"
+                    }`}
+                    key={tag}
+                    onClick={() => toggleTag(tag)}
+                    type="button"
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
           <EpisodeList
-            episodes={episodes}
+            episodes={filteredEpisodes}
             onSelectEpisode={(episodeId) => {
-              setSelectedEpisodeId(episodeId);
+              selectEpisode(episodeId);
               handlePlaybackChange(false);
               wakeInterface();
             }}
             selectedEpisodeId={selectedEpisode.id}
           />
         </div>
-      </div>
-
-      <div
-        className={`fixed left-5 top-5 z-10 transition-opacity duration-700 ${
-          showInterface ? "opacity-0" : "opacity-100"
-        }`}
-      >
-        <p className="mb-2 text-xs uppercase tracking-[0.28em] text-slate-500">
-          Tokyo time
-        </p>
-        <Clock />
       </div>
     </main>
   );
