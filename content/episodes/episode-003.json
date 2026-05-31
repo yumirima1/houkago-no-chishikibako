@@ -1,0 +1,25 @@
+{
+  "id": "episode-003",
+  "title": "AIは本当に考えているのか",
+  "description": "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
+  "audioUrl": "/audio/episode-003.mp3",
+  "publishedAt": "2026-05-31",
+  "duration": "05:00",
+  "themes": [
+    "AI",
+    "哲学"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "published",
+  "source": {
+    "reviewedScriptPath": "content/reviewed/episode-003.json",
+    "durationTargetMinutes": 5,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    }
+  }
+}

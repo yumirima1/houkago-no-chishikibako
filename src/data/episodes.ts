@@ -1,3 +1,5 @@
+import { generatedEpisodes } from "./generatedEpisodes";
+
 export type Episode = {
   id: string;
   title: string;
@@ -13,7 +15,7 @@ export type Episode = {
   productionStatus: "published" | "draft" | "reviewing";
 };
 
-export const episodes: Episode[] = [
+const manualEpisodes: Episode[] = [
   {
     id: "after-school-001",
     title: "AIは考えているのか、計算しているのか",
@@ -59,4 +61,11 @@ export const episodes: Episode[] = [
     },
     productionStatus: "published",
   },
+];
+
+const manualEpisodeIds = new Set(manualEpisodes.map((episode) => episode.id));
+
+export const episodes: Episode[] = [
+  ...manualEpisodes,
+  ...generatedEpisodes.filter((episode) => !manualEpisodeIds.has(episode.id)),
 ];

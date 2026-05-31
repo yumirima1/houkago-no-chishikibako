@@ -36,3 +36,42 @@ npm run build
   themes: ["AI", "哲学"]
 }
 ```
+
+## 制作パイプライン
+
+v0.3 ではローカルで動く半自動の制作フローを用意しています。
+
+```bash
+npm run episode:generate -- --title "AIは本当に考えているのか" --theme "AIと思考" --minutes 5
+npm run episode:review
+npm run episode:build
+```
+
+まとめて実行:
+
+```bash
+npm run episode:pipeline
+```
+
+VOICEVOX Engine が起動している場合は、原稿生成から音声生成、掲載データ作成まで一括で実行できます。
+
+```bash
+npm run episode:publish
+```
+
+生成物:
+
+- `content/drafts/`: 原稿JSON
+- `content/reviewed/`: 簡易校閲済みJSON
+- `generated-audio/`: 発話ごとのWAVと結合済みWAV
+- `content/episodes/`: 掲載用メタデータ
+- `public/audio/`: エピソード音声
+- `src/data/generatedEpisodes.ts`: サイトへ読み込む生成済みエピソード一覧
+
+VOICEVOX の接続先と話者IDは環境変数で変更できます。
+
+```bash
+VOICEVOX_ENDPOINT=http://127.0.0.1:50021
+VOICEVOX_RIKEI_SPEAKER_ID=3
+VOICEVOX_BUNKEI_SPEAKER_ID=2
+```

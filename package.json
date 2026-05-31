@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "episode:generate": "tsx scripts/generate-script.ts",
+    "episode:review": "tsx scripts/review-script.ts",
+    "episode:audio": "tsx scripts/generate-audio.ts",
+    "episode:build": "tsx scripts/build-episode.ts",
+    "episode:pipeline": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/build-episode.ts",
+    "episode:publish": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -20,7 +26,9 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "lamejs": "^1.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.3",
     "typescript": "^5"
   }
 }
