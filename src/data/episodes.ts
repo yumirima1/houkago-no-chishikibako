@@ -61,7 +61,7 @@ export function getEpisodeDurationType(
 
 export function getEpisodeTypeLabel(type: EpisodeType) {
   const labels: Record<EpisodeType, string> = {
-    anniversary: "特別回",
+    anniversary: "自己紹介",
     movie: "映画回",
     news: "ニュース回",
     regular: "通常回",
@@ -74,4 +74,12 @@ export function getEpisodeTypeLabel(type: EpisodeType) {
 
 export function getDurationTypeLabel(durationType: EpisodeDurationType) {
   return durationType === "long" ? "60分前後" : "20-30分";
+}
+
+export function getEpisodeDurationLabel(episode: Episode) {
+  if (episode.id === "episode-000") {
+    return "約2分";
+  }
+
+  return getDurationTypeLabel(getEpisodeDurationType(episode));
 }

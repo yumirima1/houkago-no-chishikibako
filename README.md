@@ -31,11 +31,16 @@ npm run build
   title: "タイトル",
   description: "説明文",
   audioUrl: "/audio/episode-000.mp3",
+  type: "regular",
+  durationType: "normal",
   publishedAt: "2026-05-31",
   duration: "04:20",
+  tags: ["AI", "哲学"],
   themes: ["AI", "哲学"]
 }
 ```
+
+`type` は `regular` / `special` / `news` / `movie` / `weather` / `anniversary` を想定しています。`durationType` は `normal` と `long` です。未指定でもサイト側でフォールバックします。
 
 ## 制作パイプライン
 
@@ -59,12 +64,20 @@ npm run episode:pipeline
 npm run episode:publish
 ```
 
+週刊更新の候補と確認メモを作る場合:
+
+```bash
+npm run episode:weekly
+```
+
 生成物:
 
 - `content/drafts/`: 原稿JSON
 - `content/reviewed/`: 簡易校閲済みJSON
 - `generated-audio/`: 発話ごとのWAVと結合済みWAV
 - `content/episodes/`: 掲載用メタデータ
+- `content/memory/program-memory.json`: 番組記憶
+- `content/memory/weekly-plan.json`: 週刊更新候補
 - `public/audio/`: エピソード音声
 - `src/data/generatedEpisodes.ts`: サイトへ読み込む生成済みエピソード一覧
 
@@ -81,4 +94,4 @@ VOICEVOX_BUNKEI_SPEAKER_ID=8
 - `rikei`: 青山龍星 / ノーマル / speaker id `13`
 - `bunkei`: 春日部つむぎ / ノーマル / speaker id `8`
 
-音声生成時に、話速を少し落とし、発話前後と発話間に短いポーズを入れます。
+音声生成時は、落ち着きを保ちながら退屈になりにくいように、話速をやや上げ、発話間ポーズは約280msにしています。

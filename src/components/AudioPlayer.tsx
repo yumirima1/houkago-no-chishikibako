@@ -4,8 +4,7 @@ import type { RefObject } from "react";
 
 import {
   Episode,
-  getDurationTypeLabel,
-  getEpisodeDurationType,
+  getEpisodeDurationLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
@@ -29,7 +28,6 @@ export function AudioPlayer({
   onTimeUpdate,
 }: AudioPlayerProps) {
   const episodeType = getEpisodeType(episode);
-  const durationType = getEpisodeDurationType(episode);
 
   return (
     <section
@@ -49,7 +47,7 @@ export function AudioPlayer({
               {getEpisodeTypeLabel(episodeType)}
             </span>
             <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-slate-300">
-              {getDurationTypeLabel(durationType)}
+              {getEpisodeDurationLabel(episode)}
             </span>
           </div>
         </div>

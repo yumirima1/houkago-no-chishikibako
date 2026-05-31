@@ -8,8 +8,11 @@ export const generatedEpisodes: Episode[] = [
     title: "はじめまして、放課後の知識箱です",
     description: "放課後の知識箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
     audioUrl: "/audio/episode-000.mp3",
+    type: "anniversary",
+    durationType: "normal",
     publishedAt: "2026-05-31",
     duration: "02:00",
+    tags: ["番組紹介","AI制作","知識ラジオ"],
     themes: ["番組紹介","AI制作","知識ラジオ"],
     speakers: {
     "science": "理系担当",
@@ -22,8 +25,11 @@ export const generatedEpisodes: Episode[] = [
     title: "AIは本当に考えているのか",
     description: "AIは本当に考えているのかについて、理系担当と文系担当が静かな会話形式で考えます。",
     audioUrl: "/audio/episode-004.mp3",
+    type: "regular",
+    durationType: "normal",
     publishedAt: "2026-05-31",
     duration: "05:00",
+    tags: ["AI","哲学"],
     themes: ["AI","哲学"],
     speakers: {
     "science": "理系担当",

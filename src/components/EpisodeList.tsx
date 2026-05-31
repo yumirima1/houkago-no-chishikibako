@@ -1,7 +1,6 @@
 import {
   Episode,
-  getDurationTypeLabel,
-  getEpisodeDurationType,
+  getEpisodeDurationLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
@@ -53,7 +52,7 @@ export function EpisodeList({
                     {getEpisodeTypeLabel(getEpisodeType(episode))}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/[0.055] px-2.5 py-1 text-xs text-slate-300">
-                    {getDurationTypeLabel(getEpisodeDurationType(episode))}
+                    {getEpisodeDurationLabel(episode)}
                   </span>
                 </div>
                 <h3 className="mt-1 text-base font-semibold leading-7 text-slate-50">

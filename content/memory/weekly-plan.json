@@ -1,0 +1,54 @@
+{
+  "nextUpdate": "2026-06-07 03:00 JST",
+  "cadence": "毎週日曜 朝3時更新",
+  "candidates": [
+    {
+      "title": "雨の日に考える、ネットはなぜ炎上をやめられないのか",
+      "theme": "炎上と心理学",
+      "type": "regular",
+      "durationType": "normal",
+      "needsHumanCheck": false,
+      "tags": [
+        "心理学",
+        "インターネット",
+        "哲学"
+      ]
+    },
+    {
+      "title": "人生で一番驚いたニュース、AIが研究室を持ち始めた日",
+      "theme": "AIと研究の未来",
+      "type": "news",
+      "durationType": "normal",
+      "needsHumanCheck": true,
+      "tags": [
+        "AI",
+        "技術ニュース",
+        "科学"
+      ]
+    },
+    {
+      "title": "その映画、実は未来予測だったのでは？",
+      "theme": "映画と未来予測",
+      "type": "movie",
+      "durationType": "normal",
+      "needsHumanCheck": false,
+      "tags": [
+        "映画",
+        "未来",
+        "哲学"
+      ]
+    }
+  ],
+  "memoryUsed": {
+    "recurringPhrase": "答えを急がないための、少しだけ遠回りの時間です。",
+    "runningJoke": "文系担当は、難しい話をすぐ喫茶店と雨にたとえがち。",
+    "pastTopicCount": 2
+  },
+  "humanCheckRequired": "ニュース、天気、映画の最新情報を扱う場合は、原稿生成前に人間が日付と出典を確認してください。",
+  "nextCommands": [
+    "npm run episode:generate -- --title \"候補タイトル\" --theme \"候補テーマ\" --minutes 25 --themes \"AI,哲学\"",
+    "npm run episode:review",
+    "npm run episode:audio",
+    "npm run episode:build"
+  ]
+}
