@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
-import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import {
   BackgroundMode,
@@ -372,9 +371,17 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     return null;
   }
 
+  const selectedEpisodeNumberLabel = getEpisodeNumberLabel(selectedEpisode);
+  const monitorNowPlayingLabel = `${selectedEpisodeNumberLabel} ${selectedEpisode.title}`;
+
   return (
     <main className="relative min-h-screen overflow-hidden text-slate-100">
-      <RainyNightBackground mode={backgroundMode} />
+      <RainyNightBackground
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050812]"
+        isOnAir={isVoicePlaying}
+        mode={backgroundMode}
+        nowPlayingLabel={monitorNowPlayingLabel}
+      />
 
       {!showInterface ? (
         <BackgroundModeOverlay
@@ -390,7 +397,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       ) : null}
 
       <div
-        className={`mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-[1400ms] sm:px-8 lg:px-10 ${
+        className={`relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-[1400ms] sm:px-8 lg:px-10 ${
           showInterface
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -476,12 +483,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           </div>
 
           <div className="space-y-5">
-            <div className="rounded-lg border border-white/10 bg-white/[0.045] p-5 backdrop-blur-md">
-              <p className="mb-2 text-xs uppercase tracking-[0.28em] text-slate-500">
-                Tokyo time
-              </p>
-              <Clock />
-            </div>
             <AudioPlayer
               audioRef={audioRef}
               episode={selectedEpisode}

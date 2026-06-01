@@ -1,14 +1,39 @@
 {
-  "episode-018": {
+  "experiment": "Experiment 07 broadcast-room",
+  "scope": "episode-018-and-later",
+  "opening": {
     "enabled": true,
     "placement": "before-main-audio",
     "jinglePath": "public/jingles/opening-school-chime-v1.mp3",
     "theme": "original school-chime-style bell motif",
     "durationSeconds": 4.4,
+    "flow": [
+      "opening jingle",
+      "かな: こんばんは",
+      "タルタル: 放課後の知識箱です",
+      "main episode"
+    ],
     "notes": [
-      "Experimental Phase 1 opening jingle.",
       "Original synthesized sine-bell audio, not sampled from existing chime recordings.",
-      "No door, footsteps, homecoming, rain, or ending effects."
+      "Designed to be short enough for repeated weekly listening."
     ]
+  },
+  "ending": {
+    "enabled": false,
+    "placement": "after-main-audio",
+    "jinglePath": "public/jingles/ending-door-rain-v1.mp3",
+    "theme": "quiet door-close impression followed by rain fade",
+    "durationSeconds": 8.2,
+    "notes": [
+      "Experimental asset only; not applied to episode audio yet.",
+      "Synthesized door-like thump and procedural rain noise.",
+      "No footsteps or homecoming sequence."
+    ]
+  },
+  "episodeOverrides": {
+    "episode-018": {
+      "openingAppliedToPublicAudio": true,
+      "endingAppliedToPublicAudio": false
+    }
   }
 }

@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 export type BackgroundMode = "room" | "desk" | "window";
 
 export const backgroundModeProfiles: Array<{
@@ -42,12 +46,72 @@ export function getBackgroundModeForTags(tags: string[]) {
 
 type RainyNightBackgroundProps = {
   className?: string;
+  isOnAir?: boolean;
   mode: BackgroundMode;
+  nowPlayingLabel?: string;
 };
+
+function formatMonitorTime(date: Date | null) {
+  if (!date) {
+    return "--:--";
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  }).format(date);
+}
+
+function BroadcastCrtMonitor({
+  isOnAir = false,
+  nowPlayingLabel = "放課後の知識箱",
+}: {
+  isOnAir?: boolean;
+  nowPlayingLabel?: string;
+}) {
+  const [now, setNow] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    const initialTick = window.setTimeout(tick, 0);
+    const timer = window.setInterval(tick, 1000);
+
+    return () => {
+      window.clearTimeout(initialTick);
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  return (
+    <div className="broadcast-crt-monitor" aria-hidden="true">
+      <div className="broadcast-crt-shell">
+        <div className="broadcast-crt-screen">
+          <div className="broadcast-crt-scanlines" />
+          <div className="broadcast-crt-noise" />
+          <p className="broadcast-crt-time">{formatMonitorTime(now)}</p>
+          <p
+            className={`broadcast-crt-status ${
+              isOnAir ? "broadcast-crt-status-live" : ""
+            }`}
+          >
+            {isOnAir ? "● ON AIR" : "OFF AIR"}
+          </p>
+          <p className="broadcast-crt-label">NOW PLAYING</p>
+          <p className="broadcast-crt-title">{nowPlayingLabel}</p>
+        </div>
+        <span className="broadcast-crt-led" />
+      </div>
+    </div>
+  );
+}
 
 export function RainyNightBackground({
   className = "pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-[#050812]",
+  isOnAir = false,
   mode,
+  nowPlayingLabel,
 }: RainyNightBackgroundProps) {
   const profile =
     backgroundModeProfiles.find((backgroundProfile) => backgroundProfile.id === mode) ??
@@ -80,6 +144,10 @@ export function RainyNightBackground({
           <span className="steam steam-c" />
         </div>
       ) : null}
+      <BroadcastCrtMonitor
+        isOnAir={isOnAir}
+        nowPlayingLabel={nowPlayingLabel}
+      />
       <div className="room-grain" />
       <div className="night-floor" />
     </div>
