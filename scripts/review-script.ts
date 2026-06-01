@@ -37,6 +37,11 @@ const detourPattern =
   /脱線|寄り道|全然関係|思い出|実体験|失敗|作るなら|たとえ|例えば|妄想|コーヒー|深夜/;
 const tartaruMechanicPattern =
   /仕組み|技術|データ|構造|設計|実装|モデル|科学|コンピュータ|AI/;
+const bannedTartaruTemplatePattern =
+  /構造として見ると|ここが大事です|ここが大事|結局ここが大事/;
+const shikumiTemplatePattern = /仕組みとして見ると/g;
+const summaryTemplatePattern =
+  /^(だから|つまり|要するに|結局|ここまで話して|最後に|今日の着地として).*(大事|必要|思う|という話)/;
 const conversationalMarginPattern =
   /あー|えー|んー|うーん|いや待って|それさ|まあ|一回|ちょっと待|急に|冗談|笑|コーヒー|脱線|寄り道|例えば|たとえ/;
 const informationDensityPattern =
@@ -74,8 +79,7 @@ function reinforceSpeakerRole(line: EpisodeSpeakerLine, changes: string[]) {
     line.id === "rikei" &&
     !/仕組み|データ|科学|技術|研究|モデル|コンピュータ|AI/.test(line.text)
   ) {
-    changes.push("理系担当の発話に、仕組みやデータの視点を補いました。");
-    return `${line.text} 仕組みとして見ると、ここが大事です。`;
+    changes.push("理系担当の発話は、決め台詞を足さず自然な話し言葉のまま確認しました。");
   }
 
   if (line.id === "bunkei" && !/待って|でも|それ|ちょっと|なんで|本当|急に|分かる/.test(line.text)) {
@@ -152,6 +156,28 @@ function checkProgramQualityRules(
       !detourPattern.test(line.text) &&
       line.text.length > 180,
   );
+  const bannedTartaruTemplateLines = tartaruLines.filter((line) =>
+    bannedTartaruTemplatePattern.test(line.text),
+  );
+  const shikumiTemplateCount = tartaruLines.reduce(
+    (count, line) => count + (line.text.match(shikumiTemplatePattern)?.length ?? 0),
+    0,
+  );
+  const summaryTemplateLines = tartaruLines.filter((line) =>
+    summaryTemplatePattern.test(line.text.trim()),
+  );
+
+  if (bannedTartaruTemplateLines.length > 0) {
+    warnings.push("タルタルの決め台詞化したまとめ表現があります。「構造として見ると」「ここが大事です」「結局ここが大事」は原則使わず、具体例や比喩で話を進めてください。");
+  }
+
+  if (shikumiTemplateCount > 1) {
+    warnings.push("「仕組みとして見ると」が複数回出ています。タルタルの口癖にせず、流れと明確につながる場面だけにしてください。");
+  }
+
+  if (summaryTemplateLines.length > Math.max(2, Math.floor(tartaruLines.length * 0.12))) {
+    warnings.push("タルタルの締め・まとめセリフが同じ型に寄っています。結論テンプレではなく、その場の具体例や会話の流れから自然に着地してください。");
+  }
 
   if (longTartaruLines.length > Math.max(2, Math.floor(tartaruLines.length * 0.12))) {
     warnings.push("タルタルの長い説明が多めです。説明、脱線、失敗談、短い雑談を交互にしてください。");
@@ -299,7 +325,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多、理解の余白不足を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多、理解の余白不足、タルタルの決め台詞化したまとめ表現を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,
