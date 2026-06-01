@@ -59,9 +59,11 @@
 
 ```bash
 npm run episode:seed -- --theme "なぜ人は通知を開くのか"
+npm run episode:skeleton -- --theme "なぜ人は通知を開くのか"
+npm run episode:skeleton -- --seed-file path/to/seed.json
 ```
 
-出力:
+Seed出力:
 
 - `theme`
 - `structureTemplate`
@@ -70,8 +72,25 @@ npm run episode:seed -- --theme "なぜ人は通知を開くのか"
 - `tone`
 - `rarityMix`
 
+Skeleton出力:
+
+- `theme`
+- `structureTemplate`
+- `atmosphere`
+- `tone`
+- `beats`
+
+各beat:
+
+- `order`
+- `speaker`
+- `role`
+- `purpose`
+- `eventId` optional
+- `cue`
+
 旧seed投入スクリプトは `npm run episode:seed:legacy` に退避する。
 
 ## 次フェーズ
 
-`scripts/generate-script.ts` がSHOW_BIBLEを読んだあと、Episode Seed Engineからイベント候補を少数選び、プロンプトへ「必須ではない揺れ」として渡す。
+`scripts/generate-script.ts` がSHOW_BIBLEを読んだあと、Episode SeedとConversation Skeletonを作り、プロンプトへ「必須ではない揺れ」として渡す。

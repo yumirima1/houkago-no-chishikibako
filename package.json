@@ -9,6 +9,7 @@
     "lint": "eslint",
     "episode:generate": "tsx scripts/generate-script.ts",
     "episode:review": "tsx scripts/review-script.ts",
+    "episode:skeleton": "tsx scripts/generate-conversation-skeleton.ts",
     "episode:audio": "tsx scripts/generate-audio.ts",
     "episode:audio:preview": "tsx scripts/generate-audio.ts --preview",
     "episode:audio:clean": "tsx scripts/clean-audio.ts --episodes --previews",
