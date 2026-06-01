@@ -24,6 +24,12 @@ const riskyPhrases = [
   ["誰でも分かります", "順番に見れば分かりやすくなります"],
 ] as const;
 
+const closingDeclarationPattern =
+  /今日はこの(へん|辺)|では今日は|そろそろ終わ|また来週|おやすみ/;
+const questionPattern = /[^。！？?]*[？?]/g;
+const simpleKanaBackchannelPattern =
+  /^(なるほど|たしかに|そうなんだ)[。！？?、\s]*$/;
+
 function ensureReadableText(text: string, changes: string[]) {
   let nextText = text.replace(/\s+/g, " ").trim();
 
@@ -67,6 +73,59 @@ function reinforceSpeakerRole(line: EpisodeSpeakerLine, changes: string[]) {
   return line.text;
 }
 
+function normalizeQuestion(question: string) {
+  return question.replace(/\s+/g, "").replace(/[？?]+$/, "");
+}
+
+function extractQuestions(text: string) {
+  return [...text.matchAll(questionPattern)]
+    .map((match) => normalizeQuestion(match[0]))
+    .filter((question) => question.length >= 8);
+}
+
+function checkProgramQualityRules(
+  speakers: EpisodeSpeakerLine[],
+  warnings: string[],
+) {
+  const firstClosingIndex = speakers.findIndex((line) =>
+    closingDeclarationPattern.test(line.text),
+  );
+  const closingCount = speakers.filter((line) =>
+    closingDeclarationPattern.test(line.text),
+  ).length;
+
+  if (closingCount > 1) {
+    warnings.push("締めの宣言が複数回あります。エンディングは1回だけにしてください。");
+  }
+
+  if (firstClosingIndex > -1 && firstClosingIndex < speakers.length - 2) {
+    warnings.push("エンディング宣言後に会話が続いています。新しい本題を始めていないか確認してください。");
+  }
+
+  const openingQuestions = extractQuestions(
+    speakers.slice(0, 6).map((line) => line.text).join(" "),
+  );
+  const endingQuestions = extractQuestions(
+    speakers.slice(-6).map((line) => line.text).join(" "),
+  );
+  const repeatedQuestion = openingQuestions.find((openingQuestion) =>
+    endingQuestions.includes(openingQuestion),
+  );
+
+  if (repeatedQuestion) {
+    warnings.push("冒頭の問いと最後の問いが同じです。最後は視点を一段変えた問いにしてください。");
+  }
+
+  const simpleKanaBackchannels = speakers.filter(
+    (line) =>
+      line.id === "bunkei" && simpleKanaBackchannelPattern.test(line.text),
+  );
+
+  if (simpleKanaBackchannels.length > 0) {
+    warnings.push("かなが単純な相槌だけで返している箇所があります。ツッコミ、驚き、反論、勘違い、ボケに変えてください。");
+  }
+}
+
 function reviewScript(script: EpisodeScript): EpisodeScript {
   const warnings: string[] = [];
   const changes: string[] = [];
@@ -90,6 +149,8 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
   if (!hasRikei || !hasBunkei) {
     warnings.push("理系担当と文系担当の両方が含まれているか確認してください。");
   }
+
+  checkProgramQualityRules(speakers, warnings);
 
   const durationType = script.durationType ?? "normal";
 
@@ -120,7 +181,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者が続く箇所を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,

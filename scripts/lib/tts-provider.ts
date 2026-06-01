@@ -3,6 +3,11 @@ import { writeFile } from "node:fs/promises";
 import { VoiceId } from "./episode-schema";
 
 export type TtsProvider = {
+  getSynthesisSignature(options: {
+    speakerName: string;
+    text: string;
+    voice: VoiceId;
+  }): unknown;
   synthesizeToWav(options: {
     speakerName: string;
     text: string;
@@ -19,6 +24,7 @@ type VoicevoxConfig = {
     {
       intonationScale: number;
       pauseLength: number;
+      pitchScale: number;
       postPhonemeLength: number;
       prePhonemeLength: number;
       speedScale: number;
@@ -28,27 +34,32 @@ type VoicevoxConfig = {
 };
 
 const defaultVoicevoxConfig: VoicevoxConfig = {
-  endpoint: process.env.VOICEVOX_ENDPOINT ?? "http://127.0.0.1:50021",
+  endpoint:
+    process.env.VOICEVOX_URL ??
+    process.env.VOICEVOX_ENDPOINT ??
+    "http://127.0.0.1:50021",
   voices: {
-    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 13),
-    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 8),
+    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 12),
+    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 2),
   },
   voiceProfiles: {
     rikei: {
-      intonationScale: 0.9,
-      pauseLength: 0.56,
-      postPhonemeLength: 0.2,
-      prePhonemeLength: 0.12,
-      speedScale: 0.97,
-      volumeScale: 0.92,
+      intonationScale: 0.86,
+      pauseLength: 0.46,
+      pitchScale: 0.01,
+      postPhonemeLength: 0.16,
+      prePhonemeLength: 0.08,
+      speedScale: 1.04,
+      volumeScale: 0.9,
     },
     bunkei: {
-      intonationScale: 0.97,
-      pauseLength: 0.58,
-      postPhonemeLength: 0.22,
-      prePhonemeLength: 0.12,
-      speedScale: 0.98,
-      volumeScale: 0.9,
+      intonationScale: 0.9,
+      pauseLength: 0.5,
+      pitchScale: -0.04,
+      postPhonemeLength: 0.18,
+      prePhonemeLength: 0.1,
+      speedScale: 1,
+      volumeScale: 0.88,
     },
   },
 };
@@ -102,6 +113,27 @@ export class VoicevoxProvider implements TtsProvider {
     return speakerId;
   }
 
+  getSynthesisSignature({
+    speakerName,
+    text,
+    voice,
+  }: {
+    speakerName: string;
+    text: string;
+    voice: VoiceId;
+  }) {
+    const speaker = this.speakerIdForVoice(voice);
+
+    return {
+      engine: "voicevox",
+      speaker,
+      speakerName,
+      text,
+      voice,
+      voiceProfile: this.config.voiceProfiles[voice] ?? null,
+    };
+  }
+
   private applyVoiceProfile(audioQuery: unknown, voice: VoiceId) {
     if (!audioQuery || typeof audioQuery !== "object") {
       return audioQuery;
@@ -117,6 +149,7 @@ export class VoicevoxProvider implements TtsProvider {
       ...audioQuery,
       intonationScale: profile.intonationScale,
       pauseLength: profile.pauseLength,
+      pitchScale: profile.pitchScale,
       postPhonemeLength: profile.postPhonemeLength,
       prePhonemeLength: profile.prePhonemeLength,
       speedScale: profile.speedScale,

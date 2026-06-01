@@ -1,14 +1,14 @@
 {
   id: "episode-008",
-  title: "なぜ人類はSNSをやめられないのか、深夜の通知を見ながら考える",
-  description: "承認欲求、報酬設計、コミュニティ、炎上を、ニュース解説ではなく人間観察として扱う。",
+  title: "スマホは道具なのか、住んでいる場所なのか",
+  description: "通知、SNS、写真、連絡、作業を通して、スマホが道具を超えてもう一つの部屋になっている感覚を話す。",
   audioUrl: "/audio/episode-008.mp3",
   type: "regular",
   durationType: "normal",
-  publishedAt: "2026-05-31",
-  duration: "28:00",
-  tags: ["インターネット文化","SNS","心理学"],
-  themes: ["インターネット文化","SNS","心理学"],
+  publishedAt: "2026-06-01",
+  duration: "21:00",
+  tags: ["スマホ","SNS","インターネット","生活"],
+  themes: ["スマホ","SNS","インターネット","生活"],
   speakers: {
   "science": "理系担当",
   "humanities": "文系担当"

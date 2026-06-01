@@ -1,14 +1,14 @@
 {
   id: "episode-006",
-  title: "ローカルAIを机の上に置いたら、未来は少し静かになるのか",
-  description: "クラウドAIとローカルAIの違い、プライバシー、手元に知能がある感覚について雑談する。",
+  title: "インターネットは記憶なのか、消せない夜のログについて",
+  description: "検索履歴、SNS、黒歴史、AIに残る言葉を手がかりに、インターネットは記憶なのかを深夜ラジオとして考える。",
   audioUrl: "/audio/episode-006.mp3",
   type: "regular",
   durationType: "normal",
-  publishedAt: "2026-05-31",
-  duration: "26:00",
-  tags: ["コンピュータ","AI","ローカルAI"],
-  themes: ["コンピュータ","AI","ローカルAI"],
+  publishedAt: "2026-06-01",
+  duration: "22:00",
+  tags: ["インターネット","AI","記憶","SNS"],
+  themes: ["インターネット","AI","記憶","SNS"],
   speakers: {
   "science": "理系担当",
   "humanities": "文系担当"

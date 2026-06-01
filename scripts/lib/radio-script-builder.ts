@@ -28,6 +28,23 @@ export const radioScriptLengthRules: Record<
   },
 };
 
+export const radioScriptConversationRules = {
+  structure: [
+    "第1部: テーマ導入。近況や小さな違和感から入り、いきなり講義にしない。",
+    "第2部: 脱線、雑談、反論。例え話、実体験風トーク、技術談義をここで広げる。",
+    "第3部: まとめ。エンディング宣言後に新しい本題を始めない。",
+  ],
+  ending: [
+    "冒頭の問いと最後の問いを同じにしない。",
+    "締めは1回だけにする。",
+    "最後は結論を押し付けず、少し角度を変えた問いを残す。",
+  ],
+  kana: [
+    "かなは相槌役ではなく、ツッコミ、驚き、反論、勘違い、ボケを混ぜる。",
+    "なるほど、たしかに、そうなんだ、だけで会話を進めない。",
+  ],
+};
+
 type RadioScriptOptions = {
   createdAt?: string;
   description: string;

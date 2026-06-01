@@ -1,21 +1,23 @@
 {
   "id": "episode-007",
-  "title": "作る前が一番楽しいのはなぜなのか",
-  "description": "構想段階の高揚感、完成後の現実、創作と報酬予測について話す。ものづくり回の定番にする。",
+  "title": "AIに任せると、人間は何が残るのか",
+  "description": "宿題、仕事、創作、判断をAIに任せたあと、人間には何が残るのかを雑談と反論を交えて考える。",
   "audioUrl": "/audio/episode-007.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "24:00",
+  "publishedAt": "2026-06-01",
+  "duration": "22:00",
   "tags": [
-    "心理学",
-    "ものづくり",
-    "創作"
+    "AI",
+    "仕事",
+    "創作",
+    "学び"
   ],
   "themes": [
-    "心理学",
-    "ものづくり",
-    "創作"
+    "AI",
+    "仕事",
+    "創作",
+    "学び"
   ],
   "speakers": {
     "science": "理系担当",
@@ -24,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-007.json",
-    "durationTargetMinutes": 24,
+    "durationTargetMinutes": 22,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"

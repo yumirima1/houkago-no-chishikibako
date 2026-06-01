@@ -1,21 +1,23 @@
 {
   "id": "episode-009",
-  "title": "人は理解し合えるのか、それとも翻訳し合っているだけなのか",
-  "description": "言葉、認識、誤解、会話の限界を、2人の番組そのものにも重ねて考える。",
+  "title": "「わかりやすい」は本当に正しいのか",
+  "description": "短い動画、要約、勉強、誤解を通して、わかりやすさの便利さと危うさ、わからなさに耐える力を考える。",
   "audioUrl": "/audio/episode-009.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "27:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
-    "哲学",
-    "言語",
-    "コミュニケーション"
+    "学び",
+    "メディア",
+    "言葉",
+    "思考"
   ],
   "themes": [
-    "哲学",
-    "言語",
-    "コミュニケーション"
+    "学び",
+    "メディア",
+    "言葉",
+    "思考"
   ],
   "speakers": {
     "science": "理系担当",
@@ -24,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-009.json",
-    "durationTargetMinutes": 27,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"
