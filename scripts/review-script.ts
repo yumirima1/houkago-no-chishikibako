@@ -46,6 +46,67 @@ const conversationalMarginPattern =
   /あー|えー|んー|うーん|いや待って|それさ|まあ|一回|ちょっと待|急に|冗談|笑|コーヒー|脱線|寄り道|例えば|たとえ/;
 const informationDensityPattern =
   /AI|アルゴリズム|モデル|データ|学習|記憶|検索|SNS|通知|要約|仕組み|技術|構造|設計|実装|科学|脳|心理|社会|判断|責任|記録|履歴|生成|処理|分析/g;
+const kanaConcernPattern =
+  /怖|不安|分からない|わからない|変じゃない|それ変|大丈夫|嫌|しんど|つら|無理|置いていか/;
+const tartaruAcknowledgementPattern =
+  /分かる|わかる|たしかに|確かに|そうだね|それはある|その気持ち|怖さ|不安|無理ない|自然|一回受け止め|あー|んー|うん/;
+const tartaruExplanationStartPattern =
+  /^(技術|データ|AI|モデル|研究|歴史|心理学|科学|1950年代|まず|例えば|たとえば|要するに|つまり|結論|現時点|一般的)/;
+const analogyMarkerPattern =
+  /みたい|ような|ように|たとえるなら|例えるなら|例え|比喩|感じ/;
+const repeatedOpeningPattern =
+  /^(あー|うん|でも|そう|いや|つまり|要するに|たぶん|実は|面白いのがさ|ちょっと|最後に|ここで)/;
+
+function normalizeForSimilarity(text: string) {
+  return text
+    .replace(/[、。！？!?「」『』（）()\s]/g, "")
+    .replace(/^(あー|えー|んー|うーん|でも|いや|そう|つまり|要するに|たぶん)/, "");
+}
+
+function bigrams(text: string) {
+  const normalized = normalizeForSimilarity(text);
+  const values = new Set<string>();
+
+  for (let index = 0; index < normalized.length - 1; index += 1) {
+    values.add(normalized.slice(index, index + 2));
+  }
+
+  return values;
+}
+
+function jaccardSimilarity(left: string, right: string) {
+  const leftBigrams = bigrams(left);
+  const rightBigrams = bigrams(right);
+
+  if (leftBigrams.size === 0 || rightBigrams.size === 0) return 0;
+
+  let intersection = 0;
+
+  for (const value of leftBigrams) {
+    if (rightBigrams.has(value)) intersection += 1;
+  }
+
+  const union = new Set([...leftBigrams, ...rightBigrams]).size;
+
+  return intersection / union;
+}
+
+function countRepeatedValues(values: string[], minCount: number) {
+  const counts = new Map<string, number>();
+
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return [...counts.entries()].filter(([, count]) => count >= minCount);
+}
+
+function getSentenceEnding(text: string) {
+  const normalized = text.trim().replace(/[。！？!?]+$/, "");
+  const match = normalized.match(/(.{4,12})$/);
+
+  return match?.[1] ?? "";
+}
 
 function ensureReadableText(text: string, changes: string[]) {
   let nextText = text.replace(/\s+/g, " ").trim();
@@ -257,15 +318,85 @@ function checkProgramQualityRules(
     warnings.push("会話内に脱線や実体験風の寄り道がありません。深夜ラジオとして自然な遠回りを入れてください。");
   }
 
+  for (let index = 0; index < speakers.length - 1; index += 1) {
+    const current = speakers[index];
+    const next = speakers[index + 1];
+
+    if (
+      current.id === "bunkei" &&
+      next.id === "rikei" &&
+      kanaConcernPattern.test(current.text) &&
+      tartaruExplanationStartPattern.test(next.text.trim()) &&
+      !tartaruAcknowledgementPattern.test(next.text)
+    ) {
+      warnings.push("かなの怖さ、不安、分からなさを受け止めずに、タルタルが説明を開始している可能性があります。まず短く共感や確認を入れてください。");
+      break;
+    }
+  }
+
+  const analogyLines = speakers.filter((line) => analogyMarkerPattern.test(line.text));
+  const repeatedAnalogyTerms = countRepeatedValues(
+    analogyLines.flatMap((line) =>
+      [...line.text.matchAll(/([一-龠ぁ-んァ-ヶA-Za-z0-9]{2,14})(みたい|のよう|ような|っぽい|感じ)/g)]
+        .map((match) => match[1])
+        .filter((value) => !/そう|こんな|そんな|どんな|同じ|少し|ちょっと/.test(value)),
+    ),
+    3,
+  );
+
+  if (
+    analogyLines.length > Math.max(8, Math.floor(speakers.length * 0.22)) ||
+    repeatedAnalogyTerms.length > 0
+  ) {
+    warnings.push("比喩が多い、または同じ例えが繰り返されています。テーマ固有の生活場面に絞り、同じ比喩パターンを減らしてください。");
+  }
+
+  const repeatedContentExists = speakers.some((line, index) =>
+    speakers
+      .slice(index + 1, index + 7)
+      .some(
+        (otherLine) =>
+          line.id === otherLine.id &&
+          line.text.length >= 34 &&
+          otherLine.text.length >= 34 &&
+          jaccardSimilarity(line.text, otherLine.text) > 0.72,
+      ),
+  );
+
+  if (repeatedContentExists) {
+    warnings.push("近い内容を言い換えて繰り返している可能性があります。前に進む展開、反論、具体例、沈黙の余白へ置き換えてください。");
+  }
+
+  const repeatedOpenings = countRepeatedValues(
+    speakers
+      .map((line) => line.text.trim().match(repeatedOpeningPattern)?.[1])
+      .filter((value): value is string => Boolean(value)),
+    8,
+  );
+  const repeatedEndings = countRepeatedValues(
+    speakers
+      .map((line) => getSentenceEnding(line.text))
+      .filter((value) => value.length >= 4),
+    5,
+  );
+
+  if (repeatedOpenings.length > 0 || repeatedEndings.length > 0) {
+    warnings.push("同じ切り返し、同じ語尾、同じ決め台詞が多用されている可能性があります。発話の入り方と着地の型を散らしてください。");
+  }
+
   const rikeiChars = tartaruLines.reduce((total, line) => total + line.text.length, 0);
   const bunkeiChars = kanaLines.reduce((total, line) => total + line.text.length, 0);
   const totalChars = rikeiChars + bunkeiChars;
 
   if (totalChars > 0) {
-    const rikeiRatio = rikeiChars / totalChars;
+    const bunkeiRatio = bunkeiChars / totalChars;
 
-    if (rikeiRatio < 0.42 || rikeiRatio > 0.58) {
-      warnings.push("タルタルとかなの会話量が偏っています。会話比率はおおむね50:50に近づけてください。");
+    if (bunkeiRatio < 0.3) {
+      warnings.push("かなの発言率が低すぎます。30〜45%を目安に、疑問、ツッコミ、反論、妄想、不安を増やしてください。");
+    }
+
+    if (bunkeiRatio > 0.45) {
+      warnings.push("かなの発言率が高めです。30〜45%を目安にし、タルタルの具体例や技術好きの脱線も残してください。");
     }
   }
 }
@@ -325,7 +456,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多、理解の余白不足、タルタルの決め台詞化したまとめ表現を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、感情無視、反論、脱線、説明過多、理解の余白不足、比喩や内容の重複、テンプレ化した切り返し、タルタルの決め台詞化したまとめ表現を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,

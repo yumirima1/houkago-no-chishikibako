@@ -1,3 +1,4 @@
+import { access } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -67,6 +68,20 @@ async function readExistingDraftMetadata(id: string) {
   }
 }
 
+function toSourceObject(source: unknown) {
+  return source && typeof source === "object" && !Array.isArray(source)
+    ? source
+    : {};
+}
+
+async function resolveShowBibleReference() {
+  const showBiblePath = path.join(contentRoot, "memory", "show-bible.md");
+
+  await access(showBiblePath);
+
+  return path.relative(process.cwd(), showBiblePath).replaceAll("\\", "/");
+}
+
 async function main() {
   await ensureProductionDirs();
 
@@ -89,6 +104,7 @@ async function main() {
       .filter(Boolean) ?? inferThemes(title, theme);
   const memoryHints = await readProgramMemoryHints();
   const existingDraft = await readExistingDraftMetadata(id);
+  const showBiblePath = await resolveShowBibleReference();
   const script = {
     ...buildRadioScript({
       id,
@@ -103,12 +119,16 @@ async function main() {
       runningJoke: memoryHints.runningJoke,
       createdAt: existingDraft.createdAt,
     }),
-    ...(existingDraft.source ? { source: existingDraft.source } : {}),
+    source: {
+      ...toSourceObject(existingDraft.source),
+      showBiblePath,
+    },
   };
   const outputPath = path.join(draftDir, `${id}.json`);
   const stats = getRadioScriptStats(script);
 
   await writeJsonFile(outputPath, script);
+  console.log(`Show bible: ${showBiblePath}`);
   console.log(`Draft script created: ${path.relative(process.cwd(), outputPath)}`);
   console.log(`Script characters: ${stats.characterCount}`);
   console.log(`Estimated playback: ${stats.estimatedMinutes.toFixed(1)} minutes`);
