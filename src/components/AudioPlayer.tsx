@@ -5,6 +5,7 @@ import type { RefObject } from "react";
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeNumberLabel,
   getEpisodeProductionStatusLabel,
   getEpisodeTags,
   getEpisodeType,
@@ -31,6 +32,7 @@ export function AudioPlayer({
 }: AudioPlayerProps) {
   const episodeType = getEpisodeType(episode);
   const isPlayable = hasPlayableAudio(episode);
+  const episodeNumberLabel = getEpisodeNumberLabel(episode);
 
   return (
     <section
@@ -40,7 +42,7 @@ export function AudioPlayer({
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">
-            Now playing
+            Now playing / {episodeNumberLabel}
           </p>
           <h2 className="mt-2 text-xl font-semibold leading-snug text-slate-50 sm:text-2xl">
             {episode.title}

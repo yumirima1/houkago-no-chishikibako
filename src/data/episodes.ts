@@ -42,6 +42,12 @@ export function getEpisodeTags(episode: Episode) {
   return episode.tags?.length ? episode.tags : episode.themes;
 }
 
+export function getEpisodeNumberLabel(episode: Pick<Episode, "id">) {
+  const match = episode.id.match(/^episode-(\d+)$/);
+
+  return match ? `#${match[1].padStart(3, "0")}` : episode.id;
+}
+
 export function getEpisodeType(episode: Episode): EpisodeType {
   if (episode.type) {
     return episode.type;

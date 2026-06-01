@@ -1,6 +1,7 @@
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeNumberLabel,
   getEpisodeProductionStatusLabel,
   getEpisodeTags,
   getEpisodeType,
@@ -34,6 +35,7 @@ export function EpisodeList({
       <div className="grid gap-3">
         {episodes.map((episode) => {
           const isPlayable = hasPlayableAudio(episode);
+          const episodeNumberLabel = getEpisodeNumberLabel(episode);
 
           return (
             <article
@@ -48,6 +50,10 @@ export function EpisodeList({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs text-slate-400">
+                    <span className="font-mono text-cyan-100/80">
+                      {episodeNumberLabel}
+                    </span>
+                    <span className="mx-2 text-slate-600">/</span>
                     {episode.publishedAt} / {episode.duration}
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">

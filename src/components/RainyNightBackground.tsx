@@ -62,14 +62,22 @@ export function RainyNightBackground({
       />
       <div className={`night-scene-atmosphere night-scene-atmosphere-${mode}`} />
       <div className="lofi-vignette" />
-      <div className="rainy-lines" />
-      <div className="rain-drops" />
+      {mode === "window" ? (
+        <div className="dust-motes" />
+      ) : (
+        <>
+          <div className={`rainy-lines rainy-lines-${mode}`} />
+          <div className={`rain-drops rain-drops-${mode}`} />
+        </>
+      )}
       <div className={`window-glow-layer window-glow-layer-${mode}`} />
-      <div className={`steam-layer steam-layer-${mode}`}>
-        <span className="steam steam-a" />
-        <span className="steam steam-b" />
-        <span className="steam steam-c" />
-      </div>
+      {mode === "desk" ? (
+        <div className="steam-layer steam-layer-desk">
+          <span className="steam steam-a" />
+          <span className="steam steam-b" />
+          <span className="steam steam-c" />
+        </div>
+      ) : null}
       <div className="room-grain" />
       <div className="night-floor" />
     </div>

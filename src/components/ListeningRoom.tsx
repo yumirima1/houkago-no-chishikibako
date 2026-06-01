@@ -14,6 +14,7 @@ import {
 import {
   Episode,
   getEpisodeDurationLabel,
+  getEpisodeNumberLabel,
   getEpisodeTags,
   getEpisodeType,
   getEpisodeTypeLabel,
@@ -94,11 +95,12 @@ function FeatureEpisodeCard({
   onPlay,
 }: FeatureEpisodeCardProps) {
   const episodeType = getEpisodeType(episode);
+  const episodeNumberLabel = getEpisodeNumberLabel(episode);
 
   return (
     <article className="rounded-lg border border-cyan-100/15 bg-slate-950/58 p-5 shadow-2xl shadow-black/25 backdrop-blur-md">
       <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/65">
-        {label}
+        {label} / {episodeNumberLabel}
       </p>
       <h2 className="mt-3 text-xl font-semibold leading-snug text-slate-50">
         {episode.title}
@@ -150,7 +152,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   );
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
   const [isInterfaceHidden, setIsInterfaceHidden] = useState(
     shouldStartInBackgroundMode,
@@ -158,8 +159,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
-  const [isBackgroundOverlayVisible, setIsBackgroundOverlayVisible] =
-    useState(true);
 
   const selectedEpisode = useMemo(
     () =>
@@ -203,18 +202,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     );
   }, [listEpisodes, selectedTags]);
   const showInterface = !isInterfaceHidden;
-  const selectedEpisodeIndex = useMemo(
-    () => episodes.findIndex((episode) => episode.id === selectedEpisode.id),
-    [episodes, selectedEpisode.id],
-  );
-  const hasPreviousEpisode = selectedEpisodeIndex > 0;
-  const hasNextEpisode =
-    selectedEpisodeIndex > -1 && selectedEpisodeIndex < episodes.length - 1;
 
   const wakeInterface = useCallback(() => {
     setLastInteractionAt(Date.now());
     setIsInterfaceHidden(false);
-    setIsBackgroundOverlayVisible(true);
   }, []);
 
   const markActivity = useCallback(() => {
@@ -223,39 +214,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
   }, [isInterfaceHidden]);
 
-  const handlePlaybackChange = useCallback((nextIsPlaying: boolean) => {
-    setIsPlaying(nextIsPlaying);
-  }, []);
-
-  const handleSeek = useCallback((value: number) => {
-    const audio = audioRef.current;
-
-    if (!audio || !hasPlayableAudio(selectedEpisode)) {
-      return;
-    }
-
-    audio.currentTime = value;
-    setCurrentTime(value);
-  }, [selectedEpisode]);
-
-  const seekBy = useCallback(
-    (seconds: number) => {
-      const audio = audioRef.current;
-
-      if (!audio || !hasPlayableAudio(selectedEpisode)) {
-        return;
-      }
-
-      const nextTime = Math.min(
-        Math.max(0, audio.currentTime + seconds),
-        duration || audio.duration || audio.currentTime + seconds,
-      );
-
-      audio.currentTime = nextTime;
-      setCurrentTime(nextTime);
-    },
-    [duration, selectedEpisode],
-  );
+  const handlePlaybackChange = useCallback(() => undefined, []);
 
   const selectEpisode = useCallback((episodeId: string) => {
     setCurrentTime(0);
@@ -269,7 +228,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       if (targetEpisode && !hasPlayableAudio(targetEpisode)) {
         selectEpisode(episodeId);
-        handlePlaybackChange(false);
         wakeInterface();
         return;
       }
@@ -284,41 +242,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       setShouldAutoPlayNext(true);
       wakeInterface();
     },
-    [episodes, handlePlaybackChange, selectEpisode, selectedEpisode.id, wakeInterface],
+    [episodes, selectEpisode, selectedEpisode.id, wakeInterface],
   );
-
-  const goToAdjacentEpisode = useCallback(
-    (direction: -1 | 1) => {
-      const nextEpisode = episodes[selectedEpisodeIndex + direction];
-
-      if (!nextEpisode) {
-        return;
-      }
-
-      selectEpisode(nextEpisode.id);
-      setShouldAutoPlayNext(isPlaying && hasPlayableAudio(nextEpisode));
-      if (!hasPlayableAudio(nextEpisode)) {
-        setIsPlaying(false);
-      }
-      setIsBackgroundOverlayVisible(true);
-    },
-    [episodes, isPlaying, selectEpisode, selectedEpisodeIndex],
-  );
-
-  const togglePlayback = useCallback(() => {
-    const audio = audioRef.current;
-
-    if (!audio || !hasPlayableAudio(selectedEpisode)) {
-      return;
-    }
-
-    if (audio.paused) {
-      void audio.play();
-      return;
-    }
-
-    audio.pause();
-  }, [selectedEpisode]);
 
   const handleEpisodeEnded = useCallback(() => {
     const currentIndex = episodes.findIndex(
@@ -331,7 +256,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     setCurrentTime(0);
 
     if (!nextEpisode) {
-      setIsPlaying(false);
       setShouldAutoPlayNext(false);
       return;
     }
@@ -369,18 +293,17 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   }, [markActivity]);
 
   useEffect(() => {
-    if (!isPlaying) {
+    if (isInterfaceHidden) {
       return;
     }
 
     const timer = window.setTimeout(() => {
       blurActiveElement();
       setIsInterfaceHidden(true);
-      setIsBackgroundOverlayVisible(true);
     }, AUTO_HIDE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [isPlaying, lastInteractionAt]);
+  }, [isInterfaceHidden, lastInteractionAt]);
 
   useEffect(() => {
     if (!shouldAutoPlayNext) {
@@ -436,25 +359,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           currentTime={currentTime}
           duration={duration}
           episode={selectedEpisode}
-          hasNextEpisode={hasNextEpisode}
-          hasPreviousEpisode={hasPreviousEpisode}
-          isPlaying={isPlaying}
-          isVisible={isBackgroundOverlayVisible}
-          onChangeBackgroundMode={setBackgroundMode}
-          onNextEpisode={() => goToAdjacentEpisode(1)}
-          onPreviousEpisode={() => goToAdjacentEpisode(-1)}
-          onSeek={handleSeek}
-          onSeekBy={seekBy}
           onShowInterface={wakeInterface}
-          onToggleOverlay={() =>
-            setIsBackgroundOverlayVisible((isVisible) => !isVisible)
-          }
-          onTogglePlayback={togglePlayback}
         />
       ) : null}
 
       <div
-        className={`mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-700 sm:px-8 lg:px-10 ${
+        className={`mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-[1400ms] sm:px-8 lg:px-10 ${
           showInterface
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
@@ -502,7 +412,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               className="min-h-10 w-full rounded-lg border border-cyan-100/15 bg-cyan-100/[0.08] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.13] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-auto"
               onClick={() => {
                 blurActiveElement();
-                setIsBackgroundOverlayVisible(true);
                 setIsInterfaceHidden(true);
               }}
               type="button"
