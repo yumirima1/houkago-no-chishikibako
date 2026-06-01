@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
+import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import {
@@ -20,6 +21,7 @@ import {
   getEpisodeTypeLabel,
   hasPlayableAudio,
 } from "@/data/episodes";
+import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 
 const AUTO_HIDE_MS = 30_000;
 
@@ -159,6 +161,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const bgm = useAmbientAudio({ isVoicePlaying });
 
   const selectedEpisode = useMemo(
     () =>
@@ -214,9 +218,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
   }, [isInterfaceHidden]);
 
-  const handlePlaybackChange = useCallback(() => undefined, []);
+  const handlePlaybackChange = useCallback((nextIsPlaying: boolean) => {
+    setIsVoicePlaying(nextIsPlaying);
+  }, []);
 
   const selectEpisode = useCallback((episodeId: string) => {
+    setIsVoicePlaying(false);
     setCurrentTime(0);
     setDuration(0);
     setSelectedEpisodeId(episodeId);
@@ -463,6 +470,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               onLoadedMetadata={(nextDuration) => setDuration(nextDuration)}
               onPlaybackChange={handlePlaybackChange}
               onTimeUpdate={setCurrentTime}
+            />
+            <BgmControls
+              enabled={bgm.enabled}
+              isAvailable={bgm.isAvailable}
+              onEnabledChange={bgm.setEnabled}
+              onVolumeChange={bgm.setVolume}
+              volume={bgm.volume}
             />
           </div>
         </section>
