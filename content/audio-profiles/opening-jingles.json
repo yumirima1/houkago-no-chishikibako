@@ -1,0 +1,14 @@
+{
+  "episode-018": {
+    "enabled": true,
+    "placement": "before-main-audio",
+    "jinglePath": "public/jingles/opening-school-chime-v1.mp3",
+    "theme": "original school-chime-style bell motif",
+    "durationSeconds": 4.4,
+    "notes": [
+      "Experimental Phase 1 opening jingle.",
+      "Original synthesized sine-bell audio, not sampled from existing chime recordings.",
+      "No door, footsteps, homecoming, rain, or ending effects."
+    ]
+  }
+}
