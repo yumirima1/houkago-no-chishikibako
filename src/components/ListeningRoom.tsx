@@ -162,6 +162,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
   const bgm = useAmbientAudio({ isVoicePlaying });
 
   const selectedEpisode = useMemo(
@@ -522,38 +523,74 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             aria-label="タグ検索"
             className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"
           >
-            <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-sm font-semibold text-slate-100">タグ検索</h2>
-              {selectedTags.length > 0 ? (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-slate-100">タグ検索</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  {selectedTags.length > 0
+                    ? `${selectedTags.length}件のタグで絞り込み中`
+                    : "必要なときだけ開けます"}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {selectedTags.length > 0 ? (
+                  <button
+                    className="min-h-10 rounded-md border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08]"
+                    onClick={() => setSelectedTags([])}
+                    type="button"
+                  >
+                    解除
+                  </button>
+                ) : null}
                 <button
-                  className="text-left text-sm text-cyan-100 transition-colors hover:text-cyan-50"
-                  onClick={() => setSelectedTags([])}
+                  aria-expanded={isTagPanelOpen}
+                  className="min-h-10 rounded-md border border-cyan-100/20 bg-cyan-100/[0.1] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.16] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                  onClick={() => setIsTagPanelOpen((isOpen) => !isOpen)}
                   type="button"
                 >
-                  絞り込みを解除
+                  {isTagPanelOpen ? "タグを閉じる" : "タグを開く"}
                 </button>
-              ) : null}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => {
-                const isSelected = selectedTags.includes(tag);
 
-                return (
+            {selectedTags.length > 0 ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {selectedTags.map((tag) => (
                   <button
-                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
-                      isSelected
-                        ? "border-cyan-100/40 bg-cyan-100/[0.16] text-cyan-50"
-                        : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/[0.08]"
-                    }`}
+                    className="rounded-full border border-cyan-100/35 bg-cyan-100/[0.14] px-3 py-1.5 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
                     key={tag}
                     onClick={() => toggleTag(tag)}
                     type="button"
                   >
                     {tag}
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : null}
+
+            {isTagPanelOpen ? (
+              <div className="mt-4 flex max-h-72 flex-wrap gap-2 overflow-y-auto border-t border-white/10 pt-4">
+                {allTags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+
+                  return (
+                    <button
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
+                        isSelected
+                          ? "border-cyan-100/40 bg-cyan-100/[0.16] text-cyan-50"
+                          : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/[0.08]"
+                      }`}
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      type="button"
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
           </section>
           <EpisodeList
             episodes={filteredEpisodes}
