@@ -226,15 +226,15 @@ export const generatedEpisodes: Episode[] = [
   },
   {
     id: "episode-016",
-    title: "昔のインターネットには、なぜ秘密基地感があったのか",
-    description: "個人サイト、掲示板、ハンドルネーム文化、今のSNSとの違いを考える。",
+    title: "AIに相談するのは寂しいことなのか",
+    description: "AIに相談する違和感、独り言、日記、神様や空への問いかけを手がかりに、人間にしかできない返事とは何かを深夜ラジオとして考える。",
     audioUrl: "/audio/episode-016.mp3",
     type: "regular",
     durationType: "normal",
-    publishedAt: "2026-05-31",
-    duration: "27:00",
-    tags: ["インターネット文化","Web","コミュニティ"],
-    themes: ["インターネット文化","Web","コミュニティ"],
+    publishedAt: "2026-06-01",
+    duration: "30:00",
+    tags: ["AI","相談","孤独","人間関係"],
+    themes: ["AI","相談","孤独","人間関係"],
     speakers: {
     "science": "理系担当",
     "humanities": "文系担当"
