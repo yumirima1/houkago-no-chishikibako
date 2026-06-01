@@ -252,6 +252,21 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     [episodes, selectEpisode, selectedEpisode.id, wakeInterface],
   );
 
+  const toggleSelectedEpisodePlayback = useCallback(() => {
+    const audio = audioRef.current;
+
+    if (!audio || !hasPlayableAudio(selectedEpisode)) {
+      return;
+    }
+
+    if (audio.paused) {
+      void audio.play();
+      return;
+    }
+
+    audio.pause();
+  }, [selectedEpisode]);
+
   const handleEpisodeEnded = useCallback(() => {
     const currentIndex = episodes.findIndex(
       (episode) => episode.id === selectedEpisode.id,
@@ -363,10 +378,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       {!showInterface ? (
         <BackgroundModeOverlay
           backgroundMode={backgroundMode}
+          canPlay={hasPlayableAudio(selectedEpisode)}
           currentTime={currentTime}
           duration={duration}
           episode={selectedEpisode}
+          isPlaying={isVoicePlaying}
           onShowInterface={wakeInterface}
+          onTogglePlayback={toggleSelectedEpisodePlayback}
         />
       ) : null}
 

@@ -67,18 +67,24 @@ function AmbientClock() {
 
 type BackgroundModeOverlayProps = {
   backgroundMode: BackgroundMode;
+  canPlay: boolean;
   currentTime: number;
   duration: number;
   episode: Episode;
+  isPlaying: boolean;
   onShowInterface: () => void;
+  onTogglePlayback: () => void;
 };
 
 export function BackgroundModeOverlay({
   backgroundMode,
+  canPlay,
   currentTime,
   duration,
   episode,
+  isPlaying,
   onShowInterface,
+  onTogglePlayback,
 }: BackgroundModeOverlayProps) {
   const displayDuration = duration > 0 ? duration : parseDuration(episode.duration);
   const progress = displayDuration
@@ -113,7 +119,20 @@ export function BackgroundModeOverlay({
       <section
         className="ambient-controls"
         aria-label="背景モード再生状況"
+        onClick={(event) => event.stopPropagation()}
       >
+        <div className="ambient-control-row">
+          <button
+            aria-label={isPlaying ? "一時停止" : "再生"}
+            className="ambient-play-control"
+            disabled={!canPlay}
+            onClick={onTogglePlayback}
+            type="button"
+          >
+            {isPlaying ? "一時停止" : "再生"}
+          </button>
+        </div>
+
         <div className="ambient-progress-shell">
           <span className="ambient-progress-time">{formatTime(currentTime)}</span>
           <div className="ambient-progress" aria-hidden="true">
