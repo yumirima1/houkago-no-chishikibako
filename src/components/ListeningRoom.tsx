@@ -6,19 +6,18 @@ import { AudioPlayer } from "@/components/AudioPlayer";
 import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
 import { EpisodeList } from "@/components/EpisodeList";
+import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
 import {
   BackgroundMode,
   backgroundModeProfiles,
-  RainyNightBackground,
 } from "@/components/RainyNightBackground";
 import {
   Episode,
-  getEpisodeDurationLabel,
   getEpisodeNumberLabel,
   getEpisodeTags,
-  getEpisodeType,
-  getEpisodeTypeLabel,
   hasPlayableAudio,
+  isUserVisibleEpisode,
+  sortEpisodesForPublicDisplay,
 } from "@/data/episodes";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 import { useBroadcastAmbience } from "@/hooks/useBroadcastAmbience";
@@ -83,72 +82,26 @@ function getNextSundayUpdateLabel() {
   return `${next.getFullYear()}年${next.getMonth() + 1}月${next.getDate()}日 03:00`;
 }
 
-type FeatureEpisodeCardProps = {
-  actionLabel: string;
-  episode: Episode;
-  label: string;
-  onPlay: (episodeId: string) => void;
-};
-
-function FeatureEpisodeCard({
-  actionLabel,
-  episode,
-  label,
-  onPlay,
-}: FeatureEpisodeCardProps) {
-  const episodeType = getEpisodeType(episode);
-  const episodeNumberLabel = getEpisodeNumberLabel(episode);
-
-  return (
-    <article className="rounded-lg border border-cyan-100/15 bg-slate-950/58 p-5 shadow-2xl shadow-black/25 backdrop-blur-md">
-      <p className="text-xs uppercase tracking-[0.28em] text-cyan-100/65">
-        {label} / {episodeNumberLabel}
-      </p>
-      <h2 className="mt-3 text-xl font-semibold leading-snug text-slate-50">
-        {episode.title}
-      </h2>
-      <div className="mt-3 flex flex-wrap gap-2">
-        <span className="rounded-full border border-cyan-100/20 bg-cyan-100/[0.1] px-2.5 py-1 text-xs text-cyan-50">
-          {getEpisodeTypeLabel(episodeType)}
-        </span>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-xs text-slate-300">
-          {getEpisodeDurationLabel(episode)}
-        </span>
-        <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 font-mono text-xs text-slate-300">
-          {episode.duration}
-        </span>
-      </div>
-      <p className="mt-4 text-sm leading-7 text-slate-300">
-        {episode.description}
-      </p>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {getEpisodeTags(episode).map((tag) => (
-          <span
-            className="rounded-full border border-cyan-100/15 bg-cyan-100/10 px-2.5 py-1 text-xs text-cyan-100"
-            key={tag}
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-      <button
-        className="mt-5 min-h-11 rounded-md border border-cyan-100/20 bg-cyan-100/[0.14] px-4 text-sm font-medium text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-        onClick={() => onPlay(episode.id)}
-        type="button"
-      >
-        {actionLabel}
-      </button>
-    </article>
-  );
-}
-
 type ListeningRoomProps = {
   episodes: Episode[];
 };
 
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [selectedEpisodeId, setSelectedEpisodeId] = useState(episodes[0]?.id);
+  const publicEpisodes = useMemo(
+    () => sortEpisodesForPublicDisplay(episodes.filter(isUserVisibleEpisode)),
+    [episodes],
+  );
+  const firstListenEpisode = useMemo(
+    () => episodes.find((episode) => episode.id === "episode-000"),
+    [episodes],
+  );
+  const latestEpisode = publicEpisodes.find(
+    (episode) => episode.id !== firstListenEpisode?.id,
+  );
+  const [selectedEpisodeId, setSelectedEpisodeId] = useState(
+    latestEpisode?.id ?? firstListenEpisode?.id ?? episodes[0]?.id,
+  );
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
     getInitialBackgroundMode(),
   );
@@ -172,31 +125,20 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       episodes[0],
     [episodes, selectedEpisodeId],
   );
-  const firstListenEpisode = useMemo(
-    () => episodes.find((episode) => episode.id === "episode-000"),
-    [episodes],
-  );
-  const latestEpisode = useMemo(
-    () =>
-      [...episodes]
-        .filter((episode) => episode.id !== firstListenEpisode?.id)
-        .filter((episode) => hasPlayableAudio(episode))
-        .sort((first, second) =>
-          second.publishedAt.localeCompare(first.publishedAt),
-        )[0],
-    [episodes, firstListenEpisode?.id],
-  );
   const listEpisodes = useMemo(
     () =>
-      episodes.filter(
+      publicEpisodes.filter(
         (episode) => episode.id !== firstListenEpisode?.id,
       ),
-    [episodes, firstListenEpisode?.id],
+    [firstListenEpisode?.id, publicEpisodes],
   );
 
   const allTags = useMemo(
-    () => [...new Set(episodes.flatMap((episode) => getEpisodeTags(episode)))].sort(),
-    [episodes],
+    () =>
+      [
+        ...new Set(publicEpisodes.flatMap((episode) => getEpisodeTags(episode))),
+      ].sort(),
+    [publicEpisodes],
   );
   const filteredEpisodes = useMemo(() => {
     if (selectedTags.length === 0) {
@@ -378,7 +320,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
   return (
     <main className="relative min-h-screen overflow-hidden text-slate-100">
-      <RainyNightBackground
+      <BroadcastRoomBackground
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050812]"
         isOnAir={isVoicePlaying}
         mode={backgroundMode}
@@ -464,13 +406,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
           <div className="max-w-2xl">
             <p className="mb-5 text-sm tracking-[0.28em] text-cyan-100/70">
-              RAINY NIGHT / LO-FI AUDIO
+              NIGHT BROADCAST ROOM / ON AIR
             </p>
             <h1 className="text-4xl font-semibold leading-tight text-slate-50 sm:text-6xl">
               放課後の知識箱
             </h1>
             <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              作業中や寝る前に聞ける、静かな知的ラジオ。理系担当と文系担当が、AI、科学、哲学、言語、宇宙の話をゆっくりほどきます。
+              雨の窓と小さな明かりのそばで、理系担当と文系担当が夜の話をゆっくりほどきます。
             </p>
 
             <div className="mt-8 grid max-w-xl gap-3 text-sm text-slate-300 sm:grid-cols-3">
@@ -509,24 +451,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         </section>
 
         <div className="pb-14">
-          <div className="mb-6 grid gap-4 lg:grid-cols-2">
-            {firstListenEpisode ? (
-              <FeatureEpisodeCard
-                actionLabel="まずこれを再生"
-                episode={firstListenEpisode}
-                label="まずこれを聴く"
-                onPlay={playEpisode}
-              />
-            ) : null}
-            {latestEpisode ? (
-              <FeatureEpisodeCard
-                actionLabel="最新回を再生"
-                episode={latestEpisode}
-                label="最新回"
-                onPlay={playEpisode}
-              />
-            ) : null}
-          </div>
           <section
             aria-label="タグ検索"
             className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"

@@ -32,11 +32,38 @@ export type Episode = {
 const manualEpisodes: Episode[] = [];
 
 const manualEpisodeIds = new Set(manualEpisodes.map((episode) => episode.id));
+const FIRST_PUBLIC_REGULAR_EPISODE_NUMBER = 5;
+const LATEST_PUBLIC_EPISODE_NUMBER = 17;
+const MIN_PUBLIC_AUDIO_SECONDS = 40;
 
 export const episodes: Episode[] = [
   ...manualEpisodes,
   ...generatedEpisodes.filter((episode) => !manualEpisodeIds.has(episode.id)),
 ];
+
+function getEpisodeNumber(episode: Pick<Episode, "id">) {
+  const match = episode.id.match(/^episode-(\d+)$/);
+
+  return match ? Number(match[1]) : null;
+}
+
+function parseDurationSeconds(duration: string) {
+  const parts = duration.split(":").map((part) => Number(part));
+
+  if (parts.some((part) => !Number.isFinite(part))) {
+    return 0;
+  }
+
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts;
+
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  const [minutes = 0, seconds = 0] = parts;
+
+  return minutes * 60 + seconds;
+}
 
 export function getEpisodeTags(episode: Episode) {
   return episode.tags?.length ? episode.tags : episode.themes;
@@ -106,4 +133,38 @@ export function getEpisodeProductionStatusLabel(
 
 export function hasPlayableAudio(episode: Episode) {
   return episode.productionStatus === "published" && Boolean(episode.audioUrl);
+}
+
+export function isUserVisibleEpisode(episode: Episode) {
+  const episodeNumber = getEpisodeNumber(episode);
+
+  if (!hasPlayableAudio(episode)) {
+    return false;
+  }
+
+  if (episodeNumber === null) {
+    return false;
+  }
+
+  if (
+    episodeNumber !== 0 &&
+    episodeNumber < FIRST_PUBLIC_REGULAR_EPISODE_NUMBER
+  ) {
+    return false;
+  }
+
+  if (episodeNumber > LATEST_PUBLIC_EPISODE_NUMBER) {
+    return false;
+  }
+
+  return parseDurationSeconds(episode.duration) >= MIN_PUBLIC_AUDIO_SECONDS;
+}
+
+export function sortEpisodesForPublicDisplay(episodeList: Episode[]) {
+  return [...episodeList].sort((first, second) => {
+    const firstNumber = getEpisodeNumber(first) ?? -1;
+    const secondNumber = getEpisodeNumber(second) ?? -1;
+
+    return secondNumber - firstNumber;
+  });
 }

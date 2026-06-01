@@ -1,5 +1,27 @@
 # EXPERIMENT LOG
 
+## 2026-06-02: 公開面整理と制作基盤メモ
+
+目的:
+
+未完成データをユーザー画面から消し、放送室としてのファーストビューと制作基盤の長期方針を整理する。
+
+### 実装内容
+
+- 公開面の表示用フィルタを追加し、#018以降のseed/仮公開データをユーザー画面から除外。
+- episode-017を現時点の最新公開回として先頭表示。
+- トップの「最新回」系カードを廃止し、上部プレイヤーと放送室の空気を優先。
+- 背景を `BroadcastRoomBackground` で包み、将来の3D/Box Room Engine差し替え地点を作成。
+- `docs/LONG_TERM_DIRECTION.md`、`docs/UI_DIRECTION.md`、`docs/BOX_ROOM_ENGINE.md`、`docs/EPISODE_SEED_ENGINE.md` を追加。
+- Episode Seed Engineの土台として `events.json` と `structure-templates.json` を追加。
+
+### 今回やらないこと
+
+- Box Room Engine本実装。
+- Three.js / react-three-fiber導入。
+- Episode Seed Engineの生成スクリプト接続。
+- 既存プレイヤーの破壊的変更。
+
 ## Experiment 08: Night Broadcast Room
 
 実施日: 2026-06-01

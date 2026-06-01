@@ -1,0 +1,68 @@
+[
+  {
+    "id": "detour-server-bill",
+    "type": "現実参照",
+    "weight": 8,
+    "rarity": "common",
+    "cooldownEpisodes": 3,
+    "description": "抽象的な話をしている途中で、サーバー代や電気代のような急に現実的なものへ落とす。",
+    "speakerBias": "tartar",
+    "avoidWhen": ["already_too_practical", "ending"],
+    "exampleBeat": "でもサーバー代は感情で払えないんだよな。"
+  },
+  {
+    "id": "kana-small-rebellion",
+    "type": "事故",
+    "weight": 7,
+    "rarity": "common",
+    "cooldownEpisodes": 2,
+    "description": "かなが相槌ではなく、小さく反論して会話の向きを変える。",
+    "speakerBias": "kana",
+    "avoidWhen": ["kana_already_dominant"],
+    "exampleBeat": "いや、それはちょっと理屈が勝ちすぎてない？"
+  },
+  {
+    "id": "bad-metaphor-recovery",
+    "type": "例え",
+    "weight": 5,
+    "rarity": "uncommon",
+    "cooldownEpisodes": 4,
+    "description": "タルタルが微妙な比喩を出し、かなに止められて言い直す。",
+    "speakerBias": "tartar",
+    "avoidWhen": ["metaphor_repetition_warning"],
+    "exampleBeat": "今の例え、自分でもちょっと床が抜けた。"
+  },
+  {
+    "id": "late-night-silence",
+    "type": "空気",
+    "weight": 6,
+    "rarity": "common",
+    "cooldownEpisodes": 2,
+    "description": "説明を詰めず、雨や時計や沈黙を一拍入れる。",
+    "speakerBias": "both",
+    "avoidWhen": ["too_many_pauses"],
+    "exampleBeat": "……今、雨の音だけになったね。"
+  },
+  {
+    "id": "tiny-thought-experiment",
+    "type": "思考実験",
+    "weight": 6,
+    "rarity": "uncommon",
+    "cooldownEpisodes": 3,
+    "description": "大げさではない小さな仮定で、テーマを少しずらして見る。",
+    "speakerBias": "both",
+    "avoidWhen": ["topic_already_abstract"],
+    "exampleBeat": "もし通知が全部手紙で届いたら、開け方って変わるのかな。"
+  },
+  {
+    "id": "inside-joke-weak-signal",
+    "type": "内輪ネタ",
+    "weight": 3,
+    "rarity": "rare",
+    "cooldownEpisodes": 6,
+    "description": "過去回を知らなくても邪魔にならない弱い内輪ネタを入れる。",
+    "speakerBias": "kana",
+    "avoidWhen": ["first_episode", "serious_ending"],
+    "exampleBeat": "またタルタルの頭の中に小さい会計係が出てきた。"
+  }
+]

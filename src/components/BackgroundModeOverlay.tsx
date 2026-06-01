@@ -1,10 +1,8 @@
 "use client";
 
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
-import {
-  BackgroundMode,
-  RainyNightBackground,
-} from "@/components/RainyNightBackground";
+import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
+import { BackgroundMode } from "@/components/RainyNightBackground";
 import { Episode, getEpisodeNumberLabel } from "@/data/episodes";
 import {
   AmbienceLayerKey,
@@ -69,7 +67,7 @@ export function BackgroundModeOverlay({
       className={`background-mode-overlay background-mode-overlay-${backgroundMode}`}
       onClick={onShowInterface}
     >
-      <RainyNightBackground
+      <BroadcastRoomBackground
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050812]"
         isOnAir={isPlaying}
         mode={backgroundMode}
