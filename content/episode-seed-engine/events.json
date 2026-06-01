@@ -1,9 +1,10 @@
 [
   {
     "id": "detour-server-bill",
+    "category": "現実参照",
     "type": "現実参照",
     "weight": 8,
-    "rarity": "common",
+    "rarity": "Common",
     "cooldownEpisodes": 3,
     "description": "抽象的な話をしている途中で、サーバー代や電気代のような急に現実的なものへ落とす。",
     "speakerBias": "tartar",
@@ -12,9 +13,10 @@
   },
   {
     "id": "kana-small-rebellion",
+    "category": "事故",
     "type": "事故",
     "weight": 7,
-    "rarity": "common",
+    "rarity": "Common",
     "cooldownEpisodes": 2,
     "description": "かなが相槌ではなく、小さく反論して会話の向きを変える。",
     "speakerBias": "kana",
@@ -23,9 +25,10 @@
   },
   {
     "id": "bad-metaphor-recovery",
+    "category": "例え",
     "type": "例え",
     "weight": 5,
-    "rarity": "uncommon",
+    "rarity": "Rare",
     "cooldownEpisodes": 4,
     "description": "タルタルが微妙な比喩を出し、かなに止められて言い直す。",
     "speakerBias": "tartar",
@@ -34,9 +37,10 @@
   },
   {
     "id": "late-night-silence",
+    "category": "空気",
     "type": "空気",
     "weight": 6,
-    "rarity": "common",
+    "rarity": "Common",
     "cooldownEpisodes": 2,
     "description": "説明を詰めず、雨や時計や沈黙を一拍入れる。",
     "speakerBias": "both",
@@ -45,9 +49,10 @@
   },
   {
     "id": "tiny-thought-experiment",
+    "category": "思考実験",
     "type": "思考実験",
     "weight": 6,
-    "rarity": "uncommon",
+    "rarity": "Rare",
     "cooldownEpisodes": 3,
     "description": "大げさではない小さな仮定で、テーマを少しずらして見る。",
     "speakerBias": "both",
@@ -56,13 +61,38 @@
   },
   {
     "id": "inside-joke-weak-signal",
+    "category": "内輪ネタ",
     "type": "内輪ネタ",
     "weight": 3,
-    "rarity": "rare",
+    "rarity": "Rare",
     "cooldownEpisodes": 6,
     "description": "過去回を知らなくても邪魔にならない弱い内輪ネタを入れる。",
     "speakerBias": "kana",
     "avoidWhen": ["first_episode", "serious_ending"],
     "exampleBeat": "またタルタルの頭の中に小さい会計係が出てきた。"
+  },
+  {
+    "id": "studio-light-flicker",
+    "category": "空気",
+    "type": "空気",
+    "weight": 2,
+    "rarity": "Epic",
+    "cooldownEpisodes": 8,
+    "description": "放送室の小さな異変をきっかけに、話題の見え方が一段深くなる。",
+    "speakerBias": "both",
+    "avoidWhen": ["already_too_atmospheric"],
+    "exampleBeat": "今、モニター一瞬だけ暗くならなかった？"
+  },
+  {
+    "id": "perfectly-wrong-conclusion",
+    "category": "事故",
+    "type": "事故",
+    "weight": 1,
+    "rarity": "Legendary",
+    "cooldownEpisodes": 12,
+    "description": "一度だけ、二人が妙にきれいで間違った結論に着地しかけて、すぐ自分たちで笑って戻す。",
+    "speakerBias": "both",
+    "avoidWhen": ["serious_ending", "topic_requires_care"],
+    "exampleBeat": "じゃあ人類は全部、通知音だったということで。いや違うな。"
   }
 ]

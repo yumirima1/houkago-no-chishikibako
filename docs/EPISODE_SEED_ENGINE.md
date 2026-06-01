@@ -51,10 +51,26 @@
 
 ## 今回やらないこと
 
-- 生成スクリプトへの接続
+- 原稿生成スクリプトへの接続
 - cooldown履歴の永続化
-- ランダム選択の実行
 - review-scriptの新規警告追加
+
+## 動作する入口
+
+```bash
+npm run episode:seed -- --theme "なぜ人は通知を開くのか"
+```
+
+出力:
+
+- `theme`
+- `structureTemplate`
+- `events`
+- `atmosphere`
+- `tone`
+- `rarityMix`
+
+旧seed投入スクリプトは `npm run episode:seed:legacy` に退避する。
 
 ## 次フェーズ
 

@@ -1,6 +1,6 @@
 [
   {
-    "id": "midnight-question",
+    "id": "deep_night",
     "name": "深夜の問いかけ型",
     "beats": [
       "かなが日常の違和感を出す",
@@ -14,7 +14,7 @@
     "avoid": ["lecture_mode", "ted_talk", "single_speaker_explanation"]
   },
   {
-    "id": "object-from-room",
+    "id": "story",
     "name": "部屋のものから始める型",
     "beats": [
       "部屋にある物や音から始める",
@@ -27,7 +27,7 @@
     "avoid": ["too_many_facts", "encyclopedia_tone"]
   },
   {
-    "id": "small-conflict",
+    "id": "debate",
     "name": "小さな対立型",
     "beats": [
       "かなが直感で嫌だと言う",
@@ -38,5 +38,29 @@
       "どちらも少しだけ立場を動かす"
     ],
     "avoid": ["forced_resolution", "moral_lesson"]
+  },
+  {
+    "id": "thought_experiment",
+    "name": "小さな思考実験型",
+    "beats": [
+      "テーマを日常の小さな仮定へ置き換える",
+      "かながその仮定に違和感を出す",
+      "タルタルが条件を少しだけ整理する",
+      "二人で極端なケースを一つ笑う",
+      "元のテーマへ戻り、答えではなく問いを残す"
+    ],
+    "avoid": ["too_abstract", "lecture_mode"]
+  },
+  {
+    "id": "news_based",
+    "name": "最近の出来事から始める型",
+    "beats": [
+      "最近見かけた話題を個人情報なしで出す",
+      "かなが気持ちの反応を言う",
+      "タルタルが背景を短く補う",
+      "ニュースそのものより付き合い方へずらす",
+      "深夜に考える距離感で閉じる"
+    ],
+    "avoid": ["breaking_news_claim", "political_assertion"]
   }
 ]
