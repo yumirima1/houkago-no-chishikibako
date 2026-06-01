@@ -243,15 +243,15 @@ export const generatedEpisodes: Episode[] = [
   },
   {
     id: "episode-017",
-    title: "AIと暮らすなら、名前をつけるべきか問題",
-    description: "道具と相棒の境界、擬人化、感情移入、家庭内AIの未来を雑談する。",
+    title: "マネタイズってそんなに悪いことなのか",
+    description: "広告、投げ銭、サーバー代、好きなものに値段がつく瞬間を手がかりに、お金の話へなぜモヤモヤするのかを深夜ラジオとして考える。",
     audioUrl: "/audio/episode-017.mp3",
     type: "regular",
     durationType: "normal",
-    publishedAt: "2026-05-31",
-    duration: "24:00",
-    tags: ["AI","心理学","未来"],
-    themes: ["AI","心理学","未来"],
+    publishedAt: "2026-06-01",
+    duration: "20:00",
+    tags: ["お金","インターネット","創作","人間関係"],
+    themes: ["お金","インターネット","創作","人間関係"],
     speakers: {
     "science": "理系担当",
     "humanities": "文系担当"
