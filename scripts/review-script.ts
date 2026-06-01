@@ -37,6 +37,10 @@ const detourPattern =
   /脱線|寄り道|全然関係|思い出|実体験|失敗|作るなら|たとえ|例えば|妄想|コーヒー|深夜/;
 const tartaruMechanicPattern =
   /仕組み|技術|データ|構造|設計|実装|モデル|科学|コンピュータ|AI/;
+const conversationalMarginPattern =
+  /あー|えー|んー|うーん|いや待って|それさ|まあ|一回|ちょっと待|急に|冗談|笑|コーヒー|脱線|寄り道|例えば|たとえ/;
+const informationDensityPattern =
+  /AI|アルゴリズム|モデル|データ|学習|記憶|検索|SNS|通知|要約|仕組み|技術|構造|設計|実装|科学|脳|心理|社会|判断|責任|記録|履歴|生成|処理|分析/g;
 
 function ensureReadableText(text: string, changes: string[]) {
   let nextText = text.replace(/\s+/g, " ").trim();
@@ -136,6 +140,9 @@ function checkProgramQualityRules(
   const tartaruLines = speakers.filter((line) => line.id === "rikei");
   const kanaLines = speakers.filter((line) => line.id === "bunkei");
   const longTartaruLines = tartaruLines.filter((line) => line.text.length > 280);
+  const longExplanationLines = speakers.filter(
+    (line) => line.text.length > 240 && tartaruMechanicPattern.test(line.text),
+  );
   const kanaReactiveLines = kanaLines.filter((line) =>
     kanaReactionPattern.test(line.text),
   );
@@ -148,6 +155,64 @@ function checkProgramQualityRules(
 
   if (longTartaruLines.length > Math.max(2, Math.floor(tartaruLines.length * 0.12))) {
     warnings.push("タルタルの長い説明が多めです。説明、脱線、失敗談、短い雑談を交互にしてください。");
+  }
+
+  for (let index = 0; index < speakers.length - 1; index += 1) {
+    const current = speakers[index];
+    const next = speakers[index + 1];
+    const currentIsLongExplanation =
+      current.text.length > 220 && tartaruMechanicPattern.test(current.text);
+    const nextIsLongExplanation =
+      next.text.length > 220 && tartaruMechanicPattern.test(next.text);
+
+    if (
+      currentIsLongExplanation &&
+      nextIsLongExplanation &&
+      !conversationalMarginPattern.test(current.text) &&
+      !conversationalMarginPattern.test(next.text)
+    ) {
+      warnings.push("長い説明セリフが連続しています。大事な説明の間に短い相槌、言い淀み、冗談、ツッコミを挟んでください。");
+      break;
+    }
+  }
+
+  const denseInformationLines = speakers.filter((line) => {
+    const matches = line.text.match(informationDensityPattern) ?? [];
+
+    return matches.length >= 4 && line.text.length > 160;
+  });
+
+  if (denseInformationLines.length > Math.max(3, Math.floor(speakers.length * 0.16))) {
+    warnings.push("情報密度が高い発話が多めです。リスナーが理解を追いつかせるための余白を増やしてください。");
+  }
+
+  for (let index = 0; index < speakers.length - 1; index += 1) {
+    const current = speakers[index];
+    const next = speakers[index + 1];
+    const currentDenseTerms = current.text.match(informationDensityPattern) ?? [];
+    const nextDenseTerms = next.text.match(informationDensityPattern) ?? [];
+    const currentIsImportantExplanation =
+      current.text.length > 180 && currentDenseTerms.length >= 3;
+    const nextMovesToMoreInformation =
+      next.text.length > 120 && nextDenseTerms.length >= 2;
+    const nextHasMargin =
+      next.id === "bunkei" &&
+      (conversationalMarginPattern.test(next.text) ||
+        kanaReactionPattern.test(next.text) ||
+        rebuttalPattern.test(next.text));
+
+    if (currentIsImportantExplanation && nextMovesToMoreInformation && !nextHasMargin) {
+      warnings.push("重要な説明の直後に次の情報へ進んでいます。かなの反応、冗談、確認、軽い脱線を一度挟んでください。");
+      break;
+    }
+  }
+
+  if (
+    longExplanationLines.length > 0 &&
+    speakers.filter((line) => conversationalMarginPattern.test(line.text)).length <
+      Math.ceil(longExplanationLines.length * 0.6)
+  ) {
+    warnings.push("長い説明に対して会話の間が少なめです。あー、えー、んー、いや待って、それさ、などを自然に使い、薄くならない範囲で余白を作ってください。");
   }
 
   if (mechanicOnlyTartaruLines.length > Math.max(3, Math.floor(tartaruLines.length * 0.18))) {
@@ -234,7 +299,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多、理解の余白不足を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,
