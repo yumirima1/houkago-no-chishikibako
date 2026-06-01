@@ -1,23 +1,23 @@
 {
   "id": "episode-012",
-  "title": "プログラミングは魔法ではない、でも深夜には少し魔法に見える",
-  "description": "コードを書く感覚、抽象化、エラーとの付き合い方、作る喜びをラジオ風に語る。",
+  "title": "スマホは記憶装置なのか",
+  "description": "写真、メモ、検索履歴、通知、連絡先を手がかりに、スマホは道具なのか、もうひとつの記憶なのかを考える。",
   "audioUrl": "/audio/episode-012.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "23:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
-    "コンピュータ",
-    "プログラミング",
-    "Web開発",
-    "ものづくり"
+    "スマホ",
+    "記憶",
+    "写真",
+    "通知"
   ],
   "themes": [
-    "コンピュータ",
-    "プログラミング",
-    "Web開発",
-    "ものづくり"
+    "スマホ",
+    "記憶",
+    "写真",
+    "通知"
   ],
   "speakers": {
     "science": "理系担当",
@@ -26,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-012.json",
-    "durationTargetMinutes": 23,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"

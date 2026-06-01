@@ -1,23 +1,23 @@
 {
   "id": "episode-015",
-  "title": "眠れない夜の脳内会議、夢はなぜあんなに雑なのか",
-  "description": "睡眠、夢、記憶整理を科学と心理の両側から扱う。寝る前回として使いやすい。",
+  "title": "人はなぜ通知を開いてしまうのか",
+  "description": "通知、SNS、期待、習慣、集中の切り替えを手がかりに、分かっていても開いてしまう理由を考える。",
   "audioUrl": "/audio/episode-015.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "25:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
-    "科学",
-    "脳科学",
-    "心理学",
-    "睡眠"
+    "通知",
+    "SNS",
+    "集中",
+    "スマホ"
   ],
   "themes": [
-    "科学",
-    "脳科学",
-    "心理学",
-    "睡眠"
+    "通知",
+    "SNS",
+    "集中",
+    "スマホ"
   ],
   "speakers": {
     "science": "理系担当",
@@ -26,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-015.json",
-    "durationTargetMinutes": 25,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"

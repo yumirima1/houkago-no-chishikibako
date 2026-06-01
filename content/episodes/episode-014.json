@@ -1,21 +1,23 @@
 {
   "id": "episode-014",
-  "title": "便利になるほど、私たちは何を忘れていくのか",
-  "description": "技術が削る手間、手間が持っていた意味、便利さと記憶の関係を話す。",
+  "title": "なぜ深夜になると人生を考えてしまうのか",
+  "description": "静けさ、不安、作業、布団の中の反省会、深夜ラジオを手がかりに、夜に人生を考えてしまう理由を話す。",
   "audioUrl": "/audio/episode-014.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "24:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
-    "哲学",
-    "技術",
-    "人間"
+    "深夜",
+    "人生",
+    "不安",
+    "ラジオ"
   ],
   "themes": [
-    "哲学",
-    "技術",
-    "人間"
+    "深夜",
+    "人生",
+    "不安",
+    "ラジオ"
   ],
   "speakers": {
     "science": "理系担当",
@@ -24,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-014.json",
-    "durationTargetMinutes": 24,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"

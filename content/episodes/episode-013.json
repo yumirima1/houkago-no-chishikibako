@@ -1,21 +1,23 @@
 {
   "id": "episode-013",
-  "title": "陰謀論はなぜ物語として強すぎるのか",
-  "description": "偶然を嫌う心、パターン認識、物語の快感を、責めるのではなく観察する。",
+  "title": "検索できる時代に覚える意味はあるのか",
+  "description": "検索、暗記、勉強、要約、思い出す力を手がかりに、いつでも調べられる時代の覚える意味を話す。",
   "audioUrl": "/audio/episode-013.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "28:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
-    "心理学",
-    "認知",
-    "社会"
+    "検索",
+    "記憶",
+    "勉強",
+    "インターネット"
   ],
   "themes": [
-    "心理学",
-    "認知",
-    "社会"
+    "検索",
+    "記憶",
+    "勉強",
+    "インターネット"
   ],
   "speakers": {
     "science": "理系担当",
@@ -24,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-013.json",
-    "durationTargetMinutes": 28,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"

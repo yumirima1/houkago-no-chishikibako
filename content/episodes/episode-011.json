@@ -1,21 +1,23 @@
 {
   "id": "episode-011",
-  "title": "AIが研究室を持ち始めた日、人間は何を担当するのか",
-  "description": "AIによる研究支援、自動実験、科学者の役割の変化を、人間の好奇心と合わせて考える。最新事例は人間確認前提。",
+  "title": "AIに相談するのは寂しいことなのか",
+  "description": "AIチャット、深夜の相談、友達に話す前の下書き、孤独、道具と相手の境目を、夜の放送局として考える。",
   "audioUrl": "/audio/episode-011.mp3",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "29:00",
+  "publishedAt": "2026-06-01",
+  "duration": "21:00",
   "tags": [
     "AI",
-    "科学",
-    "未来技術"
+    "相談",
+    "孤独",
+    "深夜"
   ],
   "themes": [
     "AI",
-    "科学",
-    "未来技術"
+    "相談",
+    "孤独",
+    "深夜"
   ],
   "speakers": {
     "science": "理系担当",
@@ -24,7 +26,7 @@
   "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-011.json",
-    "durationTargetMinutes": 29,
+    "durationTargetMinutes": 21,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"
