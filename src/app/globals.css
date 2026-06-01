@@ -44,11 +44,11 @@ body {
 }
 
 .night-scene-desk {
-  background: linear-gradient(180deg, #120d0a 0%, #07070d 62%, #020309 100%);
+  background: linear-gradient(180deg, #071225 0%, #050812 62%, #020309 100%);
 }
 
 .night-scene-window {
-  background: linear-gradient(180deg, #07101d 0%, #040714 62%, #020308 100%);
+  background: linear-gradient(180deg, #0a1018 0%, #050812 62%, #020308 100%);
 }
 
 .night-scene-image {
@@ -66,6 +66,18 @@ body {
     opacity 700ms ease;
 }
 
+.night-scene-image-room {
+  filter: saturate(1.08) brightness(0.98) contrast(1.05);
+}
+
+.night-scene-image-desk {
+  filter: saturate(0.86) brightness(1.05) contrast(1.03) sepia(0.08);
+}
+
+.night-scene-image-window {
+  filter: saturate(0.58) brightness(0.88) contrast(0.96);
+}
+
 .night-scene-atmosphere {
   position: absolute;
   inset: 0;
@@ -74,24 +86,25 @@ body {
 
 .night-scene-atmosphere-room {
   background:
-    radial-gradient(circle at 58% 51%, rgba(96, 165, 250, 0.1), transparent 24%),
+    radial-gradient(circle at 58% 51%, rgba(96, 165, 250, 0.14), transparent 24%),
     linear-gradient(90deg, rgba(2, 6, 23, 0.26), transparent 34%, rgba(2, 6, 23, 0.12)),
     linear-gradient(180deg, rgba(2, 6, 23, 0.04), rgba(2, 6, 23, 0.26));
 }
 
 .night-scene-atmosphere-desk {
   background:
-    radial-gradient(circle at 76% 35%, rgba(251, 191, 36, 0.12), transparent 21%),
-    linear-gradient(90deg, rgba(2, 6, 23, 0.08), transparent 36%, rgba(15, 10, 7, 0.2)),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.03), rgba(2, 6, 23, 0.24));
+    radial-gradient(circle at 63% 16%, rgba(226, 232, 240, 0.22), transparent 22%),
+    radial-gradient(circle at 33% 53%, rgba(251, 191, 36, 0.12), transparent 22%),
+    radial-gradient(circle at 56% 51%, rgba(96, 165, 250, 0.08), transparent 24%),
+    linear-gradient(90deg, rgba(2, 6, 23, 0.18), transparent 36%, rgba(2, 6, 23, 0.1)),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.2));
 }
 
 .night-scene-atmosphere-window {
   background:
-    radial-gradient(circle at 67% 60%, rgba(251, 191, 36, 0.08), transparent 20%),
-    radial-gradient(circle at 81% 22%, rgba(96, 165, 250, 0.08), transparent 22%),
-    linear-gradient(90deg, rgba(2, 6, 23, 0.12), transparent 42%, rgba(2, 6, 23, 0.16)),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.02), rgba(2, 6, 23, 0.26));
+    radial-gradient(circle at 58% 50%, rgba(148, 163, 184, 0.1), transparent 28%),
+    linear-gradient(90deg, rgba(2, 6, 23, 0.25), transparent 42%, rgba(2, 6, 23, 0.22)),
+    linear-gradient(180deg, rgba(71, 85, 105, 0.2), rgba(2, 6, 23, 0.42));
 }
 
 .lofi-vignette {
@@ -135,12 +148,6 @@ body {
   mask-composite: intersect;
 }
 
-.rainy-lines-desk {
-  inset: -12% -8% auto;
-  height: 72%;
-  opacity: 0.26;
-}
-
 .rain-drops {
   position: absolute;
   inset: 0;
@@ -159,22 +166,84 @@ body {
   mask-composite: intersect;
 }
 
-.rain-drops-desk {
-  opacity: 0.18;
-  mask-image: linear-gradient(180deg, black, black 64%, transparent);
-}
-
-.dust-motes {
+.star-field {
   position: absolute;
   inset: 0;
-  opacity: 0.2;
+  opacity: 0.5;
   background-image:
-    radial-gradient(circle, rgba(248, 250, 252, 0.3) 0 0.6px, transparent 1px),
-    radial-gradient(circle, rgba(251, 191, 36, 0.18) 0 0.7px, transparent 1.2px);
-  background-position: 0 0, 40px 32px;
-  background-size: 92px 110px, 134px 150px;
-  animation: dust-float 24s ease-in-out infinite;
-  mask-image: radial-gradient(circle at 62% 50%, black 0 36%, transparent 68%);
+    radial-gradient(circle, rgba(248, 250, 252, 0.72) 0 0.9px, transparent 1.35px),
+    radial-gradient(circle, rgba(191, 219, 254, 0.46) 0 0.8px, transparent 1.25px),
+    radial-gradient(circle, rgba(252, 211, 77, 0.4) 0 0.7px, transparent 1.2px);
+  background-position: 56% 8%, 68% 16%, 49% 24%;
+  background-size: 74px 92px, 136px 168px, 121px 144px;
+  animation: star-breathe 19s ease-in-out infinite;
+  mask-image:
+    linear-gradient(90deg, transparent 0 42%, black 48% 86%, transparent),
+    linear-gradient(180deg, transparent 0 4%, black 12% 56%, transparent 70%);
+  mask-composite: intersect;
+}
+
+.cloud-layer {
+  position: absolute;
+  inset: 0;
+  opacity: 0.42;
+  background:
+    radial-gradient(ellipse at 48% 20%, rgba(148, 163, 184, 0.46), transparent 32%),
+    radial-gradient(ellipse at 72% 16%, rgba(71, 85, 105, 0.38), transparent 34%),
+    linear-gradient(180deg, rgba(148, 163, 184, 0.08), transparent 58%);
+  filter: blur(14px);
+  animation: cloud-drift 96s ease-in-out infinite;
+  mask-image:
+    linear-gradient(90deg, transparent 0 40%, black 48% 88%, transparent),
+    linear-gradient(180deg, transparent 0 8%, black 18% 58%, transparent 70%);
+  mask-composite: intersect;
+}
+
+.station-curtain {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 32%;
+  width: 22%;
+  opacity: 0.14;
+  background:
+    linear-gradient(90deg, rgba(15, 23, 42, 0.44), transparent 12% 18%, rgba(15, 23, 42, 0.24) 28%, transparent 42% 58%, rgba(15, 23, 42, 0.2) 70%, transparent);
+  filter: blur(1px);
+  transform-origin: top;
+  animation: curtain-breathe 32s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.station-curtain-desk {
+  opacity: 0.1;
+}
+
+.station-curtain-window {
+  opacity: 0.18;
+}
+
+.broadcast-light {
+  position: absolute;
+  right: 25%;
+  bottom: 24%;
+  width: clamp(8rem, 22vw, 18rem);
+  height: clamp(5rem, 14vw, 11rem);
+  border-radius: 999px;
+  opacity: 0.12;
+  background: rgba(96, 165, 250, 0.2);
+  filter: blur(42px);
+  animation: broadcast-glow 24s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.broadcast-light-desk {
+  opacity: 0.22;
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.broadcast-light-window {
+  opacity: 0.14;
+  background: rgba(148, 163, 184, 0.24);
 }
 
 .window-glow-layer {
@@ -195,15 +264,15 @@ body {
 }
 
 .window-glow-layer-desk {
-  right: 11%;
-  bottom: 29%;
-  background: rgba(251, 191, 36, 0.1);
+  top: 22%;
+  right: 18%;
+  background: rgba(191, 219, 254, 0.08);
 }
 
 .window-glow-layer-window {
-  right: 24%;
-  bottom: 20%;
-  background: rgba(251, 191, 36, 0.08);
+  right: 18%;
+  bottom: 31%;
+  background: rgba(148, 163, 184, 0.08);
 }
 
 .steam-layer {
@@ -212,8 +281,9 @@ body {
 }
 
 .steam-layer-desk {
-  right: 34%;
-  bottom: 31%;
+  right: 28%;
+  bottom: 23%;
+  opacity: 0.42;
 }
 
 .steam {
@@ -793,16 +863,51 @@ body {
   }
 }
 
-@keyframes dust-float {
+@keyframes star-breathe {
   0%,
   100% {
     opacity: 0.16;
-    transform: translate3d(0, 0, 0);
+    filter: brightness(0.9);
   }
 
   50% {
     opacity: 0.28;
-    transform: translate3d(18px, -12px, 0);
+    filter: brightness(1.18);
+  }
+}
+
+@keyframes cloud-drift {
+  0%,
+  100% {
+    transform: translate3d(-1.5%, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(1.5%, 0.8%, 0) scale(1.02);
+  }
+}
+
+@keyframes curtain-breathe {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) skewX(0deg);
+  }
+
+  50% {
+    transform: translate3d(0.45rem, 0, 0) skewX(-0.4deg);
+  }
+}
+
+@keyframes broadcast-glow {
+  0%,
+  100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.18;
+    transform: scale(1.04);
   }
 }
 

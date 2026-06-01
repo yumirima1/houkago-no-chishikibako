@@ -9,19 +9,19 @@ export const backgroundModeProfiles: Array<{
   {
     id: "room",
     imageUrl: "/backgrounds/lofi-pc-room.png",
-    label: "深夜のPC部屋",
+    label: "雨の夜",
     tags: ["AI", "コンピュータ", "プログラミング", "Web開発", "ローカルAI"],
   },
   {
     id: "desk",
-    imageUrl: "/backgrounds/rainy-cafe.png",
-    label: "雨のカフェ",
+    imageUrl: "/backgrounds/lofi-pc-room.png",
+    label: "星の夜",
     tags: ["心理学", "哲学", "相談", "ものづくり"],
   },
   {
     id: "window",
-    imageUrl: "/backgrounds/night-library.png",
-    label: "夜の図書館",
+    imageUrl: "/backgrounds/lofi-pc-room.png",
+    label: "曇りの夜",
     tags: ["科学", "宇宙", "言語", "物語", "知識ラジオ"],
   },
 ];
@@ -57,19 +57,21 @@ export function RainyNightBackground({
     <div className={className}>
       <div className={`night-scene night-scene-${mode}`} />
       <div
-        className="night-scene-image"
+        className={`night-scene-image night-scene-image-${mode}`}
         style={{ backgroundImage: `url(${profile.imageUrl})` }}
       />
       <div className={`night-scene-atmosphere night-scene-atmosphere-${mode}`} />
       <div className="lofi-vignette" />
-      {mode === "window" ? (
-        <div className="dust-motes" />
-      ) : (
+      {mode === "room" ? (
         <>
           <div className={`rainy-lines rainy-lines-${mode}`} />
           <div className={`rain-drops rain-drops-${mode}`} />
         </>
-      )}
+      ) : null}
+      {mode === "desk" ? <div className="star-field" /> : null}
+      {mode === "window" ? <div className="cloud-layer" /> : null}
+      <div className={`station-curtain station-curtain-${mode}`} />
+      <div className={`broadcast-light broadcast-light-${mode}`} />
       <div className={`window-glow-layer window-glow-layer-${mode}`} />
       {mode === "desk" ? (
         <div className="steam-layer steam-layer-desk">

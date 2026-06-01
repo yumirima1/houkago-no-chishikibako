@@ -29,6 +29,14 @@ const closingDeclarationPattern =
 const questionPattern = /[^。！？?]*[？?]/g;
 const simpleKanaBackchannelPattern =
   /^(なるほど|たしかに|そうなんだ)[。！？?、\s]*$/;
+const kanaReactionPattern =
+  /待って|いや|でも|本当|逆|怖|なんで|また始まった|人間そんな単純|それ本当|急に|ちょっと|好き|悔しい|妄想|つまり/;
+const rebuttalPattern =
+  /でも|本当|逆|決めつけ|それ本当|人間そんな単純|違う|いや待って/;
+const detourPattern =
+  /脱線|寄り道|全然関係|思い出|実体験|失敗|作るなら|たとえ|例えば|妄想|コーヒー|深夜/;
+const tartaruMechanicPattern =
+  /仕組み|技術|データ|構造|設計|実装|モデル|科学|コンピュータ|AI/;
 
 function ensureReadableText(text: string, changes: string[]) {
   let nextText = text.replace(/\s+/g, " ").trim();
@@ -124,6 +132,51 @@ function checkProgramQualityRules(
   if (simpleKanaBackchannels.length > 0) {
     warnings.push("かなが単純な相槌だけで返している箇所があります。ツッコミ、驚き、反論、勘違い、ボケに変えてください。");
   }
+
+  const tartaruLines = speakers.filter((line) => line.id === "rikei");
+  const kanaLines = speakers.filter((line) => line.id === "bunkei");
+  const longTartaruLines = tartaruLines.filter((line) => line.text.length > 280);
+  const kanaReactiveLines = kanaLines.filter((line) =>
+    kanaReactionPattern.test(line.text),
+  );
+  const mechanicOnlyTartaruLines = tartaruLines.filter(
+    (line) =>
+      tartaruMechanicPattern.test(line.text) &&
+      !detourPattern.test(line.text) &&
+      line.text.length > 180,
+  );
+
+  if (longTartaruLines.length > Math.max(2, Math.floor(tartaruLines.length * 0.12))) {
+    warnings.push("タルタルの長い説明が多めです。説明、脱線、失敗談、短い雑談を交互にしてください。");
+  }
+
+  if (mechanicOnlyTartaruLines.length > Math.max(3, Math.floor(tartaruLines.length * 0.18))) {
+    warnings.push("タルタルが仕組み説明に寄りすぎています。技術好きの友達として脱線や興奮を混ぜてください。");
+  }
+
+  if (kanaReactiveLines.length < Math.ceil(kanaLines.length * 0.45)) {
+    warnings.push("かなの反応角度が弱めです。ツッコミ、反論、驚き、妄想、勘違いを増やしてください。");
+  }
+
+  if (!speakers.some((line) => rebuttalPattern.test(line.text))) {
+    warnings.push("会話内に明確な反論がありません。かな、またはタルタルが一度は疑う流れを入れてください。");
+  }
+
+  if (!speakers.some((line) => detourPattern.test(line.text))) {
+    warnings.push("会話内に脱線や実体験風の寄り道がありません。深夜ラジオとして自然な遠回りを入れてください。");
+  }
+
+  const rikeiChars = tartaruLines.reduce((total, line) => total + line.text.length, 0);
+  const bunkeiChars = kanaLines.reduce((total, line) => total + line.text.length, 0);
+  const totalChars = rikeiChars + bunkeiChars;
+
+  if (totalChars > 0) {
+    const rikeiRatio = rikeiChars / totalChars;
+
+    if (rikeiRatio < 0.42 || rikeiRatio > 0.58) {
+      warnings.push("タルタルとかなの会話量が偏っています。会話比率はおおむね50:50に近づけてください。");
+    }
+  }
 }
 
 function reviewScript(script: EpisodeScript): EpisodeScript {
@@ -181,7 +234,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、反論、脱線、説明過多を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,
