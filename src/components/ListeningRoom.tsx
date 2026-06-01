@@ -21,6 +21,7 @@ import {
   hasPlayableAudio,
 } from "@/data/episodes";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
+import { useBroadcastAmbience } from "@/hooks/useBroadcastAmbience";
 
 const AUTO_HIDE_MS = 30_000;
 
@@ -163,6 +164,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
   const bgm = useAmbientAudio({ isVoicePlaying });
+  const ambience = useBroadcastAmbience({ isActive: isInterfaceHidden });
 
   const selectedEpisode = useMemo(
     () =>
@@ -385,12 +387,17 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       {!showInterface ? (
         <BackgroundModeOverlay
+          ambienceEnabled={ambience.enabled}
+          ambienceIsAvailable={ambience.isAvailable}
+          ambienceVolumes={ambience.volumes}
           backgroundMode={backgroundMode}
           canPlay={hasPlayableAudio(selectedEpisode)}
           currentTime={currentTime}
           duration={duration}
           episode={selectedEpisode}
           isPlaying={isVoicePlaying}
+          onAmbienceEnabledChange={ambience.setEnabled}
+          onAmbienceVolumeChange={ambience.setVolume}
           onShowInterface={wakeInterface}
           onTogglePlayback={toggleSelectedEpisodePlayback}
         />

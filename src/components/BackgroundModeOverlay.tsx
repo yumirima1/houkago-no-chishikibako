@@ -1,10 +1,15 @@
 "use client";
 
+import { AmbientSoundControls } from "@/components/AmbientSoundControls";
 import {
   BackgroundMode,
   RainyNightBackground,
 } from "@/components/RainyNightBackground";
 import { Episode, getEpisodeNumberLabel } from "@/data/episodes";
+import {
+  AmbienceLayerKey,
+  AmbienceVolumes,
+} from "@/hooks/useBroadcastAmbience";
 
 function formatTime(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -23,23 +28,33 @@ function parseDuration(duration: string) {
 }
 
 type BackgroundModeOverlayProps = {
+  ambienceEnabled: boolean;
+  ambienceIsAvailable: boolean;
+  ambienceVolumes: AmbienceVolumes;
   backgroundMode: BackgroundMode;
   canPlay: boolean;
   currentTime: number;
   duration: number;
   episode: Episode;
   isPlaying: boolean;
+  onAmbienceEnabledChange: (enabled: boolean) => void;
+  onAmbienceVolumeChange: (layer: AmbienceLayerKey, volume: number) => void;
   onShowInterface: () => void;
   onTogglePlayback: () => void;
 };
 
 export function BackgroundModeOverlay({
+  ambienceEnabled,
+  ambienceIsAvailable,
+  ambienceVolumes,
   backgroundMode,
   canPlay,
   currentTime,
   duration,
   episode,
   isPlaying,
+  onAmbienceEnabledChange,
+  onAmbienceVolumeChange,
   onShowInterface,
   onTogglePlayback,
 }: BackgroundModeOverlayProps) {
@@ -72,6 +87,14 @@ export function BackgroundModeOverlay({
           <h2>{episode.title}</h2>
         </div>
       </section>
+
+      <AmbientSoundControls
+        enabled={ambienceEnabled}
+        isAvailable={ambienceIsAvailable}
+        onEnabledChange={onAmbienceEnabledChange}
+        onVolumeChange={onAmbienceVolumeChange}
+        volumes={ambienceVolumes}
+      />
 
       <section
         className="ambient-controls"
