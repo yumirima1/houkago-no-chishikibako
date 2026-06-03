@@ -11,7 +11,7 @@ const formatter = new Intl.DateTimeFormat("ja-JP", {
 });
 
 export function Clock() {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     const updateClock = () => setNow(new Date());
@@ -29,8 +29,9 @@ export function Clock() {
       className="font-mono text-3xl font-medium tabular-nums text-slate-100 sm:text-4xl"
       dateTime={now?.toISOString()}
       aria-label="現在時刻"
+      suppressHydrationWarning
     >
-      {now ? formatter.format(now) : "--:--:--"}
+      {formatter.format(now)}
     </time>
   );
 }

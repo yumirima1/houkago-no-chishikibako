@@ -51,7 +51,15 @@ function shouldEnable3d() {
     "(prefers-reduced-motion: reduce)",
   ).matches;
 
-  return !isSmallScreen && !prefersReducedMotion;
+  if (isSmallScreen || prefersReducedMotion) {
+    return false;
+  }
+
+  const canvas = document.createElement("canvas");
+  const context =
+    canvas.getContext("webgl2") ?? canvas.getContext("webgl");
+
+  return Boolean(context);
 }
 
 export function BroadcastRoomBackground({
@@ -60,7 +68,7 @@ export function BroadcastRoomBackground({
   mode,
   nowPlayingLabel,
 }: BroadcastRoomBackgroundProps) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
   const [is3dEnabled, setIs3dEnabled] = useState(false);
   const [lightingPhase, setLightingPhase] =
     useState<BoxRoomLightingPhase>("late-night");
@@ -100,6 +108,7 @@ export function BroadcastRoomBackground({
         isOnAir={isOnAir}
         mode={mode}
         nowPlayingLabel={nowPlayingLabel}
+        showCrtMonitor={false}
       />
       <div
         className={`box-room-3d-layer ${

@@ -18,12 +18,14 @@
 
 html {
   background: var(--background);
+  overflow-x: hidden;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
 }
 
 ::selection {
@@ -514,10 +516,10 @@ body {
 
 .box-room-overlay-monitor {
   position: absolute;
-  top: clamp(1rem, 4vh, 2.4rem);
-  left: clamp(1rem, 4vw, 3.2rem);
+  top: clamp(7rem, 12vh, 8.5rem);
+  left: clamp(0.9rem, 2.8vw, 2rem);
   display: grid;
-  width: min(16rem, 38vw);
+  width: min(13rem, 28vw);
   gap: 0.24rem;
   border: 1px solid rgba(125, 211, 252, 0.12);
   border-radius: 0.58rem;
@@ -530,7 +532,7 @@ body {
     0 0 2.4rem rgba(34, 197, 94, 0.08),
     inset 0 0 1.2rem rgba(134, 239, 172, 0.028);
   font-family: var(--font-geist-mono), monospace;
-  opacity: 0.46;
+  opacity: 0.24;
   text-shadow: 0 0 0.8rem rgba(134, 239, 172, 0.28);
 }
 
@@ -542,7 +544,7 @@ body {
 
 .box-room-overlay-monitor .box-room-overlay-clock {
   color: rgba(187, 247, 208, 0.88);
-  font-size: clamp(1.2rem, 3vw, 2rem);
+  font-size: clamp(1rem, 2.2vw, 1.45rem);
   line-height: 1;
 }
 
@@ -563,6 +565,9 @@ body {
   position: relative;
   display: grid;
   align-items: end;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.018),
@@ -585,11 +590,17 @@ body {
   z-index: 1;
   display: grid;
   gap: 1rem;
+  min-width: 0;
+  width: 100%;
   max-width: 42rem;
 }
 
 .station-console-screen {
   position: relative;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   overflow: hidden;
   border: 1px solid rgba(134, 239, 172, 0.14);
   border-radius: 0.78rem;
@@ -1206,19 +1217,7 @@ body {
   }
 
   .box-room-overlay-monitor {
-    top: 4.8rem;
-    left: 0.72rem;
-    width: min(44vw, 9.2rem);
-    padding: 0.48rem;
-    opacity: 0.38;
-  }
-
-  .box-room-overlay-monitor .box-room-overlay-clock {
-    font-size: 1.08rem;
-  }
-
-  .box-room-overlay-monitor span {
-    font-size: 0.58rem;
+    display: none;
   }
 
   .box-room-overlay-phase {
@@ -1227,6 +1226,14 @@ body {
 
   .station-first-view {
     min-height: 29rem;
+    width: calc(100vw - 2rem);
+    max-width: calc(100vw - 2rem);
+  }
+
+  .station-console,
+  .station-console-screen {
+    width: 100%;
+    max-width: 100%;
   }
 
   .station-console-notes {

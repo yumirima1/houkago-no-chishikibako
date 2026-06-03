@@ -49,6 +49,7 @@ type RainyNightBackgroundProps = {
   isOnAir?: boolean;
   mode: BackgroundMode;
   nowPlayingLabel?: string;
+  showCrtMonitor?: boolean;
 };
 
 function formatMonitorTime(date: Date | null) {
@@ -71,7 +72,7 @@ function BroadcastCrtMonitor({
   isOnAir?: boolean;
   nowPlayingLabel?: string;
 }) {
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
     const tick = () => setNow(new Date());
@@ -112,6 +113,7 @@ export function RainyNightBackground({
   isOnAir = false,
   mode,
   nowPlayingLabel,
+  showCrtMonitor = true,
 }: RainyNightBackgroundProps) {
   const profile =
     backgroundModeProfiles.find((backgroundProfile) => backgroundProfile.id === mode) ??
@@ -144,10 +146,12 @@ export function RainyNightBackground({
           <span className="steam steam-c" />
         </div>
       ) : null}
-      <BroadcastCrtMonitor
-        isOnAir={isOnAir}
-        nowPlayingLabel={nowPlayingLabel}
-      />
+      {showCrtMonitor ? (
+        <BroadcastCrtMonitor
+          isOnAir={isOnAir}
+          nowPlayingLabel={nowPlayingLabel}
+        />
+      ) : null}
       <div className="room-grain" />
       <div className="night-floor" />
     </div>

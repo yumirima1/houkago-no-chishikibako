@@ -365,21 +365,21 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             </p>
             <p className="mt-2 text-sm text-slate-400">
               夜更かしした人が戻ってくる、雨の放送室。
-              <span className="ml-3 text-slate-500">
+              <span className="mt-1 block text-slate-500 sm:ml-3 sm:inline">
                 次回更新予定: {nextUpdateLabel ?? "計算中"}
               </span>
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 sm:items-end">
+          <div className="flex min-w-0 max-w-full flex-col gap-2 sm:items-end">
             <div
-              className="flex w-full gap-1 rounded-lg border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md sm:w-auto"
+              className="hidden max-w-full grid-cols-3 gap-1 rounded-lg border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md sm:grid sm:w-auto"
               aria-label="背景モード"
               role="group"
             >
               {backgroundModes.map((mode) => (
                 <button
-                  className={`min-h-10 flex-1 rounded-md px-3 text-sm transition-colors sm:flex-none ${
+                  className={`min-h-10 min-w-0 rounded-md px-2 text-xs transition-colors sm:px-3 sm:text-sm ${
                     mode.id === backgroundMode
                       ? "bg-cyan-100/[0.16] text-cyan-50"
                       : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
@@ -388,7 +388,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                   onClick={() => setBackgroundMode(mode.id)}
                   type="button"
                 >
-                  {mode.label}
+                  <span className="sm:hidden">{mode.label.slice(0, 1)}</span>
+                  <span className="hidden sm:inline">{mode.label}</span>
                 </button>
               ))}
             </div>
@@ -405,8 +406,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           </div>
         </header>
 
-        <section className="grid min-h-[calc(100vh-6.5rem)] flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
-          <div className="station-first-view min-h-[34rem] rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
+        <section className="grid min-h-[calc(100vh-6.5rem)] min-w-0 flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
+          <div className="station-first-view min-h-[34rem] min-w-0 rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
             <div className="station-console">
               <div className="station-console-screen">
                 <div className="station-console-scanlines" />
@@ -479,7 +480,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <AudioPlayer
               audioRef={audioRef}
               episode={selectedEpisode}
