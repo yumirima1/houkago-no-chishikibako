@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { AmbientSoundControls } from "@/components/AmbientSoundControls";
 import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
+import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
 import {
@@ -117,7 +119,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
   const bgm = useAmbientAudio({ isVoicePlaying });
-  const ambience = useBroadcastAmbience({ isActive: isInterfaceHidden });
+  const ambience = useBroadcastAmbience({ isActive: true });
 
   const selectedEpisode = useMemo(
     () =>
@@ -346,23 +348,23 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       ) : null}
 
       <div
-        className={`relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-5 py-6 transition-opacity duration-[1400ms] sm:px-8 lg:px-10 ${
+        className={`relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 transition-opacity duration-[1400ms] sm:px-6 lg:px-8 ${
           showInterface
             ? "pointer-events-auto opacity-100"
             : "pointer-events-none opacity-0"
         }`}
         aria-hidden={!showInterface}
       >
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-medium tracking-[0.28em] text-slate-300">
+            <p className="text-sm font-medium tracking-[0.28em] text-cyan-100/75">
+              NIGHT BROADCAST ROOM
+            </p>
+            <p className="mt-2 text-xl font-semibold text-slate-50">
               放課後の知識箱
             </p>
-            <p className="mt-2 text-sm text-slate-500">
-              After school knowledge radio
-            </p>
-            <p className="mt-3 text-sm text-cyan-100/75">
-              毎週日曜 朝3時更新
+            <p className="mt-2 text-sm text-slate-400">
+              夜更かしした人が戻ってくる、雨の放送室。
               <span className="ml-3 text-slate-500">
                 次回更新予定: {nextUpdateLabel ?? "計算中"}
               </span>
@@ -403,35 +405,81 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           </div>
         </header>
 
-        <section className="grid flex-1 items-center gap-10 py-12 lg:grid-cols-[1.05fr_0.95fr] lg:py-16">
-          <div className="max-w-2xl">
-            <p className="mb-5 text-sm tracking-[0.28em] text-cyan-100/70">
-              NIGHT BROADCAST ROOM / ON AIR
-            </p>
-            <h1 className="text-4xl font-semibold leading-tight text-slate-50 sm:text-6xl">
-              放課後の知識箱
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              雨の窓と小さな明かりのそばで、理系担当と文系担当が夜の話をゆっくりほどきます。
-            </p>
+        <section className="grid min-h-[calc(100vh-6.5rem)] flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
+          <div className="station-first-view min-h-[34rem] rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
+            <div className="station-console">
+              <div className="station-console-screen">
+                <div className="station-console-scanlines" />
+                <p className="text-xs tracking-[0.28em] text-emerald-100/60">
+                  CRT MONITOR CLOCK
+                </p>
+                <Clock />
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                      isVoicePlaying
+                        ? "border-red-200/30 bg-red-500/15 text-red-100"
+                        : "border-slate-200/15 bg-slate-200/10 text-slate-300"
+                    }`}
+                  >
+                    {isVoicePlaying ? "● ON AIR" : "OFF AIR"}
+                  </span>
+                  <span className="rounded-full border border-cyan-100/20 bg-cyan-100/10 px-3 py-1.5 text-xs text-cyan-50">
+                    現実時刻同期
+                  </span>
+                </div>
+                <p className="mt-5 text-xs tracking-[0.22em] text-cyan-100/55">
+                  NOW PLAYING
+                </p>
+                <h1 className="mt-2 text-2xl font-semibold leading-tight text-slate-50 sm:text-4xl">
+                  {selectedEpisodeNumberLabel}
+                  <span className="mt-2 block text-balance">
+                    {selectedEpisode.title}
+                  </span>
+                </h1>
+                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                  {selectedEpisode.description}
+                </p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <button
+                    className="min-h-11 rounded-md border border-cyan-100/25 bg-cyan-100/[0.14] px-4 text-sm font-semibold text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                    disabled={!hasPlayableAudio(selectedEpisode)}
+                    onClick={toggleSelectedEpisodePlayback}
+                    type="button"
+                  >
+                    {isVoicePlaying ? "一時停止" : "放送を聴く"}
+                  </button>
+                  <button
+                    className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                    onClick={() => {
+                      blurActiveElement();
+                      setIsInterfaceHidden(true);
+                    }}
+                    type="button"
+                  >
+                    部屋だけ見る
+                  </button>
+                </div>
+              </div>
 
-            <div className="mt-8 grid max-w-xl gap-3 text-sm text-slate-300 sm:grid-cols-3">
-              <div className="border-l border-cyan-100/20 pl-4">
-                毎週日曜
-                <span className="mt-1 block text-slate-500">朝3時更新</span>
-              </div>
-              <div className="border-l border-cyan-100/20 pl-4">
-                通常回
-                <span className="mt-1 block text-slate-500">20-30分想定</span>
-              </div>
-              <div className="border-l border-cyan-100/20 pl-4">
-                特別回
-                <span className="mt-1 block text-slate-500">60分前後想定</span>
+              <div className="station-console-notes">
+                <div>
+                  <span>ROOM</span>
+                  <strong>雨 / CRT / 暖色照明</strong>
+                </div>
+                <div>
+                  <span>LATEST</span>
+                  <strong>#017 公開中</strong>
+                </div>
+                <div>
+                  <span>LIST</span>
+                  <strong>#018以降は非表示</strong>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <AudioPlayer
               audioRef={audioRef}
               episode={selectedEpisode}
@@ -447,10 +495,18 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               onVolumeChange={bgm.setVolume}
               volume={bgm.volume}
             />
+            <AmbientSoundControls
+              enabled={ambience.enabled}
+              isAvailable={ambience.isAvailable}
+              onEnabledChange={ambience.setEnabled}
+              onVolumeChange={ambience.setVolume}
+              variant="inline"
+              volumes={ambience.volumes}
+            />
           </div>
         </section>
 
-        <div className="pb-14">
+        <div className="pb-14 pt-8">
           <section
             aria-label="タグ検索"
             className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"

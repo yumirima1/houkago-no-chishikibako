@@ -10,6 +10,7 @@ type AmbientSoundControlsProps = {
   isAvailable: boolean;
   onEnabledChange: (enabled: boolean) => void;
   onVolumeChange: (layer: AmbienceLayerKey, volume: number) => void;
+  variant?: "floating" | "inline";
   volumes: AmbienceVolumes;
 };
 
@@ -29,12 +30,15 @@ export function AmbientSoundControls({
   isAvailable,
   onEnabledChange,
   onVolumeChange,
+  variant = "floating",
   volumes,
 }: AmbientSoundControlsProps) {
   return (
     <section
       aria-label="環境音"
-      className="ambient-sound-panel"
+      className={`ambient-sound-panel ${
+        variant === "inline" ? "ambient-sound-panel-inline" : ""
+      }`}
       onClick={(event) => event.stopPropagation()}
       onPointerDown={(event) => event.stopPropagation()}
     >
