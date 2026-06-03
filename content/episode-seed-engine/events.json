@@ -72,6 +72,42 @@
     "exampleBeat": "またタルタルの頭の中に小さい会計係が出てきた。"
   },
   {
+    "id": "soft-detour-room-object",
+    "category": "脱線",
+    "type": "detour",
+    "weight": 4,
+    "rarity": "Common",
+    "cooldownEpisodes": 3,
+    "description": "机の上の物や放送室の気配に一瞬だけ話がそれる。ただし本筋へ戻れる短さにする。",
+    "speakerBias": "both",
+    "avoidWhen": ["topic_needs_focus", "too_many_detours"],
+    "exampleBeat": "今この話、モニターの横に置いてある消しゴムの顔してる。"
+  },
+  {
+    "id": "kana-emotion-first",
+    "category": "感情",
+    "type": "emotion",
+    "weight": 6,
+    "rarity": "Common",
+    "cooldownEpisodes": 2,
+    "description": "かなの不安やモヤモヤを、説明より先に会話の中心へ置く。",
+    "speakerBias": "kana",
+    "avoidWhen": ["kana_already_dominant"],
+    "exampleBeat": "理屈は分かるんだけど、なんか置いていかれる感じがする。"
+  },
+  {
+    "id": "kana-reaction-redirect",
+    "category": "反応",
+    "type": "reaction",
+    "weight": 5,
+    "rarity": "Rare",
+    "cooldownEpisodes": 3,
+    "description": "かなの反応で、タルタルの説明を一度止めて会話の向きを変える。",
+    "speakerBias": "kana",
+    "avoidWhen": ["already_interrupted"],
+    "exampleBeat": "待って、その話だと人間が全部レシートみたいじゃない？"
+  },
+  {
     "id": "studio-light-flicker",
     "category": "空気",
     "type": "空気",

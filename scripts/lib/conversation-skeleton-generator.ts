@@ -2,11 +2,23 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
+  EpisodeSeedRarity,
   EpisodeSeed,
   generateEpisodeSeed,
 } from "./episode-seed-generator";
 
 export type ConversationSpeaker = "かな" | "タルタル" | "both";
+export type ConversationEventKind =
+  | "event"
+  | "detour"
+  | "accident"
+  | "metaphor"
+  | "thought_experiment"
+  | "inside_joke"
+  | "atmosphere"
+  | "reality_reference"
+  | "emotion"
+  | "reaction";
 export type ConversationBeatRole =
   | "hook"
   | "reception"
@@ -24,7 +36,10 @@ export type ConversationBeat = {
   role: ConversationBeatRole;
   purpose: string;
   eventId?: string;
+  eventKind?: ConversationEventKind;
+  rarity?: EpisodeSeedRarity;
   cue: string;
+  required?: boolean;
 };
 
 export type ConversationSkeleton = {
@@ -32,16 +47,25 @@ export type ConversationSkeleton = {
   structureTemplate: string;
   atmosphere: EpisodeSeed["atmosphere"];
   tone: EpisodeSeed["tone"];
+  eventPlan: {
+    selectedEventIds: string[];
+    supportedEventKinds: ConversationEventKind[];
+    rarityMix: EpisodeSeed["rarityMix"];
+    notes: string[];
+  };
   beats: ConversationBeat[];
 };
 
 type SeedEvent = {
   category?: string;
+  cooldownEpisodes?: number;
   description?: string;
   exampleBeat?: string;
   id: string;
+  rarity: EpisodeSeedRarity;
   speakerBias?: string;
   type?: string;
+  weight: number;
 };
 
 type StructureTemplate = {
@@ -72,6 +96,18 @@ const STRUCTURE_TEMPLATES_PATH = path.join(
   "episode-seed-engine",
   "structure-templates.json",
 );
+const supportedEventKinds: ConversationEventKind[] = [
+  "event",
+  "detour",
+  "accident",
+  "metaphor",
+  "thought_experiment",
+  "inside_joke",
+  "atmosphere",
+  "reality_reference",
+  "emotion",
+  "reaction",
+];
 
 function assertString(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -95,14 +131,23 @@ function parseEvents(value: unknown): SeedEvent[] {
 
     return {
       category: typeof event.category === "string" ? event.category : undefined,
+      cooldownEpisodes:
+        typeof event.cooldownEpisodes === "number"
+          ? event.cooldownEpisodes
+          : undefined,
       description:
         typeof event.description === "string" ? event.description : undefined,
       exampleBeat:
         typeof event.exampleBeat === "string" ? event.exampleBeat : undefined,
       id: event.id,
+      rarity:
+        typeof event.rarity === "string"
+          ? normalizeRarity(event.rarity)
+          : "Common",
       speakerBias:
         typeof event.speakerBias === "string" ? event.speakerBias : undefined,
       type: typeof event.type === "string" ? event.type : undefined,
+      weight: typeof event.weight === "number" ? Math.max(0, event.weight) : 1,
     };
   });
 }
@@ -155,41 +200,121 @@ function speakerFromBias(bias: string | undefined): ConversationSpeaker {
   return "both";
 }
 
-function roleFromEvent(event: SeedEvent): ConversationBeatRole {
-  const category = event.category ?? event.type;
+function normalizeRarity(rarity: string): EpisodeSeedRarity {
+  const normalized = rarity.trim().toLowerCase();
 
-  if (category === "空気") {
+  if (normalized === "rare") {
+    return "Rare";
+  }
+
+  if (normalized === "epic") {
+    return "Epic";
+  }
+
+  if (normalized === "legendary") {
+    return "Legendary";
+  }
+
+  return "Common";
+}
+
+function normalizeEventKind(kind: string | undefined): ConversationEventKind {
+  const normalized = (kind ?? "event").trim().toLowerCase().replace(/-/g, "_");
+
+  if (normalized === "脱線" || normalized === "detour") {
+    return "detour";
+  }
+
+  if (normalized === "事故" || normalized === "accident") {
+    return "accident";
+  }
+
+  if (normalized === "例え" || normalized === "metaphor") {
+    return "metaphor";
+  }
+
+  if (normalized === "思考実験" || normalized === "thought_experiment") {
+    return "thought_experiment";
+  }
+
+  if (normalized === "内輪ネタ" || normalized === "inside_joke") {
+    return "inside_joke";
+  }
+
+  if (normalized === "空気" || normalized === "atmosphere") {
     return "atmosphere";
+  }
+
+  if (normalized === "現実参照" || normalized === "reality_reference") {
+    return "reality_reference";
+  }
+
+  if (normalized === "感情" || normalized === "emotion") {
+    return "emotion";
+  }
+
+  if (normalized === "反応" || normalized === "reaction") {
+    return "reaction";
+  }
+
+  return "event";
+}
+
+function eventKindFromEvent(event: SeedEvent) {
+  return normalizeEventKind(event.type ?? event.category);
+}
+
+function roleFromEvent(event: SeedEvent): ConversationBeatRole {
+  const eventKind = eventKindFromEvent(event);
+
+  if (eventKind === "atmosphere") {
+    return "atmosphere";
+  }
+
+  if (eventKind === "emotion" || eventKind === "reaction") {
+    return "reaction";
   }
 
   return "event";
 }
 
 function purposeFromEvent(event: SeedEvent) {
-  const category = event.category ?? event.type;
+  const eventKind = eventKindFromEvent(event);
 
-  if (category === "例え") {
+  if (eventKind === "detour") {
+    return "必要な回だけ、会話を横へずらして息を入れる";
+  }
+
+  if (eventKind === "metaphor") {
     return "変な例えで記憶に残す";
   }
 
-  if (category === "事故") {
+  if (eventKind === "accident") {
     return "予定調和を崩して会話を生かす";
   }
 
-  if (category === "思考実験") {
+  if (eventKind === "thought_experiment") {
     return "小さな仮定でテーマを横から見る";
   }
 
-  if (category === "内輪ネタ") {
+  if (eventKind === "inside_joke") {
     return "番組らしい軽い記憶を差し込む";
   }
 
-  if (category === "空気") {
+  if (eventKind === "atmosphere") {
     return "一拍置いて深夜感を作る";
   }
 
-  if (category === "現実参照") {
+  if (eventKind === "reality_reference") {
     return "抽象論を生活の手触りへ戻す";
+  }
+
+  if (eventKind === "emotion") {
+    return "かなの気持ちを相槌で流さず、会話の重心にする";
+  }
+
+  if (eventKind === "reaction") {
+    return "聞き手の反応で会話の向きを調整する";
   }
 
   return event.description ?? "Seed eventを会話の揺れとして入れる";
@@ -314,16 +439,25 @@ function templateBeatToConversationBeat(
   beat: string,
   index: number,
   seed: EpisodeSeed,
+  hasSelectedDetour: boolean,
 ): Omit<ConversationBeat, "order"> {
   const role = roleFromTemplateBeat(index, beat);
   const speaker =
     role === "closing" && !beat.includes("二人") && !beat.includes("どちら")
       ? "タルタル"
       : speakerFromTemplateBeat(index, beat);
+  const isDetourLike = beat.includes("脱線") || beat.includes("笑");
 
   return {
-    cue: cueFromTemplateBeat(beat, seed),
-    purpose: purposeFromRole(role, seed),
+    cue:
+      isDetourLike && !hasSelectedDetour
+        ? "脱線を義務化せず、必要なら小さな反応や笑いに留める"
+        : cueFromTemplateBeat(beat, seed),
+    purpose:
+      isDetourLike && !hasSelectedDetour
+        ? "会話の余白を作る。ただし毎話の脱線は必須にしない"
+        : purposeFromRole(role, seed),
+    ...(isDetourLike ? { eventKind: "detour" as const, required: false } : {}),
     role,
     speaker,
   };
@@ -332,10 +466,14 @@ function templateBeatToConversationBeat(
 function eventToConversationBeat(
   event: SeedEvent,
 ): Omit<ConversationBeat, "order"> {
+  const eventKind = eventKindFromEvent(event);
+
   return {
     cue: cueFromEvent(event),
     eventId: event.id,
+    eventKind,
     purpose: purposeFromEvent(event),
+    rarity: event.rarity,
     role: roleFromEvent(event),
     speaker: speakerFromBias(event.speakerBias),
   };
@@ -396,21 +534,21 @@ export async function generateConversationSkeleton(
   }
 
   const eventById = new Map(events.map((event) => [event.id, event]));
+  const selectedEvents = seed.events
+    .map((eventId) => eventById.get(eventId))
+    .filter((event): event is SeedEvent => Boolean(event));
+  const hasSelectedDetour = selectedEvents.some(
+    (event) => eventKindFromEvent(event) === "detour",
+  );
   const beatDrafts = template.beats.map((beat, index) =>
-    templateBeatToConversationBeat(beat, index, seed),
+    templateBeatToConversationBeat(beat, index, seed, hasSelectedDetour),
   );
 
-  seed.events.forEach((eventId, eventIndex) => {
-    const event = eventById.get(eventId);
-
-    if (!event) {
-      return;
-    }
-
+  selectedEvents.forEach((event, eventIndex) => {
     const insertIndex = chooseEventInsertIndex(
       template.beats.length,
       eventIndex,
-      seed.events.length,
+      selectedEvents.length,
     );
 
     beatDrafts.splice(insertIndex + eventIndex, 0, eventToConversationBeat(event));
@@ -422,7 +560,10 @@ export async function generateConversationSkeleton(
     role: beat.role,
     purpose: beat.purpose,
     ...(beat.eventId ? { eventId: beat.eventId } : {}),
+    ...(beat.eventKind ? { eventKind: beat.eventKind } : {}),
+    ...(beat.rarity ? { rarity: beat.rarity } : {}),
     cue: beat.cue,
+    ...(typeof beat.required === "boolean" ? { required: beat.required } : {}),
   }));
 
   return {
@@ -430,6 +571,15 @@ export async function generateConversationSkeleton(
     structureTemplate: seed.structureTemplate,
     atmosphere: seed.atmosphere,
     tone: seed.tone,
+    eventPlan: {
+      selectedEventIds: selectedEvents.map((event) => event.id),
+      supportedEventKinds,
+      rarityMix: seed.rarityMix,
+      notes: [
+        "Detour is optional: selected events may add it, but every episode should not be forced to detour.",
+        "Event metadata keeps rarity now, and leaves room for weight, cooldown, and correlation in later phases.",
+      ],
+    },
     beats,
   };
 }
