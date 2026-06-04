@@ -145,7 +145,7 @@ export function SubjectRoomView({
             </aside>
 
             <aside className="room-panel room-theme-panel">
-              <p className="observation-kicker">BROADCAST HINT</p>
+              <p className="observation-kicker">放送ネタ候補 / BROADCAST HINT</p>
               <h2>放送テーマ候補履歴</h2>
               {broadcastCandidates.length > 0 ? (
                 <ul>

@@ -36,7 +36,7 @@ export function EntrySubjectSelect({
             type="button"
           >
             <span>{subject.shortName}</span>
-            <strong>{subject.name}</strong>
+            <strong>{subject.name}の部屋</strong>
             <small>{subject.description}</small>
           </button>
         ))}
@@ -52,4 +52,3 @@ export function EntrySubjectSelect({
     </section>
   );
 }
-

@@ -61,16 +61,6 @@ function getInitialBackgroundMode() {
   return "room";
 }
 
-function shouldStartInBackgroundMode() {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  const params = new URLSearchParams(window.location.search);
-
-  return params.get("ambient") === "1";
-}
-
 function getInitialRoomMode(): RoomMode {
   if (typeof window === "undefined") {
     return "entry";
@@ -81,6 +71,10 @@ function getInitialRoomMode(): RoomMode {
   const requestedSubject = params.get("subject");
 
   if (requestedMode === "listening") {
+    return "listening";
+  }
+
+  if (requestedMode === "background" || params.get("ambient") === "1") {
     return "listening";
   }
 
@@ -95,7 +89,7 @@ function getInitialRoomMode(): RoomMode {
     return "room";
   }
 
-  return shouldStartInBackgroundMode() ? "screensaver" : "entry";
+  return "entry";
 }
 
 function blurActiveElement() {
@@ -506,7 +500,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               }}
               type="button"
             >
-              眺める
+              観察室を眺める
             </button>
             <div className="flex w-full gap-2 sm:w-auto">
               <button
@@ -514,18 +508,38 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                 onClick={() => setRoomMode("entry")}
                 type="button"
               >
-                観察対象
+                観察室
               </button>
               <button
                 className="min-h-10 flex-1 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:flex-none"
                 onClick={() => setRoomMode(selectedSubject ? "room" : "entry")}
                 type="button"
               >
-                部屋へ
+                選んだ部屋へ
               </button>
             </div>
           </div>
         </header>
+
+        <nav
+          aria-label="放送と観察室の切り替え"
+          className="mt-4 grid gap-2 rounded-lg border border-white/10 bg-white/[0.04] p-2 backdrop-blur-sm sm:inline-grid sm:grid-cols-2 sm:self-start"
+        >
+          <button
+            className="min-h-11 rounded-md border border-cyan-100/25 bg-cyan-100/[0.14] px-4 text-sm font-semibold text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+            onClick={wakeInterface}
+            type="button"
+          >
+            放送を聴く
+          </button>
+          <button
+            className="min-h-11 rounded-md border border-amber-100/20 bg-amber-100/[0.1] px-4 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-100/[0.16] focus:outline-none focus:ring-2 focus:ring-amber-200/60"
+            onClick={() => setRoomMode("entry")}
+            type="button"
+          >
+            部屋を覗く
+          </button>
+        </nav>
 
         <section className="grid min-h-[calc(100vh-6.5rem)] min-w-0 flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
           <div className="station-first-view min-h-[34rem] min-w-0 rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
@@ -575,11 +589,11 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                     className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
                     onClick={() => {
                       blurActiveElement();
-                      setRoomMode(selectedSubject ? "screensaver" : "entry");
+                      setRoomMode("entry");
                     }}
                     type="button"
                   >
-                    部屋だけ見る
+                    部屋を覗く
                   </button>
                   <button
                     className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
