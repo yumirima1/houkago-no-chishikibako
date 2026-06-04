@@ -7,6 +7,7 @@ import { AmbientSoundControls } from "@/components/AmbientSoundControls";
 import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
+import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
 import { EntrySubjectSelect } from "@/components/observation/EntrySubjectSelect";
 import { SubjectRoomView } from "@/components/observation/SubjectRoomView";
@@ -76,7 +77,7 @@ function getInitialRoomMode(): RoomMode {
 
   // Broadcast Background Mode is still the listening surface, not Observation.
   if (requestedMode === "background" || params.get("ambient") === "1") {
-    return "listening";
+    return "background";
   }
 
   if (
@@ -124,6 +125,92 @@ type ListeningRoomProps = {
   episodes: Episode[];
 };
 
+type RoomNavigationMenuProps = {
+  isOpen: boolean;
+  onEnterBackground: () => void;
+  onEnterListening: () => void;
+  onEnterRoom: () => void;
+  onOpenChange: (isOpen: boolean) => void;
+};
+
+function RoomNavigationMenu({
+  isOpen,
+  onEnterBackground,
+  onEnterListening,
+  onEnterRoom,
+  onOpenChange,
+}: RoomNavigationMenuProps) {
+  const menuRef = useRef<HTMLElement | null>(null);
+
+  function handleSelect(action: () => void) {
+    onOpenChange(false);
+    action();
+  }
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: Event) {
+      if (
+        event.target instanceof Node &&
+        !menuRef.current?.contains(event.target)
+      ) {
+        onOpenChange(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onOpenChange(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown, true);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("touchstart", handlePointerDown, true);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown, true);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("touchstart", handlePointerDown, true);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onOpenChange]);
+
+  return (
+    <nav className="room-navigation-menu" ref={menuRef} aria-label="部屋の操作">
+      <button
+        aria-expanded={isOpen}
+        aria-label={isOpen ? "メニューを閉じる" : "メニューを開く"}
+        className="room-menu-trigger"
+        onClick={() => onOpenChange(!isOpen)}
+        type="button"
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+
+      {isOpen ? (
+        <div className="room-menu-panel">
+          <button onClick={() => handleSelect(onEnterListening)} type="button">
+            放送を聴く
+          </button>
+          <button onClick={() => handleSelect(onEnterRoom)} type="button">
+            部屋を見る
+          </button>
+          <button onClick={() => handleSelect(onEnterBackground)} type="button">
+            背景モード
+          </button>
+        </div>
+      ) : null}
+    </nav>
+  );
+}
+
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const {
@@ -150,9 +237,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
     getInitialBackgroundMode(),
   );
-  const [, setCurrentTime] = useState(0);
-  const [, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
+  const [roomMenuState, setRoomMenuState] = useState<{
+    isOpen: boolean;
+    mode: RoomMode | null;
+  }>({ isOpen: false, mode: null });
   const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
@@ -207,11 +298,37 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const broadcastCandidates = selectedSubject
     ? getBroadcastThemeCandidates(logs, selectedSubject.id)
     : [];
+  const isRoomMenuOpen =
+    roomMenuState.isOpen && roomMenuState.mode === roomMode;
   const showInterface = roomMode === "listening";
 
+  const setRoomMenuOpen = useCallback(
+    (nextIsOpen: boolean) => {
+      setRoomMenuState({
+        isOpen: nextIsOpen,
+        mode: nextIsOpen ? roomMode : null,
+      });
+    },
+    [roomMode],
+  );
+
   const wakeInterface = useCallback(() => {
+    setRoomMenuState({ isOpen: false, mode: null });
     setLastInteractionAt(Date.now());
     setRoomMode("listening");
+  }, []);
+
+  const enterRoomSelection = useCallback(() => {
+    blurActiveElement();
+    setRoomMenuState({ isOpen: false, mode: null });
+    setRoomMode("entry");
+  }, []);
+
+  const enterBackgroundMode = useCallback(() => {
+    blurActiveElement();
+    setRoomMenuState({ isOpen: false, mode: null });
+    setLastInteractionAt(Date.now());
+    setRoomMode("background");
   }, []);
 
   const markActivity = useCallback(() => {
@@ -298,6 +415,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
   const handleSelectSubject = useCallback(
     (subjectId: SubjectId) => {
+      setRoomMenuState({ isOpen: false, mode: null });
       selectSubject(subjectId);
       setRoomMode("room");
     },
@@ -418,7 +536,34 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         nowPlayingLabel={monitorNowPlayingLabel}
       />
 
-      {roomMode === "entry" || (!selectedSubject && !showInterface) ? (
+      <RoomNavigationMenu
+        key={roomMode}
+        isOpen={isRoomMenuOpen}
+        onEnterBackground={enterBackgroundMode}
+        onEnterListening={wakeInterface}
+        onEnterRoom={enterRoomSelection}
+        onOpenChange={setRoomMenuOpen}
+      />
+
+      {roomMode === "background" ? (
+        <BackgroundModeOverlay
+          ambienceEnabled={ambience.enabled}
+          ambienceIsAvailable={ambience.isAvailable}
+          ambienceVolumes={ambience.volumes}
+          backgroundMode={backgroundMode}
+          canPlay={hasPlayableAudio(selectedEpisode)}
+          currentTime={currentTime}
+          duration={duration}
+          episode={selectedEpisode}
+          isPlaying={isVoicePlaying}
+          onAmbienceEnabledChange={ambience.setEnabled}
+          onAmbienceVolumeChange={ambience.setVolume}
+          onShowInterface={wakeInterface}
+          onTogglePlayback={toggleSelectedEpisodePlayback}
+        />
+      ) : null}
+
+      {roomMode === "entry" ? (
         <EntrySubjectSelect
           onSelectSubject={handleSelectSubject}
           onStartListening={wakeInterface}
@@ -435,13 +580,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           broadcastCandidates={broadcastCandidates}
           logs={logs}
           mode={roomMode}
-          onBackToEntry={() => setRoomMode("entry")}
-          onEnterListening={wakeInterface}
           onEnterRoom={() => setRoomMode("room")}
-          onEnterScreensaver={() => {
-            blurActiveElement();
-            setRoomMode("screensaver");
-          }}
           onInspectObject={handleInspectObject}
           onRecordDialogue={handleRecordDialogue}
           relationshipAtmosphere={relationshipAtmosphere}
@@ -472,75 +611,11 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           </div>
 
           <div className="flex min-w-0 max-w-full flex-col gap-2 sm:items-end">
-            <div
-              className="hidden max-w-full grid-cols-3 gap-1 rounded-lg border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md sm:grid sm:w-auto"
-              aria-label="背景モード"
-              role="group"
-            >
-              {backgroundModes.map((mode) => (
-                <button
-                  className={`min-h-10 min-w-0 rounded-md px-2 text-xs transition-colors sm:px-3 sm:text-sm ${
-                    mode.id === backgroundMode
-                      ? "bg-cyan-100/[0.16] text-cyan-50"
-                      : "text-slate-400 hover:bg-white/[0.08] hover:text-slate-100"
-                  }`}
-                  key={mode.id}
-                  onClick={() => setBackgroundMode(mode.id)}
-                  type="button"
-                >
-                  <span className="sm:hidden">{mode.label.slice(0, 1)}</span>
-                  <span className="hidden sm:inline">{mode.label}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              className="min-h-10 w-full rounded-lg border border-cyan-100/15 bg-cyan-100/[0.08] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.13] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-auto"
-              onClick={() => {
-                blurActiveElement();
-                setRoomMode(selectedSubject ? "screensaver" : "entry");
-              }}
-              type="button"
-            >
-              観察室を眺める
-            </button>
-            <div className="flex w-full gap-2 sm:w-auto">
-              <button
-                className="min-h-10 flex-1 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:flex-none"
-                onClick={() => setRoomMode("entry")}
-                type="button"
-              >
-                観察室
-              </button>
-              <button
-                className="min-h-10 flex-1 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:flex-none"
-                onClick={() => setRoomMode(selectedSubject ? "room" : "entry")}
-                type="button"
-              >
-                選んだ部屋へ
-              </button>
-            </div>
+            <p className="max-w-44 text-right text-xs leading-6 text-slate-500">
+              放送と部屋は、右上のメニューから行き来できます。
+            </p>
           </div>
         </header>
-
-        <nav
-          aria-label="放送と観察室の切り替え"
-          className="mt-4 grid gap-2 rounded-lg border border-white/10 bg-white/[0.04] p-2 backdrop-blur-sm sm:inline-grid sm:grid-cols-2 sm:self-start"
-        >
-          <button
-            className="min-h-11 rounded-md border border-cyan-100/25 bg-cyan-100/[0.14] px-4 text-sm font-semibold text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-            onClick={wakeInterface}
-            type="button"
-          >
-            放送を聴く
-          </button>
-          <button
-            className="min-h-11 rounded-md border border-amber-100/20 bg-amber-100/[0.1] px-4 text-sm font-semibold text-amber-50 transition-colors hover:bg-amber-100/[0.16] focus:outline-none focus:ring-2 focus:ring-amber-200/60"
-            onClick={() => setRoomMode("entry")}
-            type="button"
-          >
-            部屋を覗く
-          </button>
-        </nav>
 
         <section className="grid min-h-[calc(100vh-6.5rem)] min-w-0 flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
           <div className="station-first-view min-h-[34rem] min-w-0 rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
@@ -585,23 +660,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                     type="button"
                   >
                     {isVoicePlaying ? "一時停止" : "放送を聴く"}
-                  </button>
-                  <button
-                    className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-                    onClick={() => {
-                      blurActiveElement();
-                      setRoomMode("entry");
-                    }}
-                    type="button"
-                  >
-                    部屋を覗く
-                  </button>
-                  <button
-                    className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-                    onClick={() => setRoomMode(selectedSubject ? "room" : "entry")}
-                    type="button"
-                  >
-                    観察室へ
                   </button>
                 </div>
               </div>

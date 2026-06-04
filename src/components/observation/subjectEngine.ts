@@ -373,7 +373,7 @@ const objectReactions: Record<SubjectId, Record<RoomObjectId, SubjectAction>> = 
     },
     terminal: {
       ambientCue: "観察端末のログが、まだ原稿ではない行動だけを並べている。",
-      broadcastHint: "Observation Logをtheme sourceへ変換する設計の中心にできる。",
+      broadcastHint: "観察ログを、放送テーマの種として扱える。",
       broadcastSeed: "観察ログは、どうやって放送の種になるのか",
       id: "tartar-terminal",
       label: "観察端末を見る",

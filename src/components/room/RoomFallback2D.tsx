@@ -52,7 +52,7 @@ export function RoomFallback2D({
       <div className="subject-avatar">
         <span>{subject.name}</span>
       </div>
-      <div className="observation-box-device">OBS BOX</div>
+      <div className="observation-box-device">観察箱</div>
     </div>
   );
 }

@@ -1,6 +1,11 @@
 export type SubjectId = "tartar" | "kana";
 
-export type RoomMode = "entry" | "listening" | "screensaver" | "room";
+export type RoomMode =
+  | "background"
+  | "entry"
+  | "listening"
+  | "screensaver"
+  | "room";
 
 export type Relationship = {
   dependency: number;

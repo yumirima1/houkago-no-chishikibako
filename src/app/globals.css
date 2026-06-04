@@ -1210,6 +1210,71 @@ body {
   background: rgba(14, 116, 144, 0.24);
 }
 
+.room-navigation-menu {
+  position: fixed;
+  top: max(0.85rem, env(safe-area-inset-top));
+  right: max(0.85rem, env(safe-area-inset-right));
+  z-index: 80;
+  pointer-events: auto;
+}
+
+.room-menu-trigger {
+  display: grid;
+  width: 2.85rem;
+  height: 2.85rem;
+  place-items: center;
+  border: 1px solid rgba(226, 232, 240, 0.18);
+  border-radius: 0.6rem;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(125, 211, 252, 0.15), transparent 58%),
+    rgba(2, 6, 23, 0.72);
+  box-shadow: 0 1rem 2.2rem rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px);
+  touch-action: manipulation;
+}
+
+.room-menu-trigger span {
+  display: block;
+  width: 1.22rem;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.88);
+}
+
+.room-menu-panel {
+  position: absolute;
+  top: calc(100% + 0.58rem);
+  right: 0;
+  display: grid;
+  gap: 0.35rem;
+  width: min(14rem, calc(100vw - 1.5rem));
+  border: 1px solid rgba(226, 232, 240, 0.14);
+  border-radius: 0.72rem;
+  padding: 0.45rem;
+  background: rgba(2, 6, 23, 0.88);
+  box-shadow: 0 1.4rem 3.2rem rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(18px);
+}
+
+.room-menu-panel button {
+  min-height: 3rem;
+  border: 1px solid transparent;
+  border-radius: 0.52rem;
+  padding: 0 0.85rem;
+  color: rgba(248, 250, 252, 0.9);
+  background: rgba(248, 250, 252, 0.055);
+  font-size: 0.92rem;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.room-menu-panel button:active,
+.room-menu-panel button:focus-visible,
+.room-menu-panel button:hover {
+  border-color: rgba(125, 211, 252, 0.24);
+  background: rgba(14, 116, 144, 0.18);
+}
+
 .subject-room-overlay {
   position: relative;
   z-index: 2;
@@ -1243,26 +1308,27 @@ body {
 }
 
 .room-control-layout {
+  justify-self: end;
+  align-self: center;
   display: grid;
-  grid-template-columns:
-    minmax(0, 1.05fr)
-    minmax(13rem, 0.74fr)
-    minmax(15rem, 0.88fr)
-    minmax(15rem, 0.88fr);
-  gap: 0.85rem;
-  align-items: end;
-  max-width: 82rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.62rem;
+  width: min(18.5rem, 22vw);
+  max-height: calc(100svh - 12rem);
+  overflow-y: auto;
+  padding-right: 0.2rem;
   pointer-events: auto;
+  scrollbar-width: thin;
 }
 
 .room-panel {
   min-width: 0;
   border: 1px solid rgba(226, 232, 240, 0.11);
-  border-radius: 0.72rem;
-  padding: 1rem;
+  border-radius: 0.58rem;
+  padding: 0.82rem;
   background:
     radial-gradient(circle at 12% 0%, rgba(125, 211, 252, 0.06), transparent 42%),
-    rgba(2, 6, 23, 0.5);
+    rgba(2, 6, 23, 0.46);
   box-shadow: 0 1.4rem 3rem rgba(0, 0, 0, 0.24);
   backdrop-filter: blur(14px);
 }
@@ -1270,15 +1336,16 @@ body {
 .room-panel h2 {
   margin: 0.35rem 0 0;
   color: rgba(248, 250, 252, 0.92);
-  font-size: clamp(1rem, 2.4vw, 1.35rem);
+  font-size: clamp(0.98rem, 1.6vw, 1.18rem);
   font-weight: 650;
   line-height: 1.35;
 }
 
 .room-panel p {
-  margin: 0.7rem 0 0;
+  margin: 0.56rem 0 0;
   color: rgba(203, 213, 225, 0.72);
-  line-height: 1.75;
+  font-size: 0.84rem;
+  line-height: 1.65;
 }
 
 .room-panel button,
@@ -1336,6 +1403,8 @@ body {
   display: grid;
   gap: 0.58rem;
   margin: 0.9rem 0 0;
+  max-height: 9.6rem;
+  overflow-y: auto;
   padding: 0;
   list-style: none;
 }
@@ -1358,6 +1427,8 @@ body {
   display: grid;
   gap: 0.7rem;
   margin: 0.9rem 0 0;
+  max-height: 12rem;
+  overflow-y: auto;
   padding: 0;
   list-style: none;
 }
@@ -2139,7 +2210,8 @@ body {
   .room-control-layout {
     grid-template-columns: 1fr;
     align-self: end;
-    max-height: 58svh;
+    width: 100%;
+    max-height: 50svh;
     overflow-y: auto;
   }
 
@@ -2158,10 +2230,6 @@ body {
 
   .room-panel {
     padding: 0.82rem;
-  }
-
-  .room-panel:nth-child(2) {
-    display: none;
   }
 
   .room-mode-actions {

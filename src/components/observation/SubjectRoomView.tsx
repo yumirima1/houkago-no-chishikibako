@@ -41,10 +41,7 @@ type SubjectRoomViewProps = {
   broadcastCandidates: BroadcastThemeCandidate[];
   logs: ObservationLog[];
   mode: Extract<RoomMode, "room" | "screensaver">;
-  onBackToEntry: () => void;
-  onEnterListening: () => void;
   onEnterRoom: () => void;
-  onEnterScreensaver: () => void;
   onInspectObject: (objectId: RoomObjectId) => void;
   onRecordDialogue: () => void;
   relationshipAtmosphere: RelationshipAtmosphere;
@@ -85,10 +82,7 @@ export function SubjectRoomView({
   broadcastCandidates,
   logs,
   mode,
-  onBackToEntry,
-  onEnterListening,
   onEnterRoom,
-  onEnterScreensaver,
   onInspectObject,
   onRecordDialogue,
   relationshipAtmosphere,
@@ -120,27 +114,27 @@ export function SubjectRoomView({
         <header className="subject-room-header">
           <div>
             <p className="observation-kicker">
-              {isScreensaver ? "SCREENSAVER / OBSERVE ONLY" : "ROOM MODE"}
+              {isScreensaver ? "部屋を見る" : "部屋を見る"}
             </p>
             <h1>{subject.name}の部屋</h1>
             <p>{action.mood}</p>
           </div>
           <div className="subject-room-clock">
             <Clock />
-            <span>{isScreensaver ? "クリックで部屋へ戻る" : "現実時刻同期"}</span>
+            <span>現実時刻同期</span>
           </div>
         </header>
 
         {isScreensaver ? (
           <div className="screensaver-caption">
-            <span>{action.label}</span>
+            <span>{subject.name}の今</span>
             <strong>{action.thought}</strong>
             <p>{action.ambientCue}</p>
           </div>
         ) : (
           <div className="room-control-layout">
             <aside className="room-panel">
-              <p className="observation-kicker">CURRENT ACTION</p>
+              <p className="observation-kicker">いまの様子</p>
               <h2>{action.label}</h2>
               <p>{action.thought}</p>
               <p className="room-reaction-line">{action.reaction}</p>
@@ -150,7 +144,7 @@ export function SubjectRoomView({
             </aside>
 
             <aside className="room-panel room-relationship-panel">
-              <p className="observation-kicker">RELATIONSHIP</p>
+              <p className="observation-kicker">距離感</p>
               <h2>{relationshipAtmosphere.headline}</h2>
               <p>{relationshipAtmosphere.trustLine}</p>
               <p>{relationshipAtmosphere.friendshipLine}</p>
@@ -158,7 +152,7 @@ export function SubjectRoomView({
             </aside>
 
             <aside className="room-panel room-log-panel">
-              <p className="observation-kicker">OBSERVATION BOX</p>
+              <p className="observation-kicker">観察箱</p>
               <h2>観察ログ</h2>
               {subjectLogs.length > 0 ? (
                 <ul>
@@ -175,7 +169,7 @@ export function SubjectRoomView({
             </aside>
 
             <aside className="room-panel room-theme-panel">
-              <p className="observation-kicker">放送ネタ候補 / BROADCAST HINT</p>
+              <p className="observation-kicker">放送ネタ候補</p>
               <h2>放送テーマ候補履歴</h2>
               {broadcastCandidates.length > 0 ? (
                 <ul>
@@ -231,23 +225,6 @@ export function SubjectRoomView({
             </aside>
           </div>
         )}
-
-        {!isScreensaver ? (
-          <nav className="room-mode-actions" aria-label="観察モード">
-            <button onClick={onBackToEntry} type="button">
-              対象を選び直す
-            </button>
-            <button onClick={onEnterListening} type="button">
-              放送を聴く
-            </button>
-            <button onClick={onEnterScreensaver} type="button">
-              眺める
-            </button>
-            <button onClick={onEnterRoom} type="button">
-              部屋を調べる
-            </button>
-          </nav>
-        ) : null}
       </div>
 
       {!isScreensaver ? (

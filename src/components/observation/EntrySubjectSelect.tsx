@@ -29,10 +29,10 @@ export function EntrySubjectSelect({
 
   return (
     <section className="observation-entry" aria-labelledby="entry-title">
-      <div className="observation-entry-clock">NIGHT OBSERVATION ROOM</div>
+      <div className="observation-entry-clock">NIGHT ROOM</div>
       <div className="observation-entry-copy">
         <p className="observation-kicker">放課後の知識箱</p>
-        <h1 id="entry-title">観察対象を選択してください</h1>
+        <h1 id="entry-title">部屋を見る</h1>
         <p>
           放送は、誰かの夜の行動、考えかけのメモ、言いそびれた疑問から生まれる。
         </p>
