@@ -3,7 +3,10 @@ import path from "node:path";
 
 import {
   ConversationBeat,
+  ConversationClosingStyle,
   ConversationSkeleton,
+  ConversationTemperature,
+  ConversationTemperatureLevel,
 } from "./lib/conversation-skeleton-generator";
 import { generateDraftScript, DraftScript } from "./lib/draft-script-generator";
 import {
@@ -117,6 +120,62 @@ function parseConversationBeat(value: unknown, index: number): ConversationBeat 
   } as ConversationBeat;
 }
 
+function parseConversationTemperature(value: unknown): ConversationTemperature {
+  if (
+    value === "warm" ||
+    value === "normal" ||
+    value === "deep" ||
+    value === "funny" ||
+    value === "quiet"
+  ) {
+    return value;
+  }
+
+  return "normal";
+}
+
+function parseTemperatureLevel(value: unknown): ConversationTemperatureLevel {
+  if (value === "low" || value === "medium" || value === "high") {
+    return value;
+  }
+
+  return "medium";
+}
+
+function parseClosingStyle(value: unknown): ConversationClosingStyle {
+  if (value === "soft" || value === "open" || value === "light") {
+    return value;
+  }
+
+  return "soft";
+}
+
+function parseTemperaturePlan(
+  value: unknown,
+): ConversationSkeleton["temperaturePlan"] {
+  if (!value || typeof value !== "object") {
+    return {
+      closing: "soft",
+      detour: "medium",
+      emotion: "medium",
+      explanation: "medium",
+      humor: "medium",
+      silence: "medium",
+    };
+  }
+
+  const plan = value as Partial<ConversationSkeleton["temperaturePlan"]>;
+
+  return {
+    closing: parseClosingStyle(plan.closing),
+    detour: parseTemperatureLevel(plan.detour),
+    emotion: parseTemperatureLevel(plan.emotion),
+    explanation: parseTemperatureLevel(plan.explanation),
+    humor: parseTemperatureLevel(plan.humor),
+    silence: parseTemperatureLevel(plan.silence),
+  };
+}
+
 function parseConversationSkeleton(value: unknown): ConversationSkeleton {
   if (!value || typeof value !== "object") {
     throw new Error("Skeleton file must contain a JSON object.");
@@ -136,6 +195,9 @@ function parseConversationSkeleton(value: unknown): ConversationSkeleton {
   return {
     atmosphere: skeleton.atmosphere,
     beats: skeleton.beats.map(parseConversationBeat),
+    conversationTemperature: parseConversationTemperature(
+      skeleton.conversationTemperature,
+    ),
     eventPlan: skeleton.eventPlan ?? {
       notes: [],
       rarityMix: {
@@ -148,6 +210,7 @@ function parseConversationSkeleton(value: unknown): ConversationSkeleton {
       supportedEventKinds: [],
     },
     structureTemplate: skeleton.structureTemplate,
+    temperaturePlan: parseTemperaturePlan(skeleton.temperaturePlan),
     theme: skeleton.theme,
     tone: skeleton.tone,
   };
@@ -171,6 +234,9 @@ function parseDraftScript(value: unknown): DraftScript {
 
   return {
     atmosphere: draft.atmosphere,
+    conversationTemperature: parseConversationTemperature(
+      draft.conversationTemperature,
+    ),
     eventPlan: draft.eventPlan ?? {
       notes: [],
       rarityMix: {
@@ -202,6 +268,7 @@ function parseDraftScript(value: unknown): DraftScript {
       : [],
     source: draft.source,
     structureTemplate: draft.structureTemplate,
+    temperaturePlan: parseTemperaturePlan(draft.temperaturePlan),
     theme: draft.theme,
     tone: draft.tone,
   };
@@ -310,6 +377,8 @@ async function main() {
               eventPlan: draftScript.eventPlan,
               productionNotes: draftScript.productionNotes,
               structureTemplate: draftScript.structureTemplate,
+              temperature: draftScript.conversationTemperature,
+              temperaturePlan: draftScript.temperaturePlan,
               tone: draftScript.tone,
               ...(draftScriptFile
                 ? {

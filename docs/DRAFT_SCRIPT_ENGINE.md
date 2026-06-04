@@ -89,6 +89,8 @@ Draft Script:
 - `atmosphere`
 - `tone`
 - `eventPlan`
+- `conversationTemperature`
+- `temperaturePlan`
 - `lines`
 - `productionNotes`
 
@@ -112,6 +114,9 @@ Draft Script:
 - かなは相槌ではなく、疑問、反論、生活感を出す。
 - 雑学を増やすのではなく、見え方の発見を作る。
 - fixed joke を避けるため、同じギャグ文を正本化しない。
+- Conversation Temperature に応じて、説明、感情、笑い、脱線、沈黙、締め方を変える。
+- 1 beat を1発話で消費せず、短い往復へ分割する。
+- 同話者連続が残った場合は、短い受け止めや疑問を差し込んで交互にする。
 
 ## 注意
 

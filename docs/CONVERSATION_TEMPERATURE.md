@@ -4,7 +4,7 @@
 
 ## 目的
 
-Conversation Temperature は、会話の熱量、静けさ、笑い、深さを制御するための設計案である。
+Conversation Temperature は、会話の熱量、静けさ、笑い、深さを制御するための実装済みの制御値である。
 
 知識量を増やすためのパラメータではない。深夜の放送室として、その回がどんな温度で進むかを決める。
 
@@ -38,7 +38,7 @@ Conversation Temperature は、会話の熱量、静けさ、笑い、深さを�
 | `funny` | 低 | 中 | 高 | 高 | 低 |
 | `quiet` | 低 | 高 | 低 | 低 | 高 |
 
-## Skeletonへの追加案
+## Skeletonへの追加
 
 ```json
 {
@@ -54,6 +54,21 @@ Conversation Temperature は、会話の熱量、静けさ、笑い、深さを�
   }
 }
 ```
+
+実装箇所:
+
+- `scripts/lib/conversation-skeleton-generator.ts`
+- `scripts/lib/draft-script-generator.ts`
+
+Skeleton は `theme`, `atmosphere`, `tone` から温度を推定する。
+
+温度分布の例:
+
+- `warm`: ニュース、創作、応援、昔のインターネット
+- `quiet`: 検索履歴、AIの謝罪、ひとりごと、名前をつける問題
+- `deep`: 宇宙、理解、正しさ、時間
+- `funny`: 充電1%、夜のコンビニ、バグ、プログラミング
+- `normal`: 標準の違和感テーマ
 
 ## Draftへの影響
 
@@ -81,6 +96,19 @@ Conversation Temperature は、会話の熱量、静けさ、笑い、深さを�
 - 不安を受け止める
 - 最後は結論より余韻を優先する
 
+## Draft Script Engineでの使い方
+
+Draft Script Engine は、各 beat を2〜3発話の小さい往復へ展開する。
+
+実装された補正:
+
+- 温度別 hook
+- 温度別 closing
+- analysis を短い往復へ分割
+- question / emotion / night air の不足を補う
+- 同話者連続を後処理で解消する
+- かな比率が偏った場合、タルタルまたはかなの短い補助発話を足す
+
 ## review-scriptとの接続
 
 将来、`source.draftScriptEngine.temperature` または `conversationTemperature` を見て、警告しきい値を変える。
@@ -92,9 +120,9 @@ Conversation Temperature は、会話の熱量、静けさ、笑い、深さを�
 - `deep` なのに締めが結論型
 - `warm` なのに生活の小物がない
 
-## 今回やらないこと
+## 残課題
 
-- 実装
 - UI反映
 - 自動公開
 - temperature履歴の永続化
+- review-script の温度別しきい値調整

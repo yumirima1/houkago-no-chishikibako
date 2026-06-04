@@ -29,6 +29,9 @@ export type ConversationBeatRole =
   | "atmosphere"
   | "turn"
   | "closing";
+export type ConversationTemperature = "warm" | "normal" | "deep" | "funny" | "quiet";
+export type ConversationTemperatureLevel = "low" | "medium" | "high";
+export type ConversationClosingStyle = "soft" | "open" | "light";
 
 export type ConversationBeat = {
   order: number;
@@ -45,6 +48,15 @@ export type ConversationBeat = {
 export type ConversationSkeleton = {
   theme: string;
   structureTemplate: string;
+  conversationTemperature: ConversationTemperature;
+  temperaturePlan: {
+    explanation: ConversationTemperatureLevel;
+    emotion: ConversationTemperatureLevel;
+    humor: ConversationTemperatureLevel;
+    detour: ConversationTemperatureLevel;
+    silence: ConversationTemperatureLevel;
+    closing: ConversationClosingStyle;
+  };
   atmosphere: EpisodeSeed["atmosphere"];
   tone: EpisodeSeed["tone"];
   eventPlan: {
@@ -435,6 +447,99 @@ function purposeFromRole(role: ConversationBeatRole, seed: EpisodeSeed) {
   return "会話の流れを支える";
 }
 
+function inferConversationTemperature(seed: EpisodeSeed): ConversationTemperature {
+  const theme = seed.theme;
+
+  if (/コンビニ|充電|バグ|赤シート|スプレー|Windows|いらない|変な|魔法/.test(theme)) {
+    return "funny";
+  }
+
+  if (/検索履歴|ひとりごと|謝って|名前|孤独|怖|不安|相談|眠れない/.test(theme)) {
+    return "quiet";
+  }
+
+  if (/時間|宇宙|理解|記憶|思い出|黒歴史|翻訳|正しさ|物語/.test(theme)) {
+    return "deep";
+  }
+
+  if (
+    /作る|創作|応援|マネタイズ|やさしく|未来|昔|秘密基地|疲れ|ニュース/.test(theme) ||
+    seed.atmosphere === "warm" ||
+    seed.tone === "optimistic"
+  ) {
+    return "warm";
+  }
+
+  if (seed.atmosphere === "playful") {
+    return "funny";
+  }
+
+  if (seed.atmosphere === "quiet" || seed.tone === "melancholic") {
+    return "quiet";
+  }
+
+  if (seed.atmosphere === "deep" || seed.atmosphere === "nostalgic") {
+    return "deep";
+  }
+
+  return "normal";
+}
+
+function temperaturePlanFor(temperature: ConversationTemperature) {
+  if (temperature === "warm") {
+    return {
+      closing: "soft" as const,
+      detour: "medium" as const,
+      emotion: "high" as const,
+      explanation: "medium" as const,
+      humor: "medium" as const,
+      silence: "medium" as const,
+    };
+  }
+
+  if (temperature === "deep") {
+    return {
+      closing: "open" as const,
+      detour: "low" as const,
+      emotion: "high" as const,
+      explanation: "medium" as const,
+      humor: "low" as const,
+      silence: "high" as const,
+    };
+  }
+
+  if (temperature === "funny") {
+    return {
+      closing: "light" as const,
+      detour: "high" as const,
+      emotion: "medium" as const,
+      explanation: "low" as const,
+      humor: "high" as const,
+      silence: "low" as const,
+    };
+  }
+
+  if (temperature === "quiet") {
+    return {
+      closing: "soft" as const,
+      detour: "low" as const,
+      emotion: "high" as const,
+      explanation: "low" as const,
+      humor: "low" as const,
+      silence: "high" as const,
+    };
+  }
+
+  return {
+    closing: "soft" as const,
+    detour: "medium" as const,
+    emotion: "medium" as const,
+    explanation: "medium" as const,
+    humor: "medium" as const,
+    silence: "medium" as const,
+  };
+}
+
 function templateBeatToConversationBeat(
   beat: string,
   index: number,
@@ -533,6 +638,9 @@ export async function generateConversationSkeleton(
     throw new Error("structure-templates.json must contain at least one template.");
   }
 
+  const conversationTemperature = inferConversationTemperature(seed);
+  const temperaturePlan = temperaturePlanFor(conversationTemperature);
+
   const eventById = new Map(events.map((event) => [event.id, event]));
   const selectedEvents = seed.events
     .map((eventId) => eventById.get(eventId))
@@ -569,6 +677,8 @@ export async function generateConversationSkeleton(
   return {
     theme: seed.theme,
     structureTemplate: seed.structureTemplate,
+    conversationTemperature,
+    temperaturePlan,
     atmosphere: seed.atmosphere,
     tone: seed.tone,
     eventPlan: {
