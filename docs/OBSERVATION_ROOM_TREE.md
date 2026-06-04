@@ -50,6 +50,31 @@ Entry Mode
 
 二人は同じ部屋に住んでいない。仲の良い友達だが、部屋の空気と行動は別物として作る。
 
+## Subject Action Engine Phase 2
+
+行動は固定表示ではなく、次を見て選ぶ。
+
+- 現実時刻の時間帯
+- subjectごとの relationship
+- 直近の observation log
+- 前回訪問からの経過
+
+現在の行動例:
+
+- タルタル: CRTを見る、通知を見る、メモを書く、配線を触る、放送ネタを考える。
+- かな: 窓を見る、日記を書く、スマホを見る、小さなラジオを触る、ランプの明るさを気にする。
+
+各actionは次を持つ。
+
+- `broadcastSeed`
+- `broadcastHint`
+- `themeCandidate`
+- `ambientCue`
+- `reaction`
+- `logText`
+
+`broadcastHint` と `themeCandidate` は future theme source の土台であり、まだ自動で Episode Seed へは渡さない。
+
 ## Relationship Engine
 
 subjectごとに localStorage へ保存する。
@@ -61,6 +86,13 @@ subjectごとに localStorage へ保存する。
 
 dependency は暗い依存演出ではなく、「観察者の存在を少し気にしている」程度の弱い演出に留める。
 
+Phase 2では数値を直接UIに出さない。関係値は次のような空気として見せる。
+
+- また来たね、という距離感
+- 見られていることに少し慣れた反応
+- 完成前のメモを少しだけ残す
+- すべては見せないが、観察者の気配を否定しない
+
 ## Observation Log
 
 localStorage へ保存する。
@@ -69,6 +101,9 @@ localStorage へ保存する。
 - `subjectId`
 - `actionId`
 - `thought`
+- `logText`
+- `broadcastHint`
+- `themeCandidate`
 - `timestamp`
 - `source`
 
@@ -99,6 +134,23 @@ Conversation Skeleton
   ↓
 Draft Script
 ```
+
+## 軽量Room Scene
+
+Phase 2では重い3Dを追加しない。
+
+代わりに `RoomFallback2D` を導入し、次の描画境界を分離した。
+
+- 背面レイヤー
+- 中間の雨/奥行きレイヤー
+- 窓
+- 机
+- 部屋オブジェクト
+- ランプ
+- 観察対象の気配
+- 観察箱端末
+
+将来はこの境界を `react-three-fiber` の Room Scene へ置き換える。
 
 ## 今回やらないこと
 

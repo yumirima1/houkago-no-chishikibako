@@ -83,6 +83,10 @@ src/components/box-room/
   - `entry` / `listening` / `screensaver` / `room` のUIモードを持つ。
   - Room Mode は2D fallbackベースで、将来の3D Room Sceneへ差し替え可能。
   - Screensaver Mode は観察専用。クリック/タップで Room Mode へ戻る。
+- `src/components/room/RoomFallback2D.tsx`
+  - 3D導入前の軽量Room Scene境界。
+  - 背面/中間レイヤー、窓、机、部屋オブジェクト、ランプ、観察箱端末を分離する。
+  - 将来 `react-three-fiber` のRoom Sceneへ置き換える候補。
 
 ## Room Mode と Screensaver Mode
 

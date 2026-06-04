@@ -898,6 +898,28 @@ body {
   overflow: hidden;
 }
 
+.room-depth-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.room-depth-layer-back {
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.4), transparent 40%, rgba(15, 23, 42, 0.18)),
+    radial-gradient(circle at 30% 24%, rgba(226, 232, 240, 0.035), transparent 26%);
+  opacity: 0.9;
+}
+
+.room-depth-layer-mid {
+  background:
+    linear-gradient(112deg, transparent 0 45%, rgba(186, 230, 253, 0.055) 46% 47%, transparent 49%),
+    linear-gradient(180deg, transparent 22%, rgba(2, 6, 23, 0.24) 72%);
+  background-size: 150px 260px, 100% 100%;
+  opacity: 0.62;
+  animation: rain-shift 24s linear infinite;
+}
+
 .subject-room-scene::before {
   position: absolute;
   inset: 0;
@@ -968,7 +990,7 @@ body {
 
 .room-object {
   position: absolute;
-  left: calc(9% + var(--object-index) * 19%);
+  left: calc(6% + var(--object-index) * 15%);
   top: 42%;
   min-width: clamp(4.6rem, 9vw, 7.4rem);
   min-height: 3rem;
@@ -993,6 +1015,14 @@ body {
 
 .room-object:nth-child(4) {
   top: 53%;
+}
+
+.room-object:nth-child(5) {
+  top: 31%;
+}
+
+.room-object:nth-child(6) {
+  top: 61%;
 }
 
 .room-object:hover,
@@ -1111,10 +1141,14 @@ body {
 
 .room-control-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(14rem, 0.72fr) minmax(16rem, 0.9fr);
+  grid-template-columns:
+    minmax(0, 1.05fr)
+    minmax(13rem, 0.74fr)
+    minmax(15rem, 0.88fr)
+    minmax(15rem, 0.88fr);
   gap: 0.85rem;
   align-items: end;
-  max-width: 70rem;
+  max-width: 82rem;
 }
 
 .room-panel {
@@ -1155,6 +1189,16 @@ body {
 
 .room-panel button {
   margin-top: 0.9rem;
+}
+
+.room-reaction-line {
+  border-left: 2px solid rgba(249, 168, 212, 0.28);
+  padding-left: 0.75rem;
+  color: rgba(248, 250, 252, 0.78) !important;
+}
+
+.subject-room-tartar .room-reaction-line {
+  border-left-color: rgba(103, 232, 249, 0.3);
 }
 
 .relationship-meter {
@@ -1206,6 +1250,32 @@ body {
   font-family: var(--font-geist-mono), monospace;
 }
 
+.room-theme-panel ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.9rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-theme-panel li {
+  display: grid;
+  gap: 0.32rem;
+  border-left: 1px solid rgba(251, 191, 36, 0.28);
+  padding-left: 0.75rem;
+}
+
+.room-theme-panel strong {
+  color: rgba(248, 250, 252, 0.86);
+  font-size: 0.86rem;
+}
+
+.room-theme-panel span {
+  color: rgba(203, 213, 225, 0.66);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
 .room-mode-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1232,6 +1302,13 @@ body {
   font-size: clamp(1.2rem, 3vw, 2rem);
   font-weight: 520;
   line-height: 1.45;
+}
+
+.screensaver-caption p {
+  margin: 0;
+  color: rgba(203, 213, 225, 0.58);
+  font-size: clamp(0.88rem, 2vw, 1rem);
+  line-height: 1.7;
 }
 
 .subject-room.is-screensaver .subject-room-overlay {
@@ -1842,12 +1919,12 @@ body {
   }
 
   .room-object {
-    left: calc(4% + var(--object-index) * 23%);
+    left: calc(3% + var(--object-index) * 15.5%);
     top: 30%;
-    min-width: 4.1rem;
+    min-width: 3.85rem;
     min-height: 2.55rem;
     padding: 0 0.3rem;
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     transform: none;
   }
 
@@ -1858,6 +1935,14 @@ body {
 
   .room-object:nth-child(3) {
     top: 27%;
+  }
+
+  .room-object:nth-child(5) {
+    top: 24%;
+  }
+
+  .room-object:nth-child(6) {
+    top: 62%;
   }
 
   .subject-lamp {
@@ -1881,7 +1966,7 @@ body {
   .room-control-layout {
     grid-template-columns: 1fr;
     align-self: end;
-    max-height: 56svh;
+    max-height: 58svh;
     overflow-y: auto;
   }
 

@@ -1,16 +1,16 @@
 "use client";
 
-import type { CSSProperties } from "react";
-
 import { Clock } from "@/components/Clock";
 import {
+  BroadcastThemeCandidate,
   ObservationLog,
   ObservationSubject,
-  Relationship,
+  RelationshipAtmosphere,
   RoomMode,
   RoomObjectId,
   SubjectAction,
 } from "@/components/observation/observationTypes";
+import { RoomFallback2D } from "@/components/room/RoomFallback2D";
 
 function formatLogTime(timestamp: string) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -21,20 +21,9 @@ function formatLogTime(timestamp: string) {
   }).format(new Date(timestamp));
 }
 
-function Meter({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="relationship-meter">
-      <span>
-        {label}
-        <strong>{value}</strong>
-      </span>
-      <i style={{ width: `${value}%` }} />
-    </div>
-  );
-}
-
 type SubjectRoomViewProps = {
   action: SubjectAction;
+  broadcastCandidates: BroadcastThemeCandidate[];
   logs: ObservationLog[];
   mode: Extract<RoomMode, "room" | "screensaver">;
   onBackToEntry: () => void;
@@ -43,12 +32,13 @@ type SubjectRoomViewProps = {
   onEnterScreensaver: () => void;
   onInspectObject: (objectId: RoomObjectId) => void;
   onRecordDialogue: () => void;
-  relationship: Relationship;
+  relationshipAtmosphere: RelationshipAtmosphere;
   subject: ObservationSubject;
 };
 
 export function SubjectRoomView({
   action,
+  broadcastCandidates,
   logs,
   mode,
   onBackToEntry,
@@ -57,7 +47,7 @@ export function SubjectRoomView({
   onEnterScreensaver,
   onInspectObject,
   onRecordDialogue,
-  relationship,
+  relationshipAtmosphere,
   subject,
 }: SubjectRoomViewProps) {
   const subjectLogs = logs
@@ -72,39 +62,11 @@ export function SubjectRoomView({
       }`}
       onClick={isScreensaver ? onEnterRoom : undefined}
     >
-      <div className="subject-room-scene" aria-hidden="true">
-        <div className="subject-window">
-          <span />
-          <span />
-          <span />
-        </div>
-        <div className="subject-desk">
-          {subject.roomObjects.slice(0, 4).map((object, index) => (
-            <button
-              aria-label={`${object.label}を見る`}
-              className={`room-object room-object-${object.id}`}
-              disabled={isScreensaver}
-              key={object.id}
-              onClick={(event) => {
-                event.stopPropagation();
-                onInspectObject(object.id);
-              }}
-              style={
-                { "--object-index": index } as CSSProperties &
-                  Record<"--object-index", number>
-              }
-              type="button"
-            >
-              <span>{object.label}</span>
-            </button>
-          ))}
-        </div>
-        <div className="subject-lamp" />
-        <div className="subject-avatar">
-          <span>{subject.name}</span>
-        </div>
-        <div className="observation-box-device">OBS BOX</div>
-      </div>
+      <RoomFallback2D
+        isScreensaver={isScreensaver}
+        onInspectObject={onInspectObject}
+        subject={subject}
+      />
 
       <div className="subject-room-overlay">
         <header className="subject-room-header">
@@ -113,7 +75,7 @@ export function SubjectRoomView({
               {isScreensaver ? "SCREENSAVER / OBSERVE ONLY" : "ROOM MODE"}
             </p>
             <h1>{subject.name}の部屋</h1>
-            <p>{subject.mood}</p>
+            <p>{action.mood}</p>
           </div>
           <div className="subject-room-clock">
             <Clock />
@@ -125,6 +87,7 @@ export function SubjectRoomView({
           <div className="screensaver-caption">
             <span>{action.label}</span>
             <strong>{action.thought}</strong>
+            <p>{action.ambientCue}</p>
           </div>
         ) : (
           <div className="room-control-layout">
@@ -132,16 +95,18 @@ export function SubjectRoomView({
               <p className="observation-kicker">CURRENT ACTION</p>
               <h2>{action.label}</h2>
               <p>{action.thought}</p>
+              <p className="room-reaction-line">{action.reaction}</p>
               <button onClick={onRecordDialogue} type="button">
                 ひとこと反応を見る
               </button>
             </aside>
 
-            <aside className="room-panel">
+            <aside className="room-panel room-relationship-panel">
               <p className="observation-kicker">RELATIONSHIP</p>
-              <Meter label="trust" value={relationship.trust} />
-              <Meter label="friendship" value={relationship.friendship} />
-              <Meter label="dependency" value={relationship.dependency} />
+              <h2>{relationshipAtmosphere.headline}</h2>
+              <p>{relationshipAtmosphere.trustLine}</p>
+              <p>{relationshipAtmosphere.friendshipLine}</p>
+              <p>{relationshipAtmosphere.dependencyLine}</p>
             </aside>
 
             <aside className="room-panel room-log-panel">
@@ -152,12 +117,29 @@ export function SubjectRoomView({
                   {subjectLogs.map((log) => (
                     <li key={log.id}>
                       <time>{formatLogTime(log.timestamp)}</time>
-                      <span>{log.thought}</span>
+                      <span>{log.logText ?? log.thought}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
                 <p>まだログはない。部屋のものを見ると残る。</p>
+              )}
+            </aside>
+
+            <aside className="room-panel room-theme-panel">
+              <p className="observation-kicker">BROADCAST HINT</p>
+              <h2>放送ネタ候補</h2>
+              {broadcastCandidates.length > 0 ? (
+                <ul>
+                  {broadcastCandidates.map((candidate) => (
+                    <li key={candidate.id}>
+                      <strong>{candidate.theme}</strong>
+                      <span>{candidate.hint}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>観察ログが増えると、ここに放送テーマの種が残る。</p>
               )}
             </aside>
           </div>

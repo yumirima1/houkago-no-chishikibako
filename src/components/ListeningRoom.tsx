@@ -16,6 +16,8 @@ import {
   SubjectId,
 } from "@/components/observation/observationTypes";
 import {
+  getBroadcastThemeCandidates,
+  getRelationshipAtmosphere,
   getSubjectAction,
   observationSubjects,
   roomObjectAction,
@@ -199,8 +201,17 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     ? observationSubjects[selectedSubjectId]
     : null;
   const currentSubjectAction = selectedSubject
-    ? getSubjectAction(selectedSubject.id)
+    ? getSubjectAction(selectedSubject.id, {
+        logs,
+        relationship: selectedRelationship,
+      })
     : null;
+  const relationshipAtmosphere = selectedSubject
+    ? getRelationshipAtmosphere(selectedSubject.id, selectedRelationship)
+    : null;
+  const broadcastCandidates = selectedSubject
+    ? getBroadcastThemeCandidates(logs, selectedSubject.id)
+    : [];
   const showInterface = roomMode === "listening";
 
   const wakeInterface = useCallback(() => {
@@ -422,9 +433,11 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       {selectedSubject &&
       currentSubjectAction &&
+      relationshipAtmosphere &&
       (roomMode === "room" || roomMode === "screensaver") ? (
         <SubjectRoomView
           action={currentSubjectAction}
+          broadcastCandidates={broadcastCandidates}
           logs={logs}
           mode={roomMode}
           onBackToEntry={() => setRoomMode("entry")}
@@ -436,7 +449,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           }}
           onInspectObject={handleInspectObject}
           onRecordDialogue={handleRecordDialogue}
-          relationship={selectedRelationship}
+          relationshipAtmosphere={relationshipAtmosphere}
           subject={selectedSubject}
         />
       ) : null}
