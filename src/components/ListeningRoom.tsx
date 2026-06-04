@@ -4,11 +4,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
-import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
 import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
+import { EntrySubjectSelect } from "@/components/observation/EntrySubjectSelect";
+import { SubjectRoomView } from "@/components/observation/SubjectRoomView";
+import {
+  RoomMode,
+  RoomObjectId,
+  SubjectId,
+} from "@/components/observation/observationTypes";
+import {
+  getSubjectAction,
+  observationSubjects,
+  roomObjectAction,
+} from "@/components/observation/subjectEngine";
+import { useObservationState } from "@/components/observation/useObservationState";
 import {
   BackgroundMode,
   backgroundModeProfiles,
@@ -57,6 +69,33 @@ function shouldStartInBackgroundMode() {
   return params.get("ambient") === "1";
 }
 
+function getInitialRoomMode(): RoomMode {
+  if (typeof window === "undefined") {
+    return "entry";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const requestedMode = params.get("mode");
+  const requestedSubject = params.get("subject");
+
+  if (requestedMode === "listening") {
+    return "listening";
+  }
+
+  if (
+    (requestedSubject === "tartar" || requestedSubject === "kana") &&
+    requestedMode === "screensaver"
+  ) {
+    return "screensaver";
+  }
+
+  if (requestedSubject === "tartar" || requestedSubject === "kana") {
+    return "room";
+  }
+
+  return shouldStartInBackgroundMode() ? "screensaver" : "entry";
+}
+
 function blurActiveElement() {
   if (typeof document === "undefined" || typeof HTMLElement === "undefined") {
     return;
@@ -90,6 +129,13 @@ type ListeningRoomProps = {
 
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const {
+    logs,
+    recordObservation,
+    selectSubject,
+    selectedRelationship,
+    selectedSubjectId,
+  } = useObservationState();
   const publicEpisodes = useMemo(
     () => sortEpisodesForPublicDisplay(episodes.filter(isUserVisibleEpisode)),
     [episodes],
@@ -107,12 +153,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
     getInitialBackgroundMode(),
   );
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [, setCurrentTime] = useState(0);
+  const [, setDuration] = useState(0);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
-  const [isInterfaceHidden, setIsInterfaceHidden] = useState(
-    shouldStartInBackgroundMode,
-  );
+  const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [nextUpdateLabel] = useState(() => getNextSundayUpdateLabel());
@@ -151,18 +195,24 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       selectedTags.every((tag) => getEpisodeTags(episode).includes(tag)),
     );
   }, [listEpisodes, selectedTags]);
-  const showInterface = !isInterfaceHidden;
+  const selectedSubject = selectedSubjectId
+    ? observationSubjects[selectedSubjectId]
+    : null;
+  const currentSubjectAction = selectedSubject
+    ? getSubjectAction(selectedSubject.id)
+    : null;
+  const showInterface = roomMode === "listening";
 
   const wakeInterface = useCallback(() => {
     setLastInteractionAt(Date.now());
-    setIsInterfaceHidden(false);
+    setRoomMode("listening");
   }, []);
 
   const markActivity = useCallback(() => {
-    if (!isInterfaceHidden) {
+    if (roomMode === "listening") {
       setLastInteractionAt(Date.now());
     }
-  }, [isInterfaceHidden]);
+  }, [roomMode]);
 
   const handlePlaybackChange = useCallback((nextIsPlaying: boolean) => {
     setIsVoicePlaying(nextIsPlaying);
@@ -240,6 +290,45 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     );
   }, []);
 
+  const handleSelectSubject = useCallback(
+    (subjectId: SubjectId) => {
+      selectSubject(subjectId);
+      setRoomMode("room");
+    },
+    [selectSubject],
+  );
+
+  const handleInspectObject = useCallback(
+    (objectId: RoomObjectId) => {
+      if (!selectedSubject) {
+        return;
+      }
+
+      const nextAction = roomObjectAction(selectedSubject.id, objectId);
+
+      recordObservation(selectedSubject.id, "room-object", nextAction);
+
+      if (objectId === "crt") {
+        setRoomMode("listening");
+      }
+
+      if (objectId === "lamp") {
+        setBackgroundMode((currentMode) =>
+          currentMode === "desk" ? "room" : "desk",
+        );
+      }
+    },
+    [recordObservation, selectedSubject],
+  );
+
+  const handleRecordDialogue = useCallback(() => {
+    if (!selectedSubject || !currentSubjectAction) {
+      return;
+    }
+
+    recordObservation(selectedSubject.id, "dialogue", currentSubjectAction);
+  }, [currentSubjectAction, recordObservation, selectedSubject]);
+
   useEffect(() => {
     const activityEvents = [
       "mousemove",
@@ -261,17 +350,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   }, [markActivity]);
 
   useEffect(() => {
-    if (isInterfaceHidden) {
+    if (roomMode !== "listening") {
       return;
     }
 
     const timer = window.setTimeout(() => {
       blurActiveElement();
-      setIsInterfaceHidden(true);
+      if (selectedSubject) {
+        setRoomMode("screensaver");
+      }
     }, AUTO_HIDE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [isInterfaceHidden, lastInteractionAt]);
+  }, [lastInteractionAt, roomMode, selectedSubject]);
 
   useEffect(() => {
     if (!shouldAutoPlayNext) {
@@ -287,13 +378,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   }, [selectedEpisode.id, shouldAutoPlayNext]);
 
   useEffect(() => {
-    if (isInterfaceHidden) {
+    if (roomMode === "screensaver") {
       blurActiveElement();
     }
-  }, [isInterfaceHidden]);
+  }, [roomMode]);
 
   useEffect(() => {
-    if (!isInterfaceHidden) {
+    if (roomMode !== "screensaver") {
       return;
     }
 
@@ -303,7 +394,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [isInterfaceHidden]);
+  }, [roomMode]);
 
   if (!selectedEpisode) {
     return null;
@@ -321,29 +412,38 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         nowPlayingLabel={monitorNowPlayingLabel}
       />
 
-      {!showInterface ? (
-        <BackgroundModeOverlay
-          ambienceEnabled={ambience.enabled}
-          ambienceIsAvailable={ambience.isAvailable}
-          ambienceVolumes={ambience.volumes}
-          backgroundMode={backgroundMode}
-          canPlay={hasPlayableAudio(selectedEpisode)}
-          currentTime={currentTime}
-          duration={duration}
-          episode={selectedEpisode}
-          isPlaying={isVoicePlaying}
-          onAmbienceEnabledChange={ambience.setEnabled}
-          onAmbienceVolumeChange={ambience.setVolume}
-          onShowInterface={wakeInterface}
-          onTogglePlayback={toggleSelectedEpisodePlayback}
+      {roomMode === "entry" || (!selectedSubject && !showInterface) ? (
+        <EntrySubjectSelect
+          onSelectSubject={handleSelectSubject}
+          onStartListening={wakeInterface}
+          subjects={Object.values(observationSubjects)}
+        />
+      ) : null}
+
+      {selectedSubject &&
+      currentSubjectAction &&
+      (roomMode === "room" || roomMode === "screensaver") ? (
+        <SubjectRoomView
+          action={currentSubjectAction}
+          logs={logs}
+          mode={roomMode}
+          onBackToEntry={() => setRoomMode("entry")}
+          onEnterListening={wakeInterface}
+          onEnterRoom={() => setRoomMode("room")}
+          onEnterScreensaver={() => {
+            blurActiveElement();
+            setRoomMode("screensaver");
+          }}
+          onInspectObject={handleInspectObject}
+          onRecordDialogue={handleRecordDialogue}
+          relationship={selectedRelationship}
+          subject={selectedSubject}
         />
       ) : null}
 
       <div
-        className={`relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 transition-opacity duration-[1400ms] sm:px-6 lg:px-8 ${
-          showInterface
-            ? "pointer-events-auto opacity-100"
-            : "pointer-events-none opacity-0"
+        className={`broadcast-listening-shell relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 transition-opacity duration-[900ms] sm:px-6 lg:px-8 ${
+          showInterface ? "is-active" : "is-hidden"
         }`}
         aria-hidden={!showInterface}
       >
@@ -389,12 +489,28 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               className="min-h-10 w-full rounded-lg border border-cyan-100/15 bg-cyan-100/[0.08] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.13] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:w-auto"
               onClick={() => {
                 blurActiveElement();
-                setIsInterfaceHidden(true);
+                setRoomMode(selectedSubject ? "screensaver" : "entry");
               }}
               type="button"
             >
-              背景モード
+              眺める
             </button>
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button
+                className="min-h-10 flex-1 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:flex-none"
+                onClick={() => setRoomMode("entry")}
+                type="button"
+              >
+                観察対象
+              </button>
+              <button
+                className="min-h-10 flex-1 rounded-lg border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/60 sm:flex-none"
+                onClick={() => setRoomMode(selectedSubject ? "room" : "entry")}
+                type="button"
+              >
+                部屋へ
+              </button>
+            </div>
           </div>
         </header>
 
@@ -446,11 +562,18 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                     className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
                     onClick={() => {
                       blurActiveElement();
-                      setIsInterfaceHidden(true);
+                      setRoomMode(selectedSubject ? "screensaver" : "entry");
                     }}
                     type="button"
                   >
                     部屋だけ見る
+                  </button>
+                  <button
+                    className="min-h-11 rounded-md border border-white/10 bg-white/[0.055] px-4 text-sm text-slate-200 transition-colors hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
+                    onClick={() => setRoomMode(selectedSubject ? "room" : "entry")}
+                    type="button"
+                  >
+                    観察室へ
                   </button>
                 </div>
               </div>

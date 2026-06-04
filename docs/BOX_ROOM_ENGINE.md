@@ -1,6 +1,6 @@
 # Box Room Engine
 
-更新日: 2026-06-03
+更新日: 2026-06-04
 
 ## 目的
 
@@ -9,6 +9,8 @@
 2026-06-03時点で、放課後の知識箱に軽量な3D放送室プロトタイプを導入した。
 
 まだ完成した部屋ではない。目的は、トップページを「背景画像」ではなく「覗き込む部屋」として扱うための基盤を作ること。
+
+2026-06-04時点で、放送室だけでなく「観察対象ごとの部屋」を扱う構造へ拡張した。タルタルの部屋、かなの部屋、放送を聴く部屋は同じ導線上にあるが、同じ生活空間としては扱わない。
 
 ## 想定構成
 
@@ -76,6 +78,22 @@ src/components/box-room/
   - `observation`
   - `consultation`
   - 箱シリーズ別の表示差し替え地点。
+- `src/components/observation/*`
+  - Subject Engine / Relationship Engine / Observation Log の初期実装。
+  - `entry` / `listening` / `screensaver` / `room` のUIモードを持つ。
+  - Room Mode は2D fallbackベースで、将来の3D Room Sceneへ差し替え可能。
+  - Screensaver Mode は観察専用。クリック/タップで Room Mode へ戻る。
+
+## Room Mode と Screensaver Mode
+
+- Screensaver Mode
+  - 操作UIを出しすぎない。
+  - 観察対象の部屋、現在行動、時計、雨、ランプ、観察箱の気配を見せる。
+  - 放送再生UIとは分ける。
+- Room Mode
+  - CRT、封筒、観察端末、メモ、窓、ランプを調べる。
+  - 調べた内容は Observation Log と relationship に反映する。
+  - 観察端末は観察箱統合の入口として扱う。
 
 ## パフォーマンス注意
 
@@ -90,3 +108,4 @@ src/components/box-room/
 - Canvasの描画停止条件を追加する。
 - 観察箱、よるの相談箱で使う preset の文言とambient初期値を詰める。
 - 将来、背景モードと通常UIでカメラ構図を切り替える。
+- Room Mode の2D fallbackを、軽い3Dプリミティブへ段階的に置き換える。
