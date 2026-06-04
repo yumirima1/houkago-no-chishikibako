@@ -763,8 +763,12 @@ function ensureNightAir(lines: DraftScriptLine[], skeleton: ConversationSkeleton
 
 function ensureQuestionPulse(lines: DraftScriptLine[], skeleton: ConversationSkeleton) {
   const questionLines = lines.filter((line) => /[？?]/.test(line.text));
+  const desiredQuestionCount =
+    temperatureOf(skeleton) === "deep" || temperatureOf(skeleton) === "quiet"
+      ? 3
+      : 2;
 
-  if (questionLines.length >= 2) {
+  if (questionLines.length >= desiredQuestionCount) {
     return lines;
   }
 
@@ -772,39 +776,45 @@ function ensureQuestionPulse(lines: DraftScriptLine[], skeleton: ConversationSke
     2,
     lines.findIndex((line) => line.role === "analysis") + 1,
   );
-  const previous = lines[insertAfter - 1];
-  const speaker: DraftScriptSpeaker = previous?.speaker === "かな" ? "タルタル" : "かな";
-  const questionLine: DraftScriptLine = {
-    cue: "問いを一つ増やす",
-    order: 0,
-    role: "question",
-    sourceBeatOrder: previous?.sourceBeatOrder ?? 1,
-    speaker,
-    text:
-      speaker === "かな"
-        ? pick(
-            [
-              "それって、聞いてる人が自分の話として困るところじゃない？",
-              "でも、その見方だけで本当に足りるのかな？",
-              "ここで一回、逆から疑ってもいい？",
-            ],
-            `${skeleton.theme}:question-pulse-kana`,
-          )
-        : pick(
-            [
-              "じゃあ逆に、どこまでなら自分で選んでいると言えるんだろう？",
-              "ここで問いを小さくすると、何が残るんだろう？",
-              "その迷いを残すなら、次に見るべき場所はどこだろう？",
-            ],
-            `${skeleton.theme}:question-pulse-tartar`,
-          ),
-  };
+  const result = [...lines];
+  const missingQuestionCount = desiredQuestionCount - questionLines.length;
 
-  return [
-    ...lines.slice(0, insertAfter),
-    questionLine,
-    ...lines.slice(insertAfter),
-  ];
+  for (let offset = 0; offset < missingQuestionCount; offset += 1) {
+    const previous = result[insertAfter + offset - 1];
+    const speaker: DraftScriptSpeaker =
+      previous?.speaker === "かな" ? "タルタル" : "かな";
+    const questionLine: DraftScriptLine = {
+      cue: "問いを一つ増やす",
+      order: 0,
+      role: "question",
+      sourceBeatOrder: previous?.sourceBeatOrder ?? 1,
+      speaker,
+      text:
+        speaker === "かな"
+          ? pick(
+              [
+                "それって、聞いてる人が自分の話として困るところじゃない？",
+                "でも、その見方だけで本当に足りるのかな？",
+                "ここで一回、逆から疑ってもいい？",
+                "それ、寝る前に考えたら余計に分からなくならない？",
+              ],
+              `${skeleton.theme}:question-pulse-kana:${offset}`,
+            )
+          : pick(
+              [
+                "じゃあ逆に、どこまでなら自分で選んでいると言えるんだろう？",
+                "ここで問いを小さくすると、何が残るんだろう？",
+                "その迷いを残すなら、次に見るべき場所はどこだろう？",
+                "答えを急がないなら、何を手元に置いておけばいいんだろう？",
+              ],
+              `${skeleton.theme}:question-pulse-tartar:${offset}`,
+            ),
+    };
+
+    result.splice(insertAfter + offset, 0, questionLine);
+  }
+
+  return result;
 }
 
 function ensureEmotionPulse(lines: DraftScriptLine[], skeleton: ConversationSkeleton) {
@@ -850,6 +860,92 @@ function ensureEmotionPulse(lines: DraftScriptLine[], skeleton: ConversationSkel
     emotionLine,
     ...lines.slice(insertAfter),
   ];
+}
+
+function ensureConversationRoom(lines: DraftScriptLine[], skeleton: ConversationSkeleton) {
+  const desiredLineCount =
+    temperatureOf(skeleton) === "quiet" || temperatureOf(skeleton) === "deep"
+      ? 34
+      : 32;
+
+  if (lines.length >= desiredLineCount) {
+    return lines;
+  }
+
+  const result = [...lines];
+  const closingIndex = Math.max(
+    1,
+    result.findIndex((line) => line.role === "closing"),
+  );
+  let insertIndex = closingIndex > 0 ? closingIndex : Math.max(1, result.length - 1);
+
+  while (result.length < desiredLineCount) {
+    const previous = result[insertIndex - 1];
+    const firstSpeaker: DraftScriptSpeaker =
+      previous?.speaker === "かな" ? "タルタル" : "かな";
+    const secondSpeaker: DraftScriptSpeaker =
+      firstSpeaker === "かな" ? "タルタル" : "かな";
+    const sourceBeatOrder = previous?.sourceBeatOrder ?? 1;
+
+    result.splice(
+      insertIndex,
+      0,
+      {
+        cue: "短い往復で放送室に戻す",
+        order: 0,
+        role: "reaction",
+        sourceBeatOrder,
+        speaker: firstSpeaker,
+        text:
+          firstSpeaker === "かな"
+            ? pick(
+                [
+                  "今の話、ちょっと机の上に置いたままにしたい。",
+                  "そこ、すぐ結論にすると夜の感じが消えそう。",
+                  "分かりかけてるけど、まだ窓の外を見ていたい感じがある。",
+                ],
+                `${insertIndex}:${skeleton.theme}:room-kana`,
+              )
+            : pick(
+                [
+                  "うん。じゃあ説明を閉じずに、部屋の中へ一回戻そう。",
+                  "たしかに。今のは答えより、置き場所を探す話だね。",
+                  "分かる。ここで急ぐと、会話が資料みたいになる。",
+                ],
+                `${insertIndex}:${skeleton.theme}:room-tartar`,
+              ),
+      },
+      {
+        cue: "短い往復で放送室に戻す",
+        order: 0,
+        role: "atmosphere",
+        sourceBeatOrder,
+        speaker: secondSpeaker,
+        text:
+          secondSpeaker === "かな"
+            ? pick(
+                [
+                  "じゃあ今は、雨の音が少し勝ってるくらいでいいか。",
+                  "それなら、聞いてる人も置いていかれにくい気がする。",
+                  "うん、放送室の時計くらいの速さで進もう。",
+                ],
+                `${insertIndex}:${skeleton.theme}:room-kana-follow`,
+              )
+            : pick(
+                [
+                  "そのくらいがいい。深夜の話は、少し遅れて届く方が残る。",
+                  "うん。分かったふりより、分からなさを丁寧に置く方がいい。",
+                  "じゃあそのまま、次の角度だけ小さく見る。",
+                ],
+                `${insertIndex}:${skeleton.theme}:room-tartar-follow`,
+              ),
+      },
+    );
+
+    insertIndex += 2;
+  }
+
+  return result;
 }
 
 function ensureAlternating(lines: DraftScriptLine[], skeleton: ConversationSkeleton) {
@@ -903,11 +999,37 @@ function ensureSpeakerBalance(lines: DraftScriptLine[], skeleton: ConversationSk
   const totalChars = kanaChars + tartarChars;
   const kanaRatio = kanaChars / Math.max(1, totalChars);
 
-  if (kanaRatio <= 0.46 && kanaRatio >= 0.32) {
+  if (kanaRatio <= 0.44 && kanaRatio >= 0.32) {
     return lines;
   }
 
   const speakerToAdd: DraftScriptSpeaker = kanaRatio > 0.46 ? "タルタル" : "かな";
+
+  if (speakerToAdd === "タルタル") {
+    let expandedCount = 0;
+
+    return lines.map((line, index) => {
+      if (line.speaker !== "タルタル" || line.text.length > 110 || expandedCount >= 8) {
+        return line;
+      }
+
+      expandedCount += 1;
+
+      return {
+        ...line,
+        text: `${line.text} ${pick(
+          [
+            "ただ、ここは結論よりも、手元の感覚を残した方がいい。",
+            "机の上に置けるくらいの小さい条件として見たい。",
+            "説明で押し切るより、かなの止まり方を材料にしたい。",
+            "だから急がず、今の違和感を少し部屋に置いておく。",
+          ],
+          `${index}:${skeleton.theme}:balance-tartar-expand`,
+        )}`,
+      };
+    });
+  }
+
   const result = [...lines];
   const maxInsertions = 4;
   let insertions = 0;
@@ -924,26 +1046,15 @@ function ensureSpeakerBalance(lines: DraftScriptLine[], skeleton: ConversationSk
       order: 0,
       role: "reaction",
       sourceBeatOrder: current.sourceBeatOrder,
-      speaker: speakerToAdd,
-      text:
-        speakerToAdd === "タルタル"
-          ? pick(
-              [
-                "分かる。じゃあその迷いを消さずに、条件だけ短く置いてみる。",
-                "そこは大事だね。説明じゃなくて、扱い方の話として見たい。",
-                "うん。今の反応があるから、テーマが人間の方へ戻ってくる。",
-                "たしかに。ここは急がず、少しだけ仕組みの側から支えるね。",
-              ],
-              `${index}:${skeleton.theme}:balance-tartar-extra`,
-            )
-          : pick(
-              [
-                "それなら少し分かる。でも、自分の生活で起きたらまだ迷うと思う。",
-                "今のは納得しそうになった。だからこそ、一回疑っておきたい。",
-                "説明は分かった。でも気持ちは少し遅れてついてくるね。",
-              ],
-              `${index}:${skeleton.theme}:balance-kana-extra`,
-            ),
+      speaker: "かな",
+      text: pick(
+        [
+          "それなら少し分かる。でも、自分の生活で起きたらまだ迷うと思う。",
+          "今のは納得しそうになった。だからこそ、一回疑っておきたい。",
+          "説明は分かった。でも気持ちは少し遅れてついてくるね。",
+        ],
+        `${index}:${skeleton.theme}:balance-kana-extra`,
+      ),
     });
     insertions += 1;
   }
@@ -971,9 +1082,12 @@ export function generateDraftScript({
   const balancedLines = renumber(
     ensureAlternating(
       ensureSpeakerBalance(
-        ensureEmotionPulse(
-          ensureQuestionPulse(
-            ensureNightAir(ensureKanaIsAlive(lines, skeleton), skeleton),
+        ensureConversationRoom(
+          ensureEmotionPulse(
+            ensureQuestionPulse(
+              ensureNightAir(ensureKanaIsAlive(lines, skeleton), skeleton),
+              skeleton,
+            ),
             skeleton,
           ),
           skeleton,

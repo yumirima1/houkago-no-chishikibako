@@ -18,6 +18,7 @@ export type EpisodeSeedTone =
   | "analytical"
   | "optimistic"
   | "melancholic";
+export type EpisodeSeedTemperature = "warm" | "normal" | "deep" | "funny" | "quiet";
 
 export type EpisodeSeed = {
   theme: string;
@@ -30,10 +31,15 @@ export type EpisodeSeed = {
 
 type SeedEvent = {
   category?: string;
+  correlation?: {
+    avoidWith?: string[];
+    pairsWellWith?: string[];
+  };
   cooldownEpisodes?: number;
   description?: string;
   id: string;
   rarity: string;
+  temperatureBias?: Partial<Record<EpisodeSeedTemperature, number>>;
   type?: string;
   weight: number;
 };
@@ -143,6 +149,7 @@ function parseSeedEvents(value: unknown): SeedEvent[] {
           : typeof event.type === "string"
             ? event.type
             : undefined,
+      correlation: parseCorrelation(event.correlation),
       cooldownEpisodes:
         typeof event.cooldownEpisodes === "number"
           ? event.cooldownEpisodes
@@ -151,10 +158,61 @@ function parseSeedEvents(value: unknown): SeedEvent[] {
         typeof event.description === "string" ? event.description : undefined,
       id: event.id,
       rarity: event.rarity,
+      temperatureBias: parseTemperatureBias(event.temperatureBias),
       type: typeof event.type === "string" ? event.type : undefined,
       weight: Math.max(0, event.weight),
     };
   });
+}
+
+function parseStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function parseCorrelation(value: unknown): SeedEvent["correlation"] {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const correlation = value as Record<string, unknown>;
+  const pairsWellWith = parseStringArray(correlation.pairsWellWith);
+  const avoidWith = parseStringArray(correlation.avoidWith);
+
+  if (!pairsWellWith?.length && !avoidWith?.length) {
+    return undefined;
+  }
+
+  return {
+    ...(pairsWellWith?.length ? { pairsWellWith } : {}),
+    ...(avoidWith?.length ? { avoidWith } : {}),
+  };
+}
+
+function parseTemperatureBias(
+  value: unknown,
+): Partial<Record<EpisodeSeedTemperature, number>> | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const source = value as Record<string, unknown>;
+  const entries = (["warm", "normal", "deep", "funny", "quiet"] as const)
+    .map((temperature) => [temperature, source[temperature]] as const)
+    .filter((entry): entry is readonly [EpisodeSeedTemperature, number] =>
+      typeof entry[1] === "number" && Number.isFinite(entry[1]),
+    );
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as Partial<
+    Record<EpisodeSeedTemperature, number>
+  >;
 }
 
 function parseStructureTemplates(value: unknown): StructureTemplate[] {

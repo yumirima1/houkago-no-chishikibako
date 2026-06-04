@@ -65,6 +65,8 @@ Conversation Skeleton:
 
 - `theme`
 - `structureTemplate`
+- `conversationTemperature`
+- `temperaturePlan`
 - `atmosphere`
 - `tone`
 - `eventPlan`
@@ -117,6 +119,8 @@ Draft Script:
 - Conversation Temperature に応じて、説明、感情、笑い、脱線、沈黙、締め方を変える。
 - 1 beat を1発話で消費せず、短い往復へ分割する。
 - 同話者連続が残った場合は、短い受け止めや疑問を差し込んで交互にする。
+- selected events の `temperatureBias` は Skeleton 側で温度へ反映される。
+- event / detour / atmosphere は cue の説明ではなく、二人の発話内の小さな出来事として混ぜる。
 
 ## 注意
 

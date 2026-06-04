@@ -60,7 +60,7 @@ Conversation Temperature は、会話の熱量、静けさ、笑い、深さを�
 - `scripts/lib/conversation-skeleton-generator.ts`
 - `scripts/lib/draft-script-generator.ts`
 
-Skeleton は `theme`, `atmosphere`, `tone` から温度を推定する。
+Skeleton は `theme`, `atmosphere`, `tone`, selected events の `temperatureBias` から温度を推定する。
 
 温度分布の例:
 
@@ -109,9 +109,28 @@ Draft Script Engine は、各 beat を2〜3発話の小さい往復へ展開す�
 - 同話者連続を後処理で解消する
 - かな比率が偏った場合、タルタルまたはかなの短い補助発話を足す
 
+## Event Metadataとの接続
+
+`content/episode-seed-engine/events.json` の各 event は `temperatureBias` を持てる。
+
+```json
+{
+  "id": "late-night-silence",
+  "temperatureBias": {
+    "quiet": 1.5,
+    "deep": 1.2,
+    "funny": 0.6
+  }
+}
+```
+
+この値は温度を強制しない。theme / atmosphere / tone の推定に対して、selected events が少しだけ温度を傾ける。
+
+同じく `correlation` は event 同士の相性メモとして読み込まれる。現時点では選択済み event のメモ出力に使い、履歴ベースの自動除外はまだ行わない。
+
 ## review-scriptとの接続
 
-将来、`source.draftScriptEngine.temperature` または `conversationTemperature` を見て、警告しきい値を変える。
+`review-script` は `source.draftScriptEngine.temperature` と `temperaturePlan` を見て、Draft由来の原稿に追加警告を出す。
 
 例:
 
@@ -119,10 +138,12 @@ Draft Script Engine は、各 beat を2〜3発話の小さい往復へ展開す�
 - `quiet` なのに説明語が多い
 - `deep` なのに締めが結論型
 - `warm` なのに生活の小物がない
+- かなが「置いていかれる」「理屈が勝ちすぎ」型に偏る
+- タルタルが定義や仕組みの講師役へ寄る
 
 ## 残課題
 
 - UI反映
 - 自動公開
 - temperature履歴の永続化
-- review-script の温度別しきい値調整
+- cooldown履歴を使った event 選択

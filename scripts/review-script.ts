@@ -58,15 +58,31 @@ const analogyMarkerPattern =
 const repeatedOpeningPattern =
   /^(あー|うん|でも|そう|いや|つまり|要するに|たぶん|実は|面白いのがさ|ちょっと|最後に|ここで)/;
 const draftGeneratorScaffoldPattern =
-  /ここは知識を増やすというより|番組内の小さい記憶として置いておく|説明っぽくなりすぎないように言うと|ここは二人で、急がずに確かめる/;
+  /ここは知識を増やすというより|番組内の小さい記憶として置いておく|説明っぽくなりすぎないように言うと|ここは二人で、急がずに確かめる|生活の中でふと気になる場面から始める|会話の余白を作る|Seed event|cue|eventPlan|temperaturePlan/;
 const draftTemplateLinePattern =
   /自分の感じ方だけ置いていかれる|理屈が勝ちすぎ|分かったことにされる|半分しか納得してない|きれいに進みすぎる|戻り方が雑|肩の力は抜けた|正解を出すというより/;
+const kanaFixedStancePattern =
+  /置いていかれる|理屈が勝ちすぎ|分かったことにされる|半分しか納得|納得してない|私だけ遅れてる/;
+const tartaruLecturePattern =
+  /^(まず|要するに|つまり|結論|一般的|現時点|研究|技術|データ|AI|モデル|仕組み|構造|科学|歴史|心理学)/;
 const emotionalTexturePattern =
   /怖|不安|困る|嫌|しんど|つら|寂し|さみし|悔しい|好き|助かる|落ち着|疲れ|モヤモヤ|違和感|変じゃない|置いていか|眠れない|気になる/;
 const humorTexturePattern =
   /笑|急に|また始まった|何それ|それ絶対|コーヒー|消しゴム|雑|悔しい|顔|変じゃない|何で|なんで|戻り方|やめて|ひどい/;
 const nightAirPattern =
   /夜|深夜|寝る前|眠れない|雨|窓|机|コーヒー|布団|静か|明かり|ランプ|モニター|コンビニ|放送室|時計|作業/;
+
+type ReviewConversationTemperature =
+  | "warm"
+  | "normal"
+  | "deep"
+  | "funny"
+  | "quiet";
+
+type DraftScriptEngineSource = {
+  temperature?: ReviewConversationTemperature;
+  temperaturePlan?: unknown;
+};
 
 function normalizeForSimilarity(text: string) {
   return text
@@ -451,10 +467,148 @@ function checkProgramQualityRules(
   }
 }
 
-function isDraftScriptEngineSource(script: EpisodeScript) {
-  const source = (script as { source?: { draftScriptEngine?: unknown } }).source;
+function isReviewConversationTemperature(
+  value: unknown,
+): value is ReviewConversationTemperature {
+  return (
+    value === "warm" ||
+    value === "normal" ||
+    value === "deep" ||
+    value === "funny" ||
+    value === "quiet"
+  );
+}
 
-  return Boolean(source?.draftScriptEngine);
+function getDraftScriptEngineSource(
+  script: EpisodeScript,
+): DraftScriptEngineSource | undefined {
+  const source = (script as { source?: { draftScriptEngine?: unknown } }).source;
+  const draftScriptEngine = source?.draftScriptEngine;
+
+  if (!draftScriptEngine || typeof draftScriptEngine !== "object") {
+    return undefined;
+  }
+
+  const draftSource = draftScriptEngine as Record<string, unknown>;
+
+  return {
+    temperature: isReviewConversationTemperature(draftSource.temperature)
+      ? draftSource.temperature
+      : undefined,
+    temperaturePlan: draftSource.temperaturePlan,
+  };
+}
+
+function countSameSpeakerRuns(speakers: EpisodeSpeakerLine[]) {
+  let count = 0;
+
+  for (let index = 1; index < speakers.length; index += 1) {
+    if (speakers[index].id === speakers[index - 1].id) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+function checkDraftTemperatureRules(
+  draftSource: DraftScriptEngineSource,
+  speakers: EpisodeSpeakerLine[],
+  warnings: string[],
+) {
+  const temperature = draftSource.temperature;
+  const kanaLines = speakers.filter((line) => line.id === "bunkei");
+  const tartaruLines = speakers.filter((line) => line.id === "rikei");
+  const questionLines = speakers.filter((line) => questionLinePattern.test(line.text));
+  const rebuttalLines = speakers.filter((line) => rebuttalPattern.test(line.text));
+  const emotionalLines = speakers.filter((line) =>
+    emotionalTexturePattern.test(line.text),
+  );
+  const humorLines = speakers.filter((line) => humorTexturePattern.test(line.text));
+  const nightAirLines = speakers.filter((line) => nightAirPattern.test(line.text));
+  const detourLines = speakers.filter((line) => detourPattern.test(line.text));
+  const kanaFixedLines = kanaLines.filter((line) =>
+    kanaFixedStancePattern.test(line.text),
+  );
+  const tartaruLectureLines = tartaruLines.filter(
+    (line) =>
+      tartaruLecturePattern.test(line.text.trim()) ||
+      ((line.text.match(informationDensityPattern) ?? []).length >= 3 &&
+        line.text.length > 130),
+  );
+  const sameSpeakerRuns = countSameSpeakerRuns(speakers);
+
+  if (!temperature) {
+    warnings.push("Draft Script Engine由来ですが、conversationTemperatureがsourceに記録されていません。SkeletonからDraft、generate-scriptまでの受け渡しを確認してください。");
+  }
+
+  if (!draftSource.temperaturePlan) {
+    warnings.push("Draft Script Engine由来ですが、temperaturePlanがsourceに記録されていません。温度別テンポの意図がreviewで追跡できません。");
+  }
+
+  if (sameSpeakerRuns > Math.max(1, Math.floor(speakers.length * 0.03))) {
+    warnings.push("Draftの同話者連続が多めです。タルタルの説明を短い往復へ分割し、かなの反応で一度止めてください。");
+  }
+
+  if (kanaFixedLines.length > Math.max(1, Math.floor(kanaLines.length * 0.14))) {
+    warnings.push("かなの違和感が「置いていかれる」「理屈が勝ちすぎ」型に寄っています。その回固有の生活場面、反論、ズレた例えへ置き換えてください。");
+  }
+
+  if (
+    questionLines.filter((line) => line.id === "bunkei").length +
+      rebuttalLines.filter((line) => line.id === "bunkei").length <
+    Math.max(3, Math.floor(kanaLines.length * 0.3))
+  ) {
+    warnings.push("かなが相槌や受け身に寄っています。疑問、反論、生活感のある止め方を増やしてください。");
+  }
+
+  if (tartaruLectureLines.length > Math.max(4, Math.floor(tartaruLines.length * 0.25))) {
+    warnings.push("タルタルが講師化しています。定義や仕組みを連続させず、短い理屈、脱線、かなへの返答を交互にしてください。");
+  }
+
+  if (temperature === "warm") {
+    if (emotionalLines.length < Math.max(5, Math.floor(speakers.length * 0.16))) {
+      warnings.push("conversationTemperature=warm ですが、安心や生活感の反応が薄めです。帰ってきた感じを会話のやり取りで増やしてください。");
+    }
+
+    if (nightAirLines.length < Math.max(4, Math.floor(speakers.length * 0.12))) {
+      warnings.push("conversationTemperature=warm ですが、夜の部屋の手触りが不足しています。雨、机、明かり、布団前の感覚を自然に足してください。");
+    }
+  }
+
+  if (temperature === "deep") {
+    if (questionLines.length < Math.max(4, Math.floor(speakers.length * 0.14))) {
+      warnings.push("conversationTemperature=deep ですが、問いの層が少なめです。結論より、考えが残る確認を増やしてください。");
+    }
+
+    if (humorLines.length > Math.max(6, Math.floor(speakers.length * 0.2))) {
+      warnings.push("conversationTemperature=deep に対して笑いの量が多めです。小さな笑いは残しつつ、沈黙と余韻へ寄せてください。");
+    }
+  }
+
+  if (temperature === "funny") {
+    if (humorLines.length < Math.max(4, Math.floor(speakers.length * 0.12))) {
+      warnings.push("conversationTemperature=funny ですが、小さな笑いが足りません。ボケを増やすより、変な例えや生活のズレを会話内に置いてください。");
+    }
+
+    if (detourLines.length < Math.max(3, Math.floor(speakers.length * 0.1))) {
+      warnings.push("conversationTemperature=funny ですが、脱線が弱めです。説明の補助ではない、短い寄り道を入れてください。");
+    }
+  }
+
+  if (temperature === "quiet") {
+    if (tartaruLectureLines.length > Math.max(3, Math.floor(tartaruLines.length * 0.18))) {
+      warnings.push("conversationTemperature=quiet に対して説明密度が高めです。沈黙、言い淀み、短い確認を優先してください。");
+    }
+
+    if (nightAirLines.length < Math.max(5, Math.floor(speakers.length * 0.16))) {
+      warnings.push("conversationTemperature=quiet ですが、静かな放送室の気配が不足しています。音、明かり、間を会話に混ぜてください。");
+    }
+  }
+
+  if (temperature === "normal" && (detourLines.length === 0 || nightAirLines.length < 3)) {
+    warnings.push("conversationTemperature=normal ですが、標準回としての脱線と深夜感が弱めです。便利な説明回に寄っていないか確認してください。");
+  }
 }
 
 function reviewScript(script: EpisodeScript): EpisodeScript {
@@ -483,8 +637,11 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
 
   checkProgramQualityRules(speakers, warnings);
 
-  if (isDraftScriptEngineSource(script)) {
+  const draftScriptEngineSource = getDraftScriptEngineSource(script);
+
+  if (draftScriptEngineSource) {
     warnings.push("Draft Script Engine由来のたたき台です。review通過後も、人間がSHOW_BIBLEに照らして会話の余白、脱線、関係性を確認してください。");
+    checkDraftTemperatureRules(draftScriptEngineSource, speakers, warnings);
 
     if (speakers.some((line) => draftGeneratorScaffoldPattern.test(line.text))) {
       warnings.push("Draft Script Engineの足場文が本文に残っている可能性があります。cueの説明文ではなく、二人の自然な発話へ書き直してください。");
@@ -520,7 +677,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、感情無視、疑問不足、感情不足、笑い不足、深夜感不足、反論、脱線、説明過多、理解の余白不足、比喩や内容の重複、テンプレ化した切り返し、タルタルの決め台詞化したまとめ表現を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重と固定化、感情無視、疑問不足、感情不足、笑い不足、深夜感不足、反論、脱線、説明過多、温度不一致、理解の余白不足、比喩や内容の重複、テンプレ化した切り返し、タルタルの決め台詞化したまとめ表現を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,

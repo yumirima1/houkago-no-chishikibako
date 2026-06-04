@@ -4,7 +4,7 @@
 
 ## 目的
 
-Episode Seed Engine V2 は、毎回似た脱線、似た小物、似た比喩へ落ちることを避けるための設計案である。
+Episode Seed Engine V2 は、毎回似た脱線、似た小物、似た比喩へ落ちることを避けるための設計と下準備である。
 
 SHOW_BIBLEより上位の正本ではない。番組文化を壊さないための補助エンジンである。
 
@@ -81,6 +81,14 @@ Conversation Temperature とイベントを接続する。
 }
 ```
 
+実装状態:
+
+- `events.json` に `temperatureBias` を追加済み
+- `conversation-skeleton-generator.ts` が selected events の bias を読んで温度推定へ反映
+- `review-script.ts` が `source.draftScriptEngine.temperature` を見て温度ズレを警告
+- `correlation` は選択済み event の相性メモとして読み込み済み
+- history-based cooldown は未実装
+
 ## Seed出力案
 
 ```json
@@ -118,12 +126,12 @@ review-scriptは、V2の結果そのものを正解扱いしない。
 
 ## 実装順
 
-1. `events.json` に `cooldownEpisodes`, `temperatureBias`, `correlation` を追加する。
-2. Seed生成時に直近使用イベントを読む。
-3. `conversationTemperature` をSeedへ入れる。
-4. Skeletonへ `temperaturePlan` を渡す。
-5. Draft生成で説明、感情、笑い、脱線、空気の比率を変える。
-6. review-scriptでtemperature不一致を警告する。
+1. `events.json` に `cooldownEpisodes`, `temperatureBias`, `correlation` を追加する。完了。
+2. Skeletonで selected events の `temperatureBias` を温度推定へ反映する。完了。
+3. Draft生成で説明、感情、笑い、脱線、空気の比率を変える。完了。
+4. review-scriptでtemperature不一致を警告する。完了。
+5. Seed生成時に直近使用イベントを読む。未実装。
+6. correlation を event 選択に反映する。未実装。
 
 ## 今回やらないこと
 

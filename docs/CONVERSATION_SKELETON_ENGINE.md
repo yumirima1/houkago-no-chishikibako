@@ -114,8 +114,11 @@ Skeleton では脱線に近い template beat を `required: false` として扱�
 - `cooldownEpisodes`
 - `avoidWhen`
 - `correlation`
+- `temperatureBias`
 
-次フェーズでは、直近回の使用履歴を見て cooldown を効かせること、event 同士の相性を correlation として扱うことを検討する。
+`temperatureBias` は selected events から `conversationTemperature` の推定へ反映する。
+
+次フェーズでは、直近回の使用履歴を見て cooldown を効かせること、event 同士の相性を correlation として selection に反映することを検討する。
 
 ## 今回やらないこと
 

@@ -70,12 +70,17 @@ export type ConversationSkeleton = {
 
 type SeedEvent = {
   category?: string;
+  correlation?: {
+    avoidWith?: string[];
+    pairsWellWith?: string[];
+  };
   cooldownEpisodes?: number;
   description?: string;
   exampleBeat?: string;
   id: string;
   rarity: EpisodeSeedRarity;
   speakerBias?: string;
+  temperatureBias?: Partial<Record<ConversationTemperature, number>>;
   type?: string;
   weight: number;
 };
@@ -143,6 +148,7 @@ function parseEvents(value: unknown): SeedEvent[] {
 
     return {
       category: typeof event.category === "string" ? event.category : undefined,
+      correlation: parseCorrelation(event.correlation),
       cooldownEpisodes:
         typeof event.cooldownEpisodes === "number"
           ? event.cooldownEpisodes
@@ -158,10 +164,61 @@ function parseEvents(value: unknown): SeedEvent[] {
           : "Common",
       speakerBias:
         typeof event.speakerBias === "string" ? event.speakerBias : undefined,
+      temperatureBias: parseTemperatureBias(event.temperatureBias),
       type: typeof event.type === "string" ? event.type : undefined,
       weight: typeof event.weight === "number" ? Math.max(0, event.weight) : 1,
     };
   });
+}
+
+function parseStringArray(value: unknown) {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function parseCorrelation(value: unknown): SeedEvent["correlation"] {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const correlation = value as Record<string, unknown>;
+  const pairsWellWith = parseStringArray(correlation.pairsWellWith);
+  const avoidWith = parseStringArray(correlation.avoidWith);
+
+  if (!pairsWellWith?.length && !avoidWith?.length) {
+    return undefined;
+  }
+
+  return {
+    ...(pairsWellWith?.length ? { pairsWellWith } : {}),
+    ...(avoidWith?.length ? { avoidWith } : {}),
+  };
+}
+
+function parseTemperatureBias(
+  value: unknown,
+): Partial<Record<ConversationTemperature, number>> | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const source = value as Record<string, unknown>;
+  const entries = (["warm", "normal", "deep", "funny", "quiet"] as const)
+    .map((temperature) => [temperature, source[temperature]] as const)
+    .filter((entry): entry is readonly [ConversationTemperature, number] =>
+      typeof entry[1] === "number" && Number.isFinite(entry[1]),
+    );
+
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(entries) as Partial<
+    Record<ConversationTemperature, number>
+  >;
 }
 
 function parseTemplates(value: unknown): StructureTemplate[] {
@@ -447,19 +504,29 @@ function purposeFromRole(role: ConversationBeatRole, seed: EpisodeSeed) {
   return "会話の流れを支える";
 }
 
-function inferConversationTemperature(seed: EpisodeSeed): ConversationTemperature {
+function inferConversationTemperature(
+  seed: EpisodeSeed,
+  selectedEvents: SeedEvent[],
+): ConversationTemperature {
   const theme = seed.theme;
+  const scores: Record<ConversationTemperature, number> = {
+    deep: 0,
+    funny: 0,
+    normal: 1,
+    quiet: 0,
+    warm: 0,
+  };
 
   if (/コンビニ|充電|バグ|赤シート|スプレー|Windows|いらない|変な|魔法/.test(theme)) {
-    return "funny";
+    scores.funny += 3;
   }
 
   if (/検索履歴|ひとりごと|謝って|名前|孤独|怖|不安|相談|眠れない/.test(theme)) {
-    return "quiet";
+    scores.quiet += 3;
   }
 
   if (/時間|宇宙|理解|記憶|思い出|黒歴史|翻訳|正しさ|物語/.test(theme)) {
-    return "deep";
+    scores.deep += 3;
   }
 
   if (
@@ -467,22 +534,86 @@ function inferConversationTemperature(seed: EpisodeSeed): ConversationTemperatur
     seed.atmosphere === "warm" ||
     seed.tone === "optimistic"
   ) {
-    return "warm";
+    scores.warm += 3;
   }
 
   if (seed.atmosphere === "playful") {
-    return "funny";
+    scores.funny += 2;
   }
 
   if (seed.atmosphere === "quiet" || seed.tone === "melancholic") {
-    return "quiet";
+    scores.quiet += 2;
   }
 
   if (seed.atmosphere === "deep" || seed.atmosphere === "nostalgic") {
-    return "deep";
+    scores.deep += 2;
   }
 
-  return "normal";
+  if (seed.atmosphere === "rainy") {
+    scores.quiet += 1;
+    scores.warm += 1;
+  }
+
+  if (seed.tone === "skeptical") {
+    scores.deep += 1;
+  }
+
+  if (seed.tone === "emotional") {
+    scores.warm += 1;
+    scores.quiet += 1;
+  }
+
+  for (const event of selectedEvents) {
+    for (const [temperature, bias] of Object.entries(event.temperatureBias ?? {}) as Array<
+      [ConversationTemperature, number]
+    >) {
+      scores[temperature] += bias - 1;
+    }
+  }
+
+  return (Object.entries(scores) as Array<[ConversationTemperature, number]>).sort(
+    ([leftTemperature, leftScore], [rightTemperature, rightScore]) =>
+      rightScore - leftScore || leftTemperature.localeCompare(rightTemperature),
+  )[0][0];
+}
+
+function describeTemperatureBias(
+  selectedEvents: SeedEvent[],
+  conversationTemperature: ConversationTemperature,
+) {
+  const biasedEvents = selectedEvents
+    .filter((event) => typeof event.temperatureBias?.[conversationTemperature] === "number")
+    .map((event) => `${event.id}:${event.temperatureBias?.[conversationTemperature]}`);
+
+  if (biasedEvents.length === 0) {
+    return "Conversation temperature is inferred from theme, atmosphere, and tone.";
+  }
+
+  return `Conversation temperature also reflects selected event bias (${biasedEvents.join(", ")}).`;
+}
+
+function describeCorrelation(selectedEvents: SeedEvent[]) {
+  const selectedEventIds = new Set(selectedEvents.map((event) => event.id));
+  const notes: string[] = [];
+
+  for (const event of selectedEvents) {
+    const paired = event.correlation?.pairsWellWith?.filter((eventId) =>
+      selectedEventIds.has(eventId),
+    );
+    const avoided = event.correlation?.avoidWith?.filter((eventId) =>
+      selectedEventIds.has(eventId),
+    );
+
+    if (paired?.length) {
+      notes.push(`${event.id} pairs with ${paired.join(", ")}.`);
+    }
+
+    if (avoided?.length) {
+      notes.push(`${event.id} conflicts with ${avoided.join(", ")}.`);
+    }
+  }
+
+  return notes;
 }
 
 function temperaturePlanFor(temperature: ConversationTemperature) {
@@ -638,13 +769,12 @@ export async function generateConversationSkeleton(
     throw new Error("structure-templates.json must contain at least one template.");
   }
 
-  const conversationTemperature = inferConversationTemperature(seed);
-  const temperaturePlan = temperaturePlanFor(conversationTemperature);
-
   const eventById = new Map(events.map((event) => [event.id, event]));
   const selectedEvents = seed.events
     .map((eventId) => eventById.get(eventId))
     .filter((event): event is SeedEvent => Boolean(event));
+  const conversationTemperature = inferConversationTemperature(seed, selectedEvents);
+  const temperaturePlan = temperaturePlanFor(conversationTemperature);
   const hasSelectedDetour = selectedEvents.some(
     (event) => eventKindFromEvent(event) === "detour",
   );
@@ -687,7 +817,9 @@ export async function generateConversationSkeleton(
       rarityMix: seed.rarityMix,
       notes: [
         "Detour is optional: selected events may add it, but every episode should not be forced to detour.",
-        "Event metadata keeps rarity now, and leaves room for weight, cooldown, and correlation in later phases.",
+        "Event metadata carries weight, rarity, cooldown, temperature bias, and correlation prep; history-based cooldown is still a later phase.",
+        describeTemperatureBias(selectedEvents, conversationTemperature),
+        ...describeCorrelation(selectedEvents),
       ],
     },
     beats,
