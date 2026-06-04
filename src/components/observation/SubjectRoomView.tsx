@@ -51,6 +51,35 @@ type SubjectRoomViewProps = {
   subject: ObservationSubject;
 };
 
+type RoomObjectDockProps = {
+  onInspectObject: (objectId: RoomObjectId) => void;
+  subject: ObservationSubject;
+};
+
+function RoomObjectDock({ onInspectObject, subject }: RoomObjectDockProps) {
+  return (
+    <div
+      className="room-object-dock"
+      aria-label={`${subject.name}の部屋のものを見る`}
+    >
+      {subject.roomObjects.map((object) => (
+        <button
+          aria-label={`${object.label}を見る`}
+          className={`room-object-dock-button room-object-dock-${object.id}`}
+          key={object.id}
+          onClick={(event) => {
+            event.stopPropagation();
+            onInspectObject(object.id);
+          }}
+          type="button"
+        >
+          <span>{object.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function SubjectRoomView({
   action,
   broadcastCandidates,
@@ -220,6 +249,13 @@ export function SubjectRoomView({
           </nav>
         ) : null}
       </div>
+
+      {!isScreensaver ? (
+        <RoomObjectDock
+          onInspectObject={onInspectObject}
+          subject={subject}
+        />
+      ) : null}
     </section>
   );
 }

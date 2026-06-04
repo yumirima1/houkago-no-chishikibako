@@ -1180,7 +1180,7 @@ body {
   position: absolute;
   right: clamp(0.75rem, 4vw, 2.4rem);
   top: clamp(8.5rem, 18vh, 12rem);
-  z-index: 2;
+  z-index: 8;
   display: grid;
   grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
   gap: 0.45rem;
@@ -2145,7 +2145,7 @@ body {
 
   .room-object-dock {
     right: 0.75rem;
-    top: 14.5rem;
+    top: 8.6rem;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: calc(100vw - 1.5rem);
   }

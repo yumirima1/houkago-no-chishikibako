@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ObservationSubject,
@@ -41,10 +41,6 @@ export function RoomSceneRoot({
   subject,
 }: RoomSceneRootProps) {
   const [use3DScene, setUse3DScene] = useState(false);
-  const objectDockLabel = useMemo(
-    () => `${subject.name}の部屋のものを見る`,
-    [subject.name],
-  );
 
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -76,24 +72,6 @@ export function RoomSceneRoot({
         isScreensaver={isScreensaver}
         subject={subject}
       />
-      {!isScreensaver ? (
-        <div className="room-object-dock" aria-label={objectDockLabel}>
-          {subject.roomObjects.map((object) => (
-            <button
-              aria-label={`${object.label}を見る`}
-              className={`room-object-dock-button room-object-dock-${object.id}`}
-              key={object.id}
-              onClick={(event) => {
-                event.stopPropagation();
-                onInspectObject(object.id);
-              }}
-              type="button"
-            >
-              <span>{object.label}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
     </div>
   );
 }
