@@ -7,6 +7,7 @@ import {
   RoomObjectId,
   SubjectAction,
   SubjectId,
+  ThemeSourceExport,
   TimeBand,
 } from "@/components/observation/observationTypes";
 
@@ -589,16 +590,21 @@ export function createObservationLog({
   source: ObservationLog["source"];
   subjectId: SubjectId;
 }): ObservationLog {
+  const timestamp = new Date().toISOString();
+
   return {
     actionId: action.id,
     broadcastHint: action.broadcastHint,
+    createdAt: timestamp,
     id: `${subjectId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     logText: action.logText,
+    mood: action.mood,
+    objectId: action.objectId,
     source,
     subjectId,
     themeCandidate: action.themeCandidate,
     thought: action.thought,
-    timestamp: new Date().toISOString(),
+    timestamp,
   };
 }
 
@@ -606,37 +612,112 @@ export function roomObjectAction(
   subjectId: SubjectId,
   objectId: RoomObjectId,
 ): SubjectAction {
-  return objectReactions[subjectId][objectId] ?? getSubjectAction(subjectId);
+  const action = objectReactions[subjectId][objectId];
+
+  return action ? { ...action, objectId } : getSubjectAction(subjectId);
+}
+
+function getActionLabelFromLog(log: ObservationLog) {
+  const subjectActionsAndObjects = [
+    ...subjectActions[log.subjectId],
+    ...Object.values(objectReactions[log.subjectId]),
+  ];
+
+  return (
+    subjectActionsAndObjects.find((action) => action.id === log.actionId)?.label ??
+    log.actionId
+  );
+}
+
+function isBroadcastReadyCandidate(logs: ObservationLog[]) {
+  const latestLog = logs[0];
+  const hasUsefulSource = logs.some(
+    (log) => log.source === "room-object" || log.source === "dialogue",
+  );
+  const hasConcreteObject = logs.some((log) => log.objectId);
+
+  return Boolean(
+    latestLog?.themeCandidate &&
+      latestLog.broadcastHint &&
+      (logs.length >= 2 || hasUsefulSource || hasConcreteObject),
+  );
+}
+
+function toThemeSourceExport(candidate: BroadcastThemeCandidate): ThemeSourceExport | null {
+  if (!candidate.subjectId || !candidate.createdAt || !candidate.sourceLogIds) {
+    return null;
+  }
+
+  return {
+    actionId: candidate.actionId,
+    createdAt: candidate.createdAt,
+    hint: candidate.hint,
+    mood: candidate.mood,
+    objectId: candidate.objectId,
+    source: "observation-room",
+    sourceLogIds: candidate.sourceLogIds,
+    subjectId: candidate.subjectId,
+    theme: candidate.theme,
+  };
 }
 
 export function getBroadcastThemeCandidates(
   logs: ObservationLog[],
   subjectId: SubjectId,
 ): BroadcastThemeCandidate[] {
-  const seenThemes = new Set<string>();
-
-  return logs
+  const groupedLogs = logs
     .filter((log) => log.subjectId === subjectId)
     .filter((log) => log.themeCandidate || log.broadcastHint)
-    .reduce<BroadcastThemeCandidate[]>((candidates, log) => {
+    .reduce<Record<string, ObservationLog[]>>((groups, log) => {
       const theme = log.themeCandidate ?? log.thought;
 
-      if (seenThemes.has(theme)) {
-        return candidates;
+      return {
+        ...groups,
+        [theme]: [...(groups[theme] ?? []), log],
+      };
+    }, {});
+
+  return Object.entries(groupedLogs)
+    .map(([theme, grouped]) => {
+      const sortedLogs = grouped.sort(
+        (first, second) =>
+          new Date(second.timestamp).getTime() - new Date(first.timestamp).getTime(),
+      );
+      const latestLog = sortedLogs[0];
+      const firstLog = sortedLogs[sortedLogs.length - 1];
+      const candidate: BroadcastThemeCandidate = {
+        actionId: latestLog.actionId,
+        actionLabel: getActionLabelFromLog(latestLog),
+        count: sortedLogs.length,
+        createdAt: firstLog.createdAt ?? firstLog.timestamp,
+        exportable: isBroadcastReadyCandidate(sortedLogs),
+        hint:
+          latestLog.broadcastHint ??
+          "この観察ログは、次の放送テーマ候補として保留できる。",
+        id: `${subjectId}-${theme}`,
+        lastObservedAt: latestLog.timestamp,
+        mood: latestLog.mood,
+        objectId: latestLog.objectId,
+        source: latestLog.source,
+        sourceLogIds: sortedLogs.map((log) => log.id),
+        subjectId,
+        theme,
+        timestamp: latestLog.timestamp,
+      };
+
+      return {
+        ...candidate,
+        exportPreview: toThemeSourceExport(candidate),
+      };
+    })
+    .sort((first, second) => {
+      if (first.exportable !== second.exportable) {
+        return first.exportable ? -1 : 1;
       }
 
-      seenThemes.add(theme);
-
-      return [
-        ...candidates,
-        {
-          hint: log.broadcastHint ?? "この観察ログは、次の放送テーマ候補として保留できる。",
-          id: log.id,
-          source: log.source,
-          theme,
-          timestamp: log.timestamp,
-        },
-      ];
-    }, [])
-    .slice(0, 3);
+      return (
+        new Date(second.timestamp).getTime() - new Date(first.timestamp).getTime()
+      );
+    })
+    .slice(0, 6);
 }

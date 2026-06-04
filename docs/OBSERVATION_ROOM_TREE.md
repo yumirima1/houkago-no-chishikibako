@@ -75,6 +75,43 @@ Entry Mode
 
 `broadcastHint` と `themeCandidate` は future theme source の土台であり、まだ自動で Episode Seed へは渡さない。
 
+## Theme Candidate History
+
+Phase 3では、Observation Logから `themeCandidate` を集約し、Room Modeに放送テーマ候補履歴として表示する。
+
+目的は自動生成ではなく、人間が「この観察から放送化できそう」と判断できる棚を作ること。
+
+表示する情報:
+
+- themeCandidate
+- subject
+- object
+- mood
+- action
+- createdAt
+- 重複回数
+- broadcastHint
+
+同じ `themeCandidate` は1件にまとめる。複数回観察されたもの、Room Object由来のもの、dialogue由来のものは「放送化できそう」として目立たせる。
+
+まだ `theme -> seed` へは接続しない。
+
+将来渡せる型:
+
+```ts
+type ThemeSourceExport = {
+  actionId?: string;
+  createdAt: string;
+  hint: string;
+  mood?: string;
+  objectId?: RoomObjectId;
+  source: "observation-room";
+  sourceLogIds: string[];
+  subjectId: SubjectId;
+  theme: string;
+};
+```
+
 ## Relationship Engine
 
 subjectごとに localStorage へ保存する。
@@ -127,6 +164,8 @@ localStorage へ保存する。
 Observation Log
   ↓
 Future Theme Source
+  ↓
+Human Review
   ↓
 Episode Seed
   ↓

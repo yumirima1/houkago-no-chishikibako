@@ -19,6 +19,7 @@ export type SubjectAction = {
   label: string;
   logText: string;
   mood: string;
+  objectId?: RoomObjectId;
   reaction: string;
   themeCandidate: string;
   thought: string;
@@ -54,8 +55,11 @@ export type RoomObject = {
 export type ObservationLog = {
   actionId: string;
   broadcastHint?: string;
+  createdAt?: string;
   id: string;
   logText?: string;
+  mood?: string;
+  objectId?: RoomObjectId;
   source: "visit" | "observe" | "room-object" | "dialogue";
   subjectId: SubjectId;
   themeCandidate?: string;
@@ -71,9 +75,32 @@ export type RelationshipAtmosphere = {
 };
 
 export type BroadcastThemeCandidate = {
+  actionId?: string;
+  actionLabel?: string;
+  count?: number;
+  createdAt?: string;
+  exportPreview?: ThemeSourceExport | null;
+  exportable?: boolean;
   hint: string;
   id: string;
+  lastObservedAt?: string;
+  mood?: string;
+  objectId?: RoomObjectId;
   source: ObservationLog["source"];
+  sourceLogIds?: string[];
+  subjectId?: SubjectId;
   theme: string;
   timestamp: string;
+};
+
+export type ThemeSourceExport = {
+  actionId?: string;
+  createdAt: string;
+  hint: string;
+  mood?: string;
+  objectId?: RoomObjectId;
+  source: "observation-room";
+  sourceLogIds: string[];
+  subjectId: SubjectId;
+  theme: string;
 };

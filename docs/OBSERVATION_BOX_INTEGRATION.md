@@ -21,6 +21,12 @@ Phase 2では Observation Log から `broadcastHint` / `themeCandidate` を残�
 
 これは自動生成の入口ではなく、次の放送テーマ候補を人間が確認するための保留棚である。
 
+Phase 3では、Room Mode上に `themeCandidate` の履歴一覧を追加した。
+
+同じ候補はまとめ、重複回数、subject、object、mood、action、createdAtを表示する。
+
+「この観察から放送化できそう」な候補は目立たせる。ただし、ここでも自動でEpisode Seedは生成しない。
+
 ## 配置候補
 
 タルタルの部屋:
@@ -47,6 +53,10 @@ Phase 2では Observation Log から `broadcastHint` / `themeCandidate` を残�
 観察ログ
   ↓
 broadcastHint / themeCandidate
+  ↓
+theme source export type
+  ↓
+人間確認
   ↓
 放送ネタ
   ↓

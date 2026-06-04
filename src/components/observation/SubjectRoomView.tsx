@@ -21,6 +21,21 @@ function formatLogTime(timestamp: string) {
   }).format(new Date(timestamp));
 }
 
+function formatCandidateDate(timestamp?: string) {
+  if (!timestamp) {
+    return "記録時刻不明";
+  }
+
+  return new Intl.DateTimeFormat("ja-JP", {
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Tokyo",
+  }).format(new Date(timestamp));
+}
+
 type SubjectRoomViewProps = {
   action: SubjectAction;
   broadcastCandidates: BroadcastThemeCandidate[];
@@ -54,6 +69,9 @@ export function SubjectRoomView({
     .filter((log) => log.subjectId === subject.id)
     .slice(0, 6);
   const isScreensaver = mode === "screensaver";
+  const objectLabels = new Map(
+    subject.roomObjects.map((object) => [object.id, object.label]),
+  );
 
   return (
     <section
@@ -128,13 +146,52 @@ export function SubjectRoomView({
 
             <aside className="room-panel room-theme-panel">
               <p className="observation-kicker">BROADCAST HINT</p>
-              <h2>放送ネタ候補</h2>
+              <h2>放送テーマ候補履歴</h2>
               {broadcastCandidates.length > 0 ? (
                 <ul>
                   {broadcastCandidates.map((candidate) => (
-                    <li key={candidate.id}>
-                      <strong>{candidate.theme}</strong>
+                    <li
+                      className={
+                        candidate.exportable ? "is-exportable" : undefined
+                      }
+                      key={candidate.id}
+                    >
+                      <div className="theme-candidate-heading">
+                        <strong>{candidate.theme}</strong>
+                        {candidate.exportable ? (
+                          <em>放送化できそう</em>
+                        ) : null}
+                      </div>
                       <span>{candidate.hint}</span>
+                      <dl>
+                        <div>
+                          <dt>subject</dt>
+                          <dd>{subject.name}</dd>
+                        </div>
+                        <div>
+                          <dt>object</dt>
+                          <dd>
+                            {candidate.objectId
+                              ? objectLabels.get(candidate.objectId)
+                              : "行動"}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>action</dt>
+                          <dd>{candidate.actionLabel ?? candidate.actionId}</dd>
+                        </div>
+                        <div>
+                          <dt>createdAt</dt>
+                          <dd>{formatCandidateDate(candidate.createdAt)}</dd>
+                        </div>
+                        <div>
+                          <dt>count</dt>
+                          <dd>{candidate.count ?? 1}</dd>
+                        </div>
+                      </dl>
+                      {candidate.mood ? (
+                        <p className="theme-candidate-mood">{candidate.mood}</p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
