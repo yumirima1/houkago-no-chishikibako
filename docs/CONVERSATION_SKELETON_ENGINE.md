@@ -104,11 +104,11 @@ Skeleton では脱線に近い template beat を `required: false` として扱�
 
 これにより、毎回同じ脱線パターンへ落ちることを避ける。
 
-## 将来拡張
+## Event Metadata
 
-現段階では履歴を保存しない。
+現段階では履歴をDB保存しない。
 
-ただし以下を追加しやすいように、event の metadata を Skeleton 生成時に読む。
+以下の event metadata を扱う。
 
 - `weight`
 - `cooldownEpisodes`
@@ -118,7 +118,7 @@ Skeleton では脱線に近い template beat を `required: false` として扱�
 
 `temperatureBias` は selected events から `conversationTemperature` の推定へ反映する。
 
-次フェーズでは、直近回の使用履歴を見て cooldown を効かせること、event 同士の相性を correlation として selection に反映することを検討する。
+`cooldownEpisodes` と `correlation` は Seed selection 側で重みに反映する。Skeleton は選ばれた結果と notes を受け取り、Draft / review で追跡できるようにする。
 
 ## 今回やらないこと
 

@@ -27,9 +27,9 @@ export function EpisodeList({
           id="episode-list-title"
           className="text-lg font-semibold text-slate-100"
         >
-          話を選ぶ
+          放送記録
         </h2>
-        <span className="text-sm text-slate-400">{episodes.length}本</span>
+        <span className="text-sm text-slate-400">公開中 {episodes.length}本</span>
       </div>
 
       <div className="grid gap-3">
@@ -85,7 +85,7 @@ export function EpisodeList({
                 </div>
               </div>
 
-              <p className="mt-3 text-sm leading-7 text-slate-300">
+              <p className="mt-3 break-words text-sm leading-7 text-slate-300">
                 {episode.description}
               </p>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -86,8 +86,9 @@ Conversation Temperature とイベントを接続する。
 - `events.json` に `temperatureBias` を追加済み
 - `conversation-skeleton-generator.ts` が selected events の bias を読んで温度推定へ反映
 - `review-script.ts` が `source.draftScriptEngine.temperature` を見て温度ズレを警告
-- `correlation` は選択済み event の相性メモとして読み込み済み
-- history-based cooldown は未実装
+- `correlation` は event 選択時の重みへ反映済み
+- history-based cooldown は `content/reviewed`, `content/drafts`, 任意の `content/memory/episode-seed-history.json` から読み込み済み
+- 履歴がない場合は通常の weighted selection に fallback
 
 ## Seed出力案
 
@@ -106,13 +107,31 @@ Conversation Temperature とイベントを接続する。
 
 DBは使わない。
 
-候補:
+読み込み元:
 
 - `content/memory/episode-seed-history.json`
 - 直近の `content/reviewed/*.json` の `source.draftScriptEngine.eventPlan` を読む
-- `content/episodes/*.json` の source を読む
+- 直近の `content/drafts/*.json` の `source.draftScriptEngine.eventPlan` を読む
 
 最初はファイル読み取りだけで十分。永続的なDBやユーザー状態は不要。
+
+生成監査のように同一プロセスで連続生成する場合は、`generateEpisodeSeed({ history })` に in-memory history を渡せる。
+
+## selectionへの反映
+
+cooldown:
+
+- eventId が直近の `cooldownEpisodes` 内に出ている場合、重みを大きく下げる。
+- `Rare` / `Epic` / `Legendary` は fallback cooldown を長めにする。
+- `inside_joke` は直近6回に出ていると追加で下げる。
+- `detour` は直近3回に出ていると軽く下げる。
+- 履歴内の累積使用回数が多いeventも少しずつ下げる。
+
+correlation:
+
+- `pairsWellWith` は選択済みeventとの相性が良い場合に重みを上げる。
+- `avoidWith` は選択済みeventとの相性が悪い場合に重みを強く下げる。
+- 完全禁止にはしない。event pool が小さい時でも生成が止まらないようにする。
 
 ## review-scriptとの接続
 
@@ -130,8 +149,8 @@ review-scriptは、V2の結果そのものを正解扱いしない。
 2. Skeletonで selected events の `temperatureBias` を温度推定へ反映する。完了。
 3. Draft生成で説明、感情、笑い、脱線、空気の比率を変える。完了。
 4. review-scriptでtemperature不一致を警告する。完了。
-5. Seed生成時に直近使用イベントを読む。未実装。
-6. correlation を event 選択に反映する。未実装。
+5. Seed生成時に直近使用イベントを読む。完了。
+6. correlation を event 選択に反映する。完了。
 
 ## 今回やらないこと
 

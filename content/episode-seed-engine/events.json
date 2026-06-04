@@ -251,5 +251,97 @@
     "speakerBias": "both",
     "avoidWhen": ["serious_ending", "topic_requires_care"],
     "exampleBeat": "じゃあ人類は全部、通知音だったということで。いや違うな。"
+  },
+  {
+    "id": "window-rain-reflection",
+    "category": "空気",
+    "type": "空気",
+    "weight": 5,
+    "rarity": "Common",
+    "cooldownEpisodes": 3,
+    "temperatureBias": {
+      "warm": 1.1,
+      "normal": 1,
+      "deep": 1.2,
+      "funny": 0.6,
+      "quiet": 1.5
+    },
+    "correlation": {
+      "pairsWellWith": ["late-night-silence", "tiny-thought-experiment"],
+      "avoidWith": ["perfectly-wrong-conclusion"]
+    },
+    "description": "窓や雨の反射を一瞬見て、話の速度を落とす。",
+    "speakerBias": "both",
+    "avoidWhen": ["already_too_atmospheric"],
+    "exampleBeat": "窓にモニターの文字が映って、ちょっと話が遅くなった。"
+  },
+  {
+    "id": "cold-coffee-check",
+    "category": "脱線",
+    "type": "detour",
+    "weight": 4,
+    "rarity": "Common",
+    "cooldownEpisodes": 4,
+    "temperatureBias": {
+      "warm": 1.3,
+      "normal": 1,
+      "deep": 0.8,
+      "funny": 1.2,
+      "quiet": 1
+    },
+    "correlation": {
+      "pairsWellWith": ["detour-server-bill", "soft-detour-room-object"],
+      "avoidWith": ["studio-light-flicker"]
+    },
+    "description": "コーヒーが冷めていることに気づき、話を生活の温度へ戻す。",
+    "speakerBias": "kana",
+    "avoidWhen": ["too_many_detours"],
+    "exampleBeat": "今の話、コーヒー冷めるくらいには考え込んでた。"
+  },
+  {
+    "id": "clock-too-late",
+    "category": "現実参照",
+    "type": "現実参照",
+    "weight": 5,
+    "rarity": "Common",
+    "cooldownEpisodes": 3,
+    "temperatureBias": {
+      "warm": 1.1,
+      "normal": 1,
+      "deep": 1,
+      "funny": 0.9,
+      "quiet": 1.3
+    },
+    "correlation": {
+      "pairsWellWith": ["late-night-silence", "kana-emotion-first"],
+      "avoidWith": ["bad-metaphor-recovery"]
+    },
+    "description": "時計を見て、話が夜更かしの現実へ戻る。",
+    "speakerBias": "both",
+    "avoidWhen": ["ending"],
+    "exampleBeat": "時計見たら、ちゃんと考えるには遅すぎる時間だった。"
+  },
+  {
+    "id": "tiny-prototype-detour",
+    "category": "脱線",
+    "type": "detour",
+    "weight": 4,
+    "rarity": "Rare",
+    "cooldownEpisodes": 5,
+    "temperatureBias": {
+      "warm": 1.2,
+      "normal": 1,
+      "deep": 0.7,
+      "funny": 1.4,
+      "quiet": 0.6
+    },
+    "correlation": {
+      "pairsWellWith": ["bad-metaphor-recovery", "kana-reaction-redirect"],
+      "avoidWith": ["late-night-silence", "studio-light-flicker"]
+    },
+    "description": "タルタルが急に小さな試作品を作るなら、と考えて話が横へずれる。",
+    "speakerBias": "tartar",
+    "avoidWhen": ["topic_needs_focus"],
+    "exampleBeat": "作るなら、まず失敗する小さい版から置きたいんだよね。"
   }
 ]

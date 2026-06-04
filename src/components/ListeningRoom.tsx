@@ -115,7 +115,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
-  const [nextUpdateLabel, setNextUpdateLabel] = useState<string | null>(null);
+  const [nextUpdateLabel] = useState(() => getNextSundayUpdateLabel());
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
   const bgm = useAmbientAudio({ isVoicePlaying });
@@ -305,14 +305,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     };
   }, [isInterfaceHidden]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setNextUpdateLabel(getNextSundayUpdateLabel());
-    }, 0);
-
-    return () => window.clearTimeout(timer);
-  }, []);
-
   if (!selectedEpisode) {
     return null;
   }
@@ -366,7 +358,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             <p className="mt-2 text-sm text-slate-400">
               夜更かしした人が戻ってくる、雨の放送室。
               <span className="mt-1 block text-slate-500 sm:ml-3 sm:inline">
-                次回更新予定: {nextUpdateLabel ?? "計算中"}
+                次回更新予定: {nextUpdateLabel}
               </span>
             </p>
           </div>
@@ -438,7 +430,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                     {selectedEpisode.title}
                   </span>
                 </h1>
-                <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                <p className="mt-4 max-w-xl break-words text-sm leading-7 text-slate-300 sm:text-base">
                   {selectedEpisode.description}
                 </p>
                 <div className="mt-6 flex flex-wrap gap-2">
@@ -509,12 +501,14 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
         <div className="pb-14 pt-8">
           <section
-            aria-label="タグ検索"
+            aria-label="放送記録の索引"
             className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-sm font-semibold text-slate-100">タグ検索</h2>
+                <h2 className="text-sm font-semibold text-slate-100">
+                  放送記録の索引
+                </h2>
                 <p className="mt-1 text-sm text-slate-500">
                   {selectedTags.length > 0
                     ? `${selectedTags.length}件のタグで絞り込み中`
@@ -538,7 +532,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                   onClick={() => setIsTagPanelOpen((isOpen) => !isOpen)}
                   type="button"
                 >
-                  {isTagPanelOpen ? "タグを閉じる" : "タグを開く"}
+                  {isTagPanelOpen ? "索引を閉じる" : "索引を開く"}
                 </button>
               </div>
             </div>

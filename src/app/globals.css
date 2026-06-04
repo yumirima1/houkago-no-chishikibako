@@ -1280,8 +1280,8 @@ body {
 
   .station-first-view {
     min-height: 29rem;
-    width: calc(100vw - 2rem);
-    max-width: calc(100vw - 2rem);
+    width: 100%;
+    max-width: 100%;
   }
 
   .station-console,

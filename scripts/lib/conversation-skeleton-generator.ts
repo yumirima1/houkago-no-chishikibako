@@ -817,9 +817,11 @@ export async function generateConversationSkeleton(
       rarityMix: seed.rarityMix,
       notes: [
         "Detour is optional: selected events may add it, but every episode should not be forced to detour.",
-        "Event metadata carries weight, rarity, cooldown, temperature bias, and correlation prep; history-based cooldown is still a later phase.",
+        "Event metadata carries weight, rarity, cooldown, temperature bias, and correlation; Seed selection applies lightweight history and correlation control.",
         describeTemperatureBias(selectedEvents, conversationTemperature),
         ...describeCorrelation(selectedEvents),
+        ...(seed.eventSelection?.cooldownNotes ?? []),
+        ...(seed.eventSelection?.correlationNotes ?? []),
       ],
     },
     beats,

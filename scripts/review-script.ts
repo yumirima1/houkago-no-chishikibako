@@ -80,6 +80,10 @@ type ReviewConversationTemperature =
   | "quiet";
 
 type DraftScriptEngineSource = {
+  eventPlan?: {
+    notes?: string[];
+    selectedEventIds?: string[];
+  };
   temperature?: ReviewConversationTemperature;
   temperaturePlan?: unknown;
 };
@@ -490,8 +494,26 @@ function getDraftScriptEngineSource(
   }
 
   const draftSource = draftScriptEngine as Record<string, unknown>;
+  const eventPlan =
+    draftSource.eventPlan && typeof draftSource.eventPlan === "object"
+      ? (draftSource.eventPlan as Record<string, unknown>)
+      : undefined;
 
   return {
+    eventPlan: eventPlan
+      ? {
+          notes: Array.isArray(eventPlan.notes)
+            ? eventPlan.notes.filter(
+                (note): note is string => typeof note === "string",
+              )
+            : undefined,
+          selectedEventIds: Array.isArray(eventPlan.selectedEventIds)
+            ? eventPlan.selectedEventIds.filter(
+                (eventId): eventId is string => typeof eventId === "string",
+              )
+            : undefined,
+        }
+      : undefined,
     temperature: isReviewConversationTemperature(draftSource.temperature)
       ? draftSource.temperature
       : undefined,
@@ -537,6 +559,19 @@ function checkDraftTemperatureRules(
         line.text.length > 130),
   );
   const sameSpeakerRuns = countSameSpeakerRuns(speakers);
+  const eventNotes = draftSource.eventPlan?.notes ?? [];
+  const selectedEventIds = draftSource.eventPlan?.selectedEventIds ?? [];
+  const selectedEventDuplicates = selectedEventIds.filter(
+    (eventId, index) => selectedEventIds.indexOf(eventId) !== index,
+  );
+  const cooldownRiskNotes = eventNotes.filter(
+    (note) =>
+      /selected with reduced weight|cooled down/i.test(note) &&
+      !/No recent event history|Event metadata/.test(note),
+  );
+  const correlationRiskNotes = eventNotes.filter((note) =>
+    /selected only as low-probability fallback|conflicts with|avoids/i.test(note),
+  );
 
   if (!temperature) {
     warnings.push("Draft Script Engine由来ですが、conversationTemperatureがsourceに記録されていません。SkeletonからDraft、generate-scriptまでの受け渡しを確認してください。");
@@ -548,6 +583,18 @@ function checkDraftTemperatureRules(
 
   if (sameSpeakerRuns > Math.max(1, Math.floor(speakers.length * 0.03))) {
     warnings.push("Draftの同話者連続が多めです。タルタルの説明を短い往復へ分割し、かなの反応で一度止めてください。");
+  }
+
+  if (selectedEventDuplicates.length > 0) {
+    warnings.push(`Draft Script Engineのselected eventsに重複があります: ${[...new Set(selectedEventDuplicates)].join(", ")}。Seed選択を確認してください。`);
+  }
+
+  if (cooldownRiskNotes.length > 0) {
+    warnings.push("Episode Seed Engineのcooldown注意メモがあります。直近回と同じevent、inside_joke、detourが文化ではなく固定ギャグになっていないか確認してください。");
+  }
+
+  if (correlationRiskNotes.length > 0) {
+    warnings.push("Episode Seed Engineのcorrelation注意メモがあります。相性の悪いeventが同時に本文へ出て、会話温度を壊していないか確認してください。");
   }
 
   if (kanaFixedLines.length > Math.max(1, Math.floor(kanaLines.length * 0.14))) {
@@ -581,8 +628,8 @@ function checkDraftTemperatureRules(
       warnings.push("conversationTemperature=deep ですが、問いの層が少なめです。結論より、考えが残る確認を増やしてください。");
     }
 
-    if (humorLines.length > Math.max(6, Math.floor(speakers.length * 0.2))) {
-      warnings.push("conversationTemperature=deep に対して笑いの量が多めです。小さな笑いは残しつつ、沈黙と余韻へ寄せてください。");
+    if (humorLines.length > Math.max(5, Math.floor(speakers.length * 0.16))) {
+      warnings.push("conversationTemperature=deep に対して笑いの量が多めです。小さな笑いは残しつつ、沈黙、問い、余韻へ寄せてください。");
     }
   }
 
@@ -599,6 +646,10 @@ function checkDraftTemperatureRules(
   if (temperature === "quiet") {
     if (tartaruLectureLines.length > Math.max(3, Math.floor(tartaruLines.length * 0.18))) {
       warnings.push("conversationTemperature=quiet に対して説明密度が高めです。沈黙、言い淀み、短い確認を優先してください。");
+    }
+
+    if (humorLines.length > Math.max(4, Math.floor(speakers.length * 0.12))) {
+      warnings.push("conversationTemperature=quiet に対して笑いが多めです。笑いを消すのではなく、音や間の方へ逃がしてください。");
     }
 
     if (nightAirLines.length < Math.max(5, Math.floor(speakers.length * 0.16))) {

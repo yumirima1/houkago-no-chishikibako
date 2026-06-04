@@ -126,7 +126,7 @@ Draft Script Engine は、各 beat を2〜3発話の小さい往復へ展開す�
 
 この値は温度を強制しない。theme / atmosphere / tone の推定に対して、selected events が少しだけ温度を傾ける。
 
-同じく `correlation` は event 同士の相性メモとして読み込まれる。現時点では選択済み event のメモ出力に使い、履歴ベースの自動除外はまだ行わない。
+同じく `correlation` は event 同士の相性として Seed selection の重みに反映される。相性の悪い event は完全禁止ではなく低確率 fallback にする。
 
 ## review-scriptとの接続
 
@@ -145,5 +145,5 @@ Draft Script Engine は、各 beat を2〜3発話の小さい往復へ展開す�
 
 - UI反映
 - 自動公開
-- temperature履歴の永続化
-- cooldown履歴を使った event 選択
+- temperature履歴の永続追記
+- theme と event の semantic affinity
