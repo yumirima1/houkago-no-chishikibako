@@ -2,6 +2,11 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 
 import {
+  ConversationBeat,
+  ConversationSkeleton,
+} from "./lib/conversation-skeleton-generator";
+import { generateDraftScript, DraftScript } from "./lib/draft-script-generator";
+import {
   contentRoot,
   draftDir,
   ensureProductionDirs,
@@ -11,11 +16,21 @@ import {
   readJsonFile,
   writeJsonFile,
 } from "./lib/episode-fs";
-import { EpisodeDurationType } from "./lib/episode-schema";
+import {
+  EpisodeDurationType,
+  EpisodeScript,
+  EpisodeSpeakerLine,
+} from "./lib/episode-schema";
 import {
   buildRadioScript,
   getRadioScriptStats,
 } from "./lib/radio-script-builder";
+
+function assertString(value: unknown, label: string): asserts value is string {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${label} must be a non-empty string.`);
+  }
+}
 
 function inferThemes(title: string, theme: string) {
   const text = `${title} ${theme}`;
@@ -74,6 +89,137 @@ function toSourceObject(source: unknown) {
     : {};
 }
 
+function parseConversationBeat(value: unknown, index: number): ConversationBeat {
+  if (!value || typeof value !== "object") {
+    throw new Error(`beats[${index}] must be an object.`);
+  }
+
+  const beat = value as Partial<ConversationBeat>;
+
+  if (typeof beat.order !== "number") {
+    throw new Error(`beats[${index}].order must be a number.`);
+  }
+
+  assertString(beat.speaker, `beats[${index}].speaker`);
+  assertString(beat.role, `beats[${index}].role`);
+  assertString(beat.purpose, `beats[${index}].purpose`);
+  assertString(beat.cue, `beats[${index}].cue`);
+
+  return {
+    cue: beat.cue,
+    ...(beat.eventId ? { eventId: String(beat.eventId) } : {}),
+    ...(beat.eventKind ? { eventKind: beat.eventKind } : {}),
+    order: beat.order,
+    purpose: beat.purpose,
+    ...(typeof beat.required === "boolean" ? { required: beat.required } : {}),
+    role: beat.role,
+    speaker: beat.speaker,
+  } as ConversationBeat;
+}
+
+function parseConversationSkeleton(value: unknown): ConversationSkeleton {
+  if (!value || typeof value !== "object") {
+    throw new Error("Skeleton file must contain a JSON object.");
+  }
+
+  const skeleton = value as Partial<ConversationSkeleton>;
+
+  assertString(skeleton.theme, "theme");
+  assertString(skeleton.structureTemplate, "structureTemplate");
+  assertString(skeleton.atmosphere, "atmosphere");
+  assertString(skeleton.tone, "tone");
+
+  if (!Array.isArray(skeleton.beats)) {
+    throw new Error("beats must be an array.");
+  }
+
+  return {
+    atmosphere: skeleton.atmosphere,
+    beats: skeleton.beats.map(parseConversationBeat),
+    eventPlan: skeleton.eventPlan ?? {
+      notes: [],
+      rarityMix: {
+        Common: 0.7,
+        Epic: 0.08,
+        Legendary: 0.02,
+        Rare: 0.2,
+      },
+      selectedEventIds: [],
+      supportedEventKinds: [],
+    },
+    structureTemplate: skeleton.structureTemplate,
+    theme: skeleton.theme,
+    tone: skeleton.tone,
+  };
+}
+
+function parseDraftScript(value: unknown): DraftScript {
+  if (!value || typeof value !== "object") {
+    throw new Error("Draft Script file must contain a JSON object.");
+  }
+
+  const draft = value as Partial<DraftScript>;
+
+  assertString(draft.theme, "theme");
+  assertString(draft.structureTemplate, "structureTemplate");
+  assertString(draft.atmosphere, "atmosphere");
+  assertString(draft.tone, "tone");
+
+  if (!Array.isArray(draft.lines) || draft.lines.length === 0) {
+    throw new Error("Draft Script lines must be a non-empty array.");
+  }
+
+  return {
+    atmosphere: draft.atmosphere,
+    eventPlan: draft.eventPlan ?? {
+      notes: [],
+      rarityMix: {
+        Common: 0.7,
+        Epic: 0.08,
+        Legendary: 0.02,
+        Rare: 0.2,
+      },
+      selectedEventIds: [],
+      supportedEventKinds: [],
+    },
+    lines: draft.lines.map((line, index) => {
+      if (!line || typeof line !== "object") {
+        throw new Error(`lines[${index}] must be an object.`);
+      }
+
+      assertString(line.speaker, `lines[${index}].speaker`);
+      assertString(line.text, `lines[${index}].text`);
+
+      return {
+        ...line,
+        order: typeof line.order === "number" ? line.order : index + 1,
+        speaker: line.speaker,
+        text: line.text,
+      };
+    }),
+    productionNotes: Array.isArray(draft.productionNotes)
+      ? draft.productionNotes.map(String)
+      : [],
+    source: draft.source,
+    structureTemplate: draft.structureTemplate,
+    theme: draft.theme,
+    tone: draft.tone,
+  };
+}
+
+function draftScriptSpeakers(draft: DraftScript): EpisodeSpeakerLine[] {
+  return draft.lines.map((line) => {
+    const isKana = line.speaker === "かな";
+
+    return {
+      id: isKana ? "bunkei" : "rikei",
+      name: isKana ? "かな" : "タルタル",
+      voice: isKana ? "bunkei" : "rikei",
+      text: line.text,
+    };
+  });
+}
+
 async function resolveShowBibleReference() {
   const showBiblePath = path.join(contentRoot, "memory", "show-bible.md");
 
@@ -86,14 +232,34 @@ async function main() {
   await ensureProductionDirs();
 
   const args = parseArgs();
+  const draftScriptFile = getStringArg(args, "draft-script-file");
+  const skeletonFile = getStringArg(args, "skeleton-file");
+
+  if (draftScriptFile && skeletonFile) {
+    throw new Error("Use either --draft-script-file or --skeleton-file, not both.");
+  }
+
+  const draftScript = draftScriptFile
+    ? parseDraftScript(await readJsonFile<unknown>(path.resolve(draftScriptFile)))
+    : skeletonFile
+      ? generateDraftScript({
+          skeleton: parseConversationSkeleton(
+            await readJsonFile<unknown>(path.resolve(skeletonFile)),
+          ),
+        })
+      : undefined;
   const title =
     getStringArg(args, "title") ??
+    draftScript?.theme ??
     "雨の日に考える、AIは本当に考えているのか";
-  const theme = getStringArg(args, "theme", "AIと思考")!;
+  const theme = getStringArg(args, "theme", draftScript?.theme ?? "AIと思考")!;
   const id = getStringArg(args, "id") ?? (await createSequentialEpisodeId());
-  const durationTargetMinutes = Number(getStringArg(args, "minutes", "5"));
+  const durationTargetMinutes = Number(
+    getStringArg(args, "minutes", draftScript ? "20" : "5"),
+  );
   const durationType: EpisodeDurationType =
     durationTargetMinutes >= 45 ? "long" : "normal";
+  const episodeType = durationType === "long" ? "special" : "regular";
   const description =
     getStringArg(args, "description") ??
     `${title}について、理系担当と文系担当が静かな会話形式で考えます。`;
@@ -105,22 +271,63 @@ async function main() {
   const memoryHints = await readProgramMemoryHints();
   const existingDraft = await readExistingDraftMetadata(id);
   const showBiblePath = await resolveShowBibleReference();
+  const scriptBase: EpisodeScript = draftScript
+    ? {
+        id,
+        title,
+        theme,
+        durationTargetMinutes,
+        description,
+        type: episodeType,
+        durationType,
+        tags: themes,
+        themes,
+        speakers: draftScriptSpeakers(draftScript),
+        createdAt: existingDraft.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    : buildRadioScript({
+        id,
+        title,
+        theme,
+        durationTargetMinutes,
+        durationType,
+        description,
+        type: episodeType,
+        themes,
+        memoryPhrase: memoryHints.phrase,
+        runningJoke: memoryHints.runningJoke,
+        createdAt: existingDraft.createdAt,
+      });
   const script = {
-    ...buildRadioScript({
-      id,
-      title,
-      theme,
-      durationTargetMinutes,
-      durationType,
-      description,
-      type: durationType === "long" ? "special" : "regular",
-      themes,
-      memoryPhrase: memoryHints.phrase,
-      runningJoke: memoryHints.runningJoke,
-      createdAt: existingDraft.createdAt,
-    }),
+    ...scriptBase,
     source: {
       ...toSourceObject(existingDraft.source),
+      ...(draftScript
+        ? {
+            draftScriptEngine: {
+              atmosphere: draftScript.atmosphere,
+              eventPlan: draftScript.eventPlan,
+              productionNotes: draftScript.productionNotes,
+              structureTemplate: draftScript.structureTemplate,
+              tone: draftScript.tone,
+              ...(draftScriptFile
+                ? {
+                    draftScriptPath: path
+                      .relative(process.cwd(), path.resolve(draftScriptFile))
+                      .replaceAll("\\", "/"),
+                  }
+                : {}),
+              ...(skeletonFile
+                ? {
+                    skeletonPath: path
+                      .relative(process.cwd(), path.resolve(skeletonFile))
+                      .replaceAll("\\", "/"),
+                  }
+                : {}),
+            },
+          }
+        : {}),
       showBiblePath,
     },
   };

@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import {
   ConversationBeat,
@@ -6,28 +7,21 @@ import {
 } from "./lib/conversation-skeleton-generator";
 import { generateConversationSkeleton } from "./lib/conversation-skeleton-generator";
 import { generateDraftScript } from "./lib/draft-script-generator";
-
-function readArgValue(name: string) {
-  const equalsArg = process.argv.find((arg) => arg.startsWith(`--${name}=`));
-
-  if (equalsArg) {
-    return equalsArg.slice(name.length + 3);
-  }
-
-  const index = process.argv.indexOf(`--${name}`);
-
-  if (index >= 0) {
-    return process.argv[index + 1];
-  }
-
-  return undefined;
-}
+import {
+  ensureProductionDirs,
+  getStringArg,
+  parseArgs,
+  scriptDraftDir,
+  toProjectPath,
+  writeJsonFile,
+} from "./lib/episode-fs";
 
 function printUsage() {
   console.error(
     [
       'Usage: npm run episode:draft -- --theme "なぜ人は通知を開くのか"',
       "   or: npm run episode:draft -- --skeleton-file path/to/skeleton.json",
+      "   or: npm run episode:draft -- --theme \"なぜ人は通知を開くのか\" --save --id episode-025",
     ].join("\n"),
   );
 }
@@ -103,8 +97,12 @@ function parseSkeleton(value: unknown): ConversationSkeleton {
 }
 
 async function main() {
-  const theme = readArgValue("theme");
-  const skeletonFile = readArgValue("skeleton-file");
+  const args = parseArgs();
+  const theme = getStringArg(args, "theme");
+  const skeletonFile = getStringArg(args, "skeleton-file");
+  const output = getStringArg(args, "output");
+  const id = getStringArg(args, "id");
+  const shouldSave = Boolean(args.save) || Boolean(output);
 
   if (!theme && !skeletonFile) {
     printUsage();
@@ -118,10 +116,36 @@ async function main() {
     return;
   }
 
+  if (shouldSave && !output && !id) {
+    console.error("Use --id when saving to content/script-drafts, or pass --output.");
+    process.exitCode = 1;
+    return;
+  }
+
+  await ensureProductionDirs();
+
   const skeleton = skeletonFile
     ? parseSkeleton(JSON.parse(await readFile(skeletonFile, "utf8")))
     : await generateConversationSkeleton({ theme: theme ?? "" });
-  const draft = generateDraftScript({ skeleton });
+  const draft = {
+    ...generateDraftScript({ skeleton }),
+    source: {
+      generatedAt: new Date().toISOString(),
+      generator: "draft-script-engine" as const,
+      ...(skeletonFile ? { skeletonFile } : {}),
+      ...(theme ? { theme } : {}),
+    },
+  };
+
+  if (shouldSave) {
+    const outputPath = output
+      ? path.resolve(output)
+      : path.join(scriptDraftDir, `${id}.json`);
+
+    await writeJsonFile(outputPath, draft);
+    console.log(`Draft Script saved: ${toProjectPath(outputPath)}`);
+    return;
+  }
 
   console.log(JSON.stringify(draft, null, 2));
 }

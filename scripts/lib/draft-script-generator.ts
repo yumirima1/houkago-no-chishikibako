@@ -25,6 +25,12 @@ export type DraftScript = {
   eventPlan: ConversationSkeleton["eventPlan"];
   lines: DraftScriptLine[];
   productionNotes: string[];
+  source?: {
+    generatedAt?: string;
+    generator: "draft-script-engine";
+    skeletonFile?: string;
+    theme?: string;
+  };
 };
 
 type GenerateDraftScriptOptions = {

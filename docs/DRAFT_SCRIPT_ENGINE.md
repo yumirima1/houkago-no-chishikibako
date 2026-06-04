@@ -38,6 +38,27 @@ npm run episode:draft -- --theme "なぜ人は通知を開くのか"
 npm run episode:draft -- --skeleton-file path/to/skeleton.json
 ```
 
+Draft Script Engine の生出力を保存する。
+
+```bash
+npm run episode:draft -- --theme "なぜ人は通知を開くのか" --save --id episode-025
+```
+
+保存先は `content/script-drafts/{id}.json`。
+
+既存の原稿生成フローへ接続する。
+
+```bash
+npm run episode:generate -- --id episode-025 --draft-script-file content/script-drafts/episode-025.json
+npm run episode:review -- --id episode-025
+```
+
+Skeleton から直接 EpisodeScript 形式の下書きを作ることもできる。
+
+```bash
+npm run episode:generate -- --id episode-025 --skeleton-file path/to/skeleton.json
+```
+
 ## 入力
 
 Conversation Skeleton:
@@ -104,13 +125,27 @@ Draft Script:
 - 同じ比喩や切り返しが固定化していないか
 - 締めが一度だけになっているか
 
+## 半自動運用
+
+```txt
+Draft Script保存
+  ↓
+generate-scriptでcontent/draftsへ変換
+  ↓
+review-script
+  ↓
+人間確認・書き直し
+```
+
+`content/script-drafts` はDraft Script Engineの生出力置き場。公開用原稿の置き場ではない。
+
+`content/drafts` は既存の `review-script` / `audio` / `build` が読むEpisodeScript形式の下書き置き場。
+
 ## 今回やらないこと
 
 - AI API 接続
-- content/drafts への自動保存
 - reviewed への昇格
 - 音声生成
-- review-script への直接接続
 - DB 導入
 - ログイン
 - SNS 化

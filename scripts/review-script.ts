@@ -27,6 +27,7 @@ const riskyPhrases = [
 const closingDeclarationPattern =
   /今日はこの(へん|辺)|では今日は|そろそろ終わ|また来週|おやすみ/;
 const questionPattern = /[^。！？?]*[？?]/g;
+const questionLinePattern = /[？?]/;
 const simpleKanaBackchannelPattern =
   /^(なるほど|たしかに|そうなんだ)[。！？?、\s]*$/;
 const kanaReactionPattern =
@@ -56,6 +57,16 @@ const analogyMarkerPattern =
   /みたい|ような|ように|たとえるなら|例えるなら|例え|比喩|感じ/;
 const repeatedOpeningPattern =
   /^(あー|うん|でも|そう|いや|つまり|要するに|たぶん|実は|面白いのがさ|ちょっと|最後に|ここで)/;
+const draftGeneratorScaffoldPattern =
+  /ここは知識を増やすというより|番組内の小さい記憶として置いておく|説明っぽくなりすぎないように言うと|ここは二人で、急がずに確かめる/;
+const draftTemplateLinePattern =
+  /自分の感じ方だけ置いていかれる|理屈が勝ちすぎ|分かったことにされる|半分しか納得してない|きれいに進みすぎる|戻り方が雑|肩の力は抜けた|正解を出すというより/;
+const emotionalTexturePattern =
+  /怖|不安|困る|嫌|しんど|つら|寂し|さみし|悔しい|好き|助かる|落ち着|疲れ|モヤモヤ|違和感|変じゃない|置いていか|眠れない|気になる/;
+const humorTexturePattern =
+  /笑|急に|また始まった|何それ|それ絶対|コーヒー|消しゴム|雑|悔しい|顔|変じゃない|何で|なんで|戻り方|やめて|ひどい/;
+const nightAirPattern =
+  /夜|深夜|寝る前|眠れない|雨|窓|机|コーヒー|布団|静か|明かり|ランプ|モニター|コンビニ|放送室|時計|作業/;
 
 function normalizeForSimilarity(text: string) {
   return text
@@ -204,6 +215,14 @@ function checkProgramQualityRules(
 
   const tartaruLines = speakers.filter((line) => line.id === "rikei");
   const kanaLines = speakers.filter((line) => line.id === "bunkei");
+  const questionLines = speakers.filter((line) =>
+    questionLinePattern.test(line.text),
+  );
+  const emotionalLines = speakers.filter((line) =>
+    emotionalTexturePattern.test(line.text),
+  );
+  const humorLines = speakers.filter((line) => humorTexturePattern.test(line.text));
+  const nightAirLines = speakers.filter((line) => nightAirPattern.test(line.text));
   const longTartaruLines = tartaruLines.filter((line) => line.text.length > 280);
   const longExplanationLines = speakers.filter(
     (line) => line.text.length > 240 && tartaruMechanicPattern.test(line.text),
@@ -227,6 +246,29 @@ function checkProgramQualityRules(
   const summaryTemplateLines = tartaruLines.filter((line) =>
     summaryTemplatePattern.test(line.text.trim()),
   );
+  const draftTemplateLines = speakers.filter((line) =>
+    draftTemplateLinePattern.test(line.text),
+  );
+
+  if (questionLines.length < Math.max(2, Math.floor(speakers.length * 0.12))) {
+    warnings.push("会話内の疑問が少なめです。かなの生活目線の問い、タルタルの言い淀み、二人の確認を増やしてください。");
+  }
+
+  if (emotionalLines.length < Math.max(3, Math.floor(speakers.length * 0.14))) {
+    warnings.push("感情の手触りが少なめです。怖さ、不安、好き、悔しさ、助かった感じなど、知識ではなく人の反応を増やしてください。");
+  }
+
+  if (humorLines.length < Math.max(2, Math.floor(speakers.length * 0.08))) {
+    warnings.push("小さな笑いが少なめです。ボケ、言い間違い、生活の小物、タルタルの変な例えを一つ足してください。");
+  }
+
+  if (nightAirLines.length < Math.max(3, Math.floor(speakers.length * 0.1))) {
+    warnings.push("深夜の放送室の気配が少なめです。雨、窓、机、布団、モニター、時計、静かな間などを会話に自然に混ぜてください。");
+  }
+
+  if (draftTemplateLines.length > Math.max(2, Math.floor(speakers.length * 0.14))) {
+    warnings.push("Draft由来の会話テンプレが多めです。同じ違和感の言い換えではなく、その回固有の場面、反論、笑いへ置き換えてください。");
+  }
 
   if (bannedTartaruTemplateLines.length > 0) {
     warnings.push("タルタルの決め台詞化したまとめ表現があります。「構造として見ると」「ここが大事です」「結局ここが大事」は原則使わず、具体例や比喩で話を進めてください。");
@@ -314,8 +356,12 @@ function checkProgramQualityRules(
     warnings.push("会話内に明確な反論がありません。かな、またはタルタルが一度は疑う流れを入れてください。");
   }
 
-  if (!speakers.some((line) => detourPattern.test(line.text))) {
+  const detourLines = speakers.filter((line) => detourPattern.test(line.text));
+
+  if (detourLines.length === 0) {
     warnings.push("会話内に脱線や実体験風の寄り道がありません。深夜ラジオとして自然な遠回りを入れてください。");
+  } else if (detourLines.length < Math.max(2, Math.floor(speakers.length * 0.08))) {
+    warnings.push("脱線や生活の寄り道が少なめです。説明の補助ではなく、二人が同じ部屋にいる感じを足してください。");
   }
 
   for (let index = 0; index < speakers.length - 1; index += 1) {
@@ -388,6 +434,10 @@ function checkProgramQualityRules(
   const bunkeiChars = kanaLines.reduce((total, line) => total + line.text.length, 0);
   const totalChars = rikeiChars + bunkeiChars;
 
+  if (speakers.length < 40 || totalChars < 5000) {
+    warnings.push("原稿量が短めです。通常回のたたき台なら、人間確認で会話の往復、間、脱線、着地を増やしてください。");
+  }
+
   if (totalChars > 0) {
     const bunkeiRatio = bunkeiChars / totalChars;
 
@@ -399,6 +449,12 @@ function checkProgramQualityRules(
       warnings.push("かなの発言率が高めです。30〜45%を目安にし、タルタルの具体例や技術好きの脱線も残してください。");
     }
   }
+}
+
+function isDraftScriptEngineSource(script: EpisodeScript) {
+  const source = (script as { source?: { draftScriptEngine?: unknown } }).source;
+
+  return Boolean(source?.draftScriptEngine);
 }
 
 function reviewScript(script: EpisodeScript): EpisodeScript {
@@ -426,6 +482,14 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
   }
 
   checkProgramQualityRules(speakers, warnings);
+
+  if (isDraftScriptEngineSource(script)) {
+    warnings.push("Draft Script Engine由来のたたき台です。review通過後も、人間がSHOW_BIBLEに照らして会話の余白、脱線、関係性を確認してください。");
+
+    if (speakers.some((line) => draftGeneratorScaffoldPattern.test(line.text))) {
+      warnings.push("Draft Script Engineの足場文が本文に残っている可能性があります。cueの説明文ではなく、二人の自然な発話へ書き直してください。");
+    }
+  }
 
   const durationType = script.durationType ?? "normal";
 
@@ -456,7 +520,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",
         roleSeparation: "理系担当は仕組み、文系担当はリスナー目線と自然な反応の役割を確認しました。",
-        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、感情無視、反論、脱線、説明過多、理解の余白不足、比喩や内容の重複、テンプレ化した切り返し、タルタルの決め台詞化したまとめ表現を警告として記録します。",
+        naturalConversation: "同じ話者の連続、締めの重複、冒頭と最後の問いの重複、かなの相槌偏重、感情無視、疑問不足、感情不足、笑い不足、深夜感不足、反論、脱線、説明過多、理解の余白不足、比喩や内容の重複、テンプレ化した切り返し、タルタルの決め台詞化したまとめ表現を警告として記録します。",
         narrationEase: "句点と文の長さを読み上げ向けに整えました。",
       },
       warnings,

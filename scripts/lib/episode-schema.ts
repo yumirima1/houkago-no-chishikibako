@@ -46,6 +46,7 @@ export type EpisodeScript = {
   createdAt: string;
   updatedAt: string;
   review?: ReviewResult;
+  source?: Record<string, unknown>;
 };
 
 export type BuiltEpisode = {

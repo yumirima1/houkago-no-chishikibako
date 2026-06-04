@@ -138,6 +138,8 @@ export function RainyNightBackground({
       {mode === "window" ? <div className="cloud-layer" /> : null}
       <div className={`station-curtain station-curtain-${mode}`} />
       <div className={`broadcast-light broadcast-light-${mode}`} />
+      <div className={`lamp-spill lamp-spill-${mode}`} />
+      <div className={`window-reflection window-reflection-${mode}`} />
       <div className={`window-glow-layer window-glow-layer-${mode}`} />
       {mode === "desk" ? (
         <div className="steam-layer steam-layer-desk">

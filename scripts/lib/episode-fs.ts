@@ -4,6 +4,7 @@ import path from "node:path";
 export const projectRoot = process.cwd();
 export const contentRoot = path.join(projectRoot, "content");
 export const draftDir = path.join(contentRoot, "drafts");
+export const scriptDraftDir = path.join(contentRoot, "script-drafts");
 export const reviewedDir = path.join(contentRoot, "reviewed");
 export const builtEpisodeDir = path.join(contentRoot, "episodes");
 export const generatedAudioDir = path.join(projectRoot, "generated-audio");
@@ -18,6 +19,7 @@ export const generatedEpisodesFile = path.join(
 export async function ensureProductionDirs() {
   await Promise.all([
     mkdir(draftDir, { recursive: true }),
+    mkdir(scriptDraftDir, { recursive: true }),
     mkdir(reviewedDir, { recursive: true }),
     mkdir(builtEpisodeDir, { recursive: true }),
     mkdir(generatedAudioDir, { recursive: true }),
@@ -57,6 +59,13 @@ export function parseArgs(argv = process.argv.slice(2)) {
     const token = argv[index];
 
     if (!token.startsWith("--")) {
+      continue;
+    }
+
+    const equalsIndex = token.indexOf("=");
+
+    if (equalsIndex > 2) {
+      args[token.slice(2, equalsIndex)] = token.slice(equalsIndex + 1);
       continue;
     }
 
