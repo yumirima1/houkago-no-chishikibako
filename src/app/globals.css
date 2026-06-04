@@ -743,21 +743,27 @@ body {
 }
 
 .observation-entry {
+  position: fixed;
+  inset: 0;
   display: grid;
   align-content: center;
   gap: clamp(1.1rem, 3vw, 1.8rem);
+  overflow-y: auto;
   padding: clamp(1rem, 4vw, 4rem);
   background:
     radial-gradient(circle at 70% 18%, rgba(125, 211, 252, 0.1), transparent 26%),
     radial-gradient(circle at 22% 72%, rgba(251, 191, 36, 0.11), transparent 24%),
     linear-gradient(180deg, rgba(2, 6, 23, 0.18), rgba(2, 6, 23, 0.66));
   text-shadow: 0 0 1.4rem rgba(2, 6, 23, 0.82);
+  pointer-events: auto;
+  z-index: 32;
 }
 
 .observation-entry::before {
   position: absolute;
   inset: 0;
   z-index: -1;
+  pointer-events: none;
   background:
     linear-gradient(112deg, transparent 0 48%, rgba(186, 230, 253, 0.12) 49% 49.5%, transparent 51% 100%),
     repeating-linear-gradient(180deg, rgba(226, 232, 240, 0.025) 0 1px, transparent 1px 5px);
@@ -815,6 +821,8 @@ body {
   grid-template-columns: repeat(2, minmax(0, 23rem));
   gap: 1rem;
   width: min(100%, 49rem);
+  position: relative;
+  z-index: 1;
 }
 
 .subject-card {
@@ -832,10 +840,14 @@ body {
   box-shadow:
     0 1.2rem 3.2rem rgba(0, 0, 0, 0.28),
     inset 0 0 1.6rem rgba(226, 232, 240, 0.024);
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
   transition:
     border-color 180ms ease,
     background 180ms ease,
     transform 180ms ease;
+  -webkit-tap-highlight-color: rgba(125, 211, 252, 0.18);
 }
 
 .subject-card:hover,
@@ -845,6 +857,15 @@ body {
     radial-gradient(circle at 72% 18%, rgba(125, 211, 252, 0.12), transparent 28%),
     linear-gradient(180deg, rgba(15, 23, 42, 0.5), rgba(2, 6, 23, 0.72));
   transform: translateY(-2px);
+}
+
+.subject-card:active,
+.subject-card.is-entering {
+  border-color: rgba(134, 239, 172, 0.5);
+  background:
+    radial-gradient(circle at 72% 18%, rgba(134, 239, 172, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.56), rgba(2, 6, 23, 0.76));
+  transform: translateY(0) scale(0.985);
 }
 
 .subject-card-kana:hover,
@@ -875,6 +896,17 @@ body {
   line-height: 1.75;
 }
 
+.subject-card em {
+  width: fit-content;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 999px;
+  padding: 0.42rem 0.72rem;
+  color: rgba(224, 242, 254, 0.86);
+  background: rgba(14, 116, 144, 0.14);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
 .observation-secondary-action {
   width: fit-content;
   min-height: 2.75rem;
@@ -883,6 +915,9 @@ body {
   padding: 0 1rem;
   color: rgba(226, 232, 240, 0.74);
   background: rgba(2, 6, 23, 0.32);
+  position: relative;
+  z-index: 1;
+  pointer-events: auto;
 }
 
 .subject-room {
@@ -896,6 +931,35 @@ body {
   position: absolute;
   inset: 0;
   overflow: hidden;
+}
+
+.room-scene-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.room-scene-root-3d {
+  background:
+    radial-gradient(circle at 72% 52%, rgba(251, 191, 36, 0.1), transparent 28%),
+    linear-gradient(180deg, rgba(4, 8, 18, 0.18), rgba(2, 6, 23, 0.74));
+}
+
+.room-scene-3d-canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+.room-scene-3d-loading {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 65% 42%, rgba(125, 211, 252, 0.08), transparent 30%),
+    linear-gradient(180deg, #061424, #050812 62%, #03040a);
 }
 
 .room-depth-layer {
@@ -1002,6 +1066,8 @@ body {
     rgba(2, 6, 23, 0.56);
   box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.28);
   font-size: 0.76rem;
+  pointer-events: auto;
+  touch-action: manipulation;
   transform: rotateX(-58deg);
 }
 
@@ -1033,6 +1099,7 @@ body {
 
 .room-object:disabled {
   cursor: default;
+  pointer-events: none;
 }
 
 .room-object-crt {
@@ -1109,6 +1176,40 @@ body {
   letter-spacing: 0.14em;
 }
 
+.room-object-dock {
+  position: absolute;
+  right: clamp(0.75rem, 4vw, 2.4rem);
+  top: clamp(8.5rem, 18vh, 12rem);
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
+  gap: 0.45rem;
+  width: min(28rem, calc(100vw - 1.5rem));
+  pointer-events: auto;
+}
+
+.room-object-dock-button {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid rgba(226, 232, 240, 0.13);
+  border-radius: 0.58rem;
+  padding: 0.35rem 0.5rem;
+  color: rgba(248, 250, 252, 0.84);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(248, 250, 252, 0.08), transparent 48%),
+    rgba(2, 6, 23, 0.52);
+  box-shadow: 0 0.8rem 1.8rem rgba(0, 0, 0, 0.25);
+  font-size: 0.72rem;
+  touch-action: manipulation;
+  backdrop-filter: blur(10px);
+}
+
+.room-object-dock-button:active,
+.room-object-dock-button:focus-visible {
+  border-color: rgba(125, 211, 252, 0.42);
+  background: rgba(14, 116, 144, 0.24);
+}
+
 .subject-room-overlay {
   position: relative;
   z-index: 2;
@@ -1120,12 +1221,14 @@ body {
   background:
     linear-gradient(90deg, rgba(2, 6, 23, 0.62), transparent 52%),
     linear-gradient(180deg, rgba(2, 6, 23, 0.32), transparent 44%, rgba(2, 6, 23, 0.6));
+  pointer-events: none;
 }
 
 .subject-room-header {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  pointer-events: auto;
 }
 
 .subject-room-clock {
@@ -1149,6 +1252,7 @@ body {
   gap: 0.85rem;
   align-items: end;
   max-width: 82rem;
+  pointer-events: auto;
 }
 
 .room-panel {
@@ -1343,6 +1447,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
+  pointer-events: auto;
 }
 
 .screensaver-caption {
@@ -1946,7 +2051,12 @@ body {
   }
 
   .subject-card {
-    min-height: 11.5rem;
+    min-height: 12.5rem;
+    padding: 1.05rem;
+  }
+
+  .subject-card strong {
+    font-size: clamp(1.42rem, 8vw, 2.2rem);
   }
 
   .subject-room-header {
@@ -2031,6 +2141,19 @@ body {
     align-self: end;
     max-height: 58svh;
     overflow-y: auto;
+  }
+
+  .room-object-dock {
+    right: 0.75rem;
+    top: 14.5rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: calc(100vw - 1.5rem);
+  }
+
+  .room-object-dock-button {
+    min-height: 2.7rem;
+    padding: 0.3rem;
+    font-size: 0.68rem;
   }
 
   .room-panel {

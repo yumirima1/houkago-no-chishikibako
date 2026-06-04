@@ -74,6 +74,7 @@ function getInitialRoomMode(): RoomMode {
     return "listening";
   }
 
+  // Broadcast Background Mode is still the listening surface, not Observation.
   if (requestedMode === "background" || params.get("ambient") === "1") {
     return "listening";
   }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   ObservationSubject,
   SubjectId,
@@ -16,6 +18,15 @@ export function EntrySubjectSelect({
   onStartListening,
   subjects,
 }: EntrySubjectSelectProps) {
+  const [enteringSubjectId, setEnteringSubjectId] = useState<SubjectId | null>(
+    null,
+  );
+
+  function handleSelectSubject(subjectId: SubjectId) {
+    setEnteringSubjectId(subjectId);
+    window.setTimeout(() => onSelectSubject(subjectId), 80);
+  }
+
   return (
     <section className="observation-entry" aria-labelledby="entry-title">
       <div className="observation-entry-clock">NIGHT OBSERVATION ROOM</div>
@@ -30,14 +41,18 @@ export function EntrySubjectSelect({
       <div className="subject-select-grid">
         {subjects.map((subject) => (
           <button
-            className={`subject-card subject-card-${subject.id}`}
+            aria-pressed={enteringSubjectId === subject.id}
+            className={`subject-card subject-card-${subject.id} ${
+              enteringSubjectId === subject.id ? "is-entering" : ""
+            }`}
             key={subject.id}
-            onClick={() => onSelectSubject(subject.id)}
+            onClick={() => handleSelectSubject(subject.id)}
             type="button"
           >
             <span>{subject.shortName}</span>
-            <strong>{subject.name}の部屋</strong>
+            <strong>{subject.name}の部屋を見る</strong>
             <small>{subject.description}</small>
+            <em>入室する</em>
           </button>
         ))}
       </div>

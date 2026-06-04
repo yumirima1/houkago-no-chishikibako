@@ -10,7 +10,7 @@ import {
   RoomObjectId,
   SubjectAction,
 } from "@/components/observation/observationTypes";
-import { RoomFallback2D } from "@/components/room/RoomFallback2D";
+import { RoomSceneRoot } from "@/components/room/RoomSceneRoot";
 
 function formatLogTime(timestamp: string) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -80,7 +80,8 @@ export function SubjectRoomView({
       }`}
       onClick={isScreensaver ? onEnterRoom : undefined}
     >
-      <RoomFallback2D
+      <RoomSceneRoot
+        action={action}
         isScreensaver={isScreensaver}
         onInspectObject={onInspectObject}
         subject={subject}
