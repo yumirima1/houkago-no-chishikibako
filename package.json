@@ -15,6 +15,7 @@
     "episode:audio:clean": "tsx scripts/clean-audio.ts --episodes --previews",
     "episode:audio:cache:clear": "tsx scripts/clean-audio.ts --cache",
     "episode:build": "tsx scripts/build-episode.ts",
+    "episode:draft": "tsx scripts/generate-draft-script.ts",
     "episode:seed": "tsx scripts/generate-episode-seed.ts",
     "episode:seed:legacy": "tsx scripts/seed-episodes.ts",
     "episode:pipeline": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts",
