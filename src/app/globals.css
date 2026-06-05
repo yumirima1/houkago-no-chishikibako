@@ -937,7 +937,7 @@ body {
   position: absolute;
   inset: 0;
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .room-scene-root-3d {
@@ -951,7 +951,102 @@ body {
   inset: 0;
   width: 100% !important;
   height: 100% !important;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.room-scene-root-3d + .room-spatial-props {
+  display: none;
+}
+
+.room-scene-html {
+  width: 12.5rem;
   pointer-events: none;
+}
+
+.room-scene-html > div {
+  display: grid;
+  gap: 0.22rem;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 0.32rem;
+  padding: 0.48rem 0.55rem;
+  color: rgba(226, 232, 240, 0.86);
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.72), rgba(2, 6, 23, 0.54)),
+    rgba(2, 6, 23, 0.42);
+  box-shadow:
+    0 0.9rem 2.4rem rgba(0, 0, 0, 0.38),
+    inset 0 0 1.1rem rgba(226, 232, 240, 0.035);
+  backdrop-filter: blur(8px);
+}
+
+.room-scene-html span {
+  color: rgba(125, 211, 252, 0.74);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+}
+
+.room-scene-html strong {
+  overflow-wrap: anywhere;
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.room-scene-html small {
+  color: rgba(203, 213, 225, 0.66);
+  font-size: 0.58rem;
+  line-height: 1.4;
+}
+
+.scene-crt-readout > div {
+  border-color: rgba(134, 239, 172, 0.2);
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 50% 42%, rgba(34, 197, 94, 0.18), transparent 68%),
+    rgba(1, 12, 10, 0.76);
+  box-shadow:
+    0 0 2.2rem rgba(34, 197, 94, 0.22),
+    inset 0 0 1.4rem rgba(134, 239, 172, 0.08);
+}
+
+.scene-crt-readout span {
+  color: rgba(134, 239, 172, 0.9);
+}
+
+.scene-terminal-readout > div {
+  border-color: rgba(125, 211, 252, 0.22);
+  background:
+    repeating-linear-gradient(180deg, rgba(125, 211, 252, 0.04) 0 1px, transparent 1px 5px),
+    rgba(3, 18, 31, 0.78);
+}
+
+.scene-memo-readout > div {
+  border-color: rgba(253, 230, 138, 0.2);
+  background:
+    linear-gradient(128deg, rgba(92, 54, 18, 0.76), rgba(24, 16, 8, 0.72)),
+    rgba(24, 16, 8, 0.68);
+}
+
+.scene-memo-readout span,
+.scene-memo-readout small {
+  color: rgba(253, 230, 138, 0.76);
+}
+
+.scene-radio-readout > div {
+  border-color: rgba(248, 113, 113, 0.18);
+  background:
+    radial-gradient(circle at 10% 18%, rgba(248, 113, 113, 0.12), transparent 50%),
+    rgba(11, 18, 32, 0.76);
+}
+
+.scene-window-readout > div,
+.scene-clock-readout > div {
+  border-color: rgba(147, 197, 253, 0.2);
+  background:
+    linear-gradient(116deg, rgba(14, 35, 64, 0.74), rgba(2, 6, 23, 0.6)),
+    rgba(2, 6, 23, 0.54);
 }
 
 .room-scene-3d-loading {
@@ -2877,13 +2972,13 @@ audio {
 .night-observation-shell .subject-room-overlay {
   padding: clamp(0.85rem, 2.2vw, 1.6rem);
   background:
-    linear-gradient(90deg, rgba(2, 6, 23, 0.28), transparent 34% 76%, rgba(2, 6, 23, 0.24)),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.28), transparent 28%, rgba(2, 6, 23, 0.46));
+    linear-gradient(90deg, rgba(2, 6, 23, 0.22), transparent 28% 82%, rgba(2, 6, 23, 0.18)),
+    linear-gradient(180deg, rgba(2, 6, 23, 0.18), transparent 34%, rgba(2, 6, 23, 0.38));
 }
 
 .night-observation-shell .subject-room-header {
   width: min(24rem, calc(100vw - 5.5rem));
-  opacity: 0.68;
+  opacity: 0.5;
 }
 
 .night-observation-shell .subject-room-header h1 {
@@ -2909,9 +3004,9 @@ audio {
   position: fixed;
   left: clamp(0.85rem, 2.2vw, 1.4rem);
   bottom: clamp(0.85rem, 2.2vw, 1.4rem);
-  width: min(18rem, 18vw);
-  max-height: min(38svh, 20rem);
-  opacity: 0.86;
+  width: min(15.5rem, 16vw);
+  max-height: min(30svh, 15rem);
+  opacity: 0.72;
 }
 
 .night-observation-shell .room-first-hint,
@@ -3189,11 +3284,12 @@ audio {
   box-shadow:
     0 0 1.4rem rgba(125, 211, 252, 0.11),
     inset 0 0 1rem rgba(248, 250, 252, 0.04);
+  opacity: 0.28;
 }
 
 .room-object-hotspot::after {
   inset: 0.38rem;
-  opacity: 0.45;
+  opacity: 0.2;
 }
 
 .room-object-hotspot span {
@@ -3201,13 +3297,20 @@ audio {
   border-radius: 0.4rem;
   color: rgba(226, 232, 240, 0.78);
   background: rgba(2, 6, 23, 0.52);
-  opacity: 0.72;
+  opacity: 0;
 }
 
 .room-object-hotspot:hover::before,
 .room-object-hotspot:focus-visible::before,
 .room-object-hotspot.is-active::before {
   border-color: rgba(253, 230, 138, 0.48);
+  opacity: 0.86;
+}
+
+.room-object-hotspot:hover::after,
+.room-object-hotspot:focus-visible::after,
+.room-object-hotspot.is-active::after {
+  opacity: 0.55;
 }
 
 .subject-room-tartar .room-object-hotspot-crt {
@@ -3230,9 +3333,19 @@ audio {
   top: 33%;
 }
 
+.subject-room-tartar .room-object-hotspot-radio {
+  left: 72%;
+  top: 62%;
+}
+
 .subject-room-tartar .room-object-hotspot-window {
   left: 78%;
   top: 29%;
+}
+
+.subject-room-tartar .room-object-hotspot-clock {
+  left: 63%;
+  top: 28%;
 }
 
 .subject-room-tartar .room-object-hotspot-lamp {
@@ -3260,9 +3373,19 @@ audio {
   top: 47%;
 }
 
+.subject-room-kana .room-object-hotspot-radio {
+  left: 68%;
+  top: 68%;
+}
+
 .subject-room-kana .room-object-hotspot-window {
   left: 78%;
   top: 29%;
+}
+
+.subject-room-kana .room-object-hotspot-clock {
+  left: 64%;
+  top: 27%;
 }
 
 .subject-room-kana .room-object-hotspot-lamp {
@@ -3272,13 +3395,13 @@ audio {
 
 .room-object-panel {
   position: fixed;
-  z-index: 24;
+  z-index: 6;
   right: clamp(0.85rem, 2.4vw, 1.6rem);
   bottom: clamp(0.85rem, 2.4vw, 1.6rem);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  width: min(24rem, 24vw);
-  max-height: min(72svh, 44rem);
+  width: min(20rem, 22vw);
+  max-height: min(56svh, 34rem);
   border: 1px solid rgba(226, 232, 240, 0.12);
   border-radius: 0.5rem;
   color: rgba(226, 232, 240, 0.88);
@@ -3288,7 +3411,7 @@ audio {
   box-shadow:
     0 1.4rem 4rem rgba(0, 0, 0, 0.42),
     inset 0 0 1.8rem rgba(226, 232, 240, 0.024);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
   transform: translate3d(0, 0, 0);
   transition:
     opacity 220ms ease,
@@ -3330,7 +3453,7 @@ audio {
 .room-panel-scroll {
   min-height: 0;
   overflow-y: auto;
-  padding: 0.85rem;
+  padding: 0.72rem;
   scrollbar-width: thin;
 }
 
@@ -3537,7 +3660,7 @@ audio {
   }
 
   .room-object-panel {
-    width: min(22rem, 38vw);
+    width: min(19rem, 34vw);
   }
 }
 
@@ -3599,7 +3722,7 @@ audio {
     bottom: 0;
     left: 0;
     width: 100%;
-    max-height: 48svh;
+    max-height: 42svh;
     border-right: 0;
     border-bottom: 0;
     border-left: 0;
@@ -3620,7 +3743,23 @@ audio {
   }
 
   .room-object-panel-broadcast {
-    max-height: 56svh;
+    max-height: 46svh;
+  }
+
+  .room-scene-html {
+    width: 9.4rem;
+  }
+
+  .room-scene-html > div {
+    padding: 0.38rem 0.44rem;
+  }
+
+  .room-scene-html strong {
+    font-size: 0.62rem;
+  }
+
+  .room-scene-html small {
+    font-size: 0.52rem;
   }
 
   .ambient-episode h2 {

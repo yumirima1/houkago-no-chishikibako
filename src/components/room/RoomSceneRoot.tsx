@@ -4,10 +4,13 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import {
+  BroadcastThemeCandidate,
+  ObservationLog,
   ObservationSubject,
   RoomObjectId,
   SubjectAction,
 } from "@/components/observation/observationTypes";
+import { Episode } from "@/data/episodes";
 import { RoomFallback2D } from "@/components/room/RoomFallback2D";
 
 const RoomScene3D = dynamic(() => import("@/components/room/RoomScene3D"), {
@@ -18,9 +21,14 @@ const RoomScene3D = dynamic(() => import("@/components/room/RoomScene3D"), {
 type RoomSceneRootProps = {
   action: SubjectAction;
   activeObjectId?: RoomObjectId | null;
+  broadcastCandidates: BroadcastThemeCandidate[];
+  isPlaying: boolean;
   isScreensaver: boolean;
+  latestEpisode: Episode;
+  logs: ObservationLog[];
   onInspectObject: (objectId: RoomObjectId) => void;
   subject: ObservationSubject;
+  timeStateLabel: string;
 };
 
 function shouldUse3DScene() {
@@ -46,9 +54,14 @@ function shouldUse3DScene() {
 export function RoomSceneRoot({
   action,
   activeObjectId,
+  broadcastCandidates,
+  isPlaying,
   isScreensaver,
+  latestEpisode,
+  logs,
   onInspectObject,
   subject,
+  timeStateLabel,
 }: RoomSceneRootProps) {
   const [use3DScene, setUse3DScene] = useState(false);
 
@@ -80,8 +93,14 @@ export function RoomSceneRoot({
       <RoomScene3D
         action={action}
         activeObjectId={activeObjectId}
+        broadcastCandidates={broadcastCandidates}
+        isPlaying={isPlaying}
         isScreensaver={isScreensaver}
+        latestEpisode={latestEpisode}
+        logs={logs}
+        onInspectObject={onInspectObject}
         subject={subject}
+        timeStateLabel={timeStateLabel}
       />
     </div>
   );

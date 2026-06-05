@@ -13,6 +13,7 @@ import {
   SubjectAction,
 } from "@/components/observation/observationTypes";
 import { RoomSceneRoot } from "@/components/room/RoomSceneRoot";
+import { Episode } from "@/data/episodes";
 
 function formatLogTime(timestamp: string) {
   return new Intl.DateTimeFormat("ja-JP", {
@@ -42,6 +43,8 @@ type SubjectRoomViewProps = {
   action: SubjectAction;
   activeObjectId: RoomObjectId | null;
   broadcastCandidates: BroadcastThemeCandidate[];
+  isPlaying: boolean;
+  latestEpisode: Episode;
   logs: ObservationLog[];
   mode: Extract<RoomMode, "room" | "screensaver">;
   onEnterRoom: () => void;
@@ -49,6 +52,7 @@ type SubjectRoomViewProps = {
   onRecordDialogue: () => void;
   relationshipAtmosphere: RelationshipAtmosphere;
   subject: ObservationSubject;
+  timeStateLabel: string;
 };
 
 type RoomObjectDockProps = {
@@ -110,6 +114,8 @@ export function SubjectRoomView({
   action,
   activeObjectId,
   broadcastCandidates,
+  isPlaying,
+  latestEpisode,
   logs,
   mode,
   onEnterRoom,
@@ -117,6 +123,7 @@ export function SubjectRoomView({
   onRecordDialogue,
   relationshipAtmosphere,
   subject,
+  timeStateLabel,
 }: SubjectRoomViewProps) {
   const [seenRoomHints, setSeenRoomHints] = useState({
     kana: false,
@@ -170,9 +177,14 @@ export function SubjectRoomView({
       <RoomSceneRoot
         action={action}
         activeObjectId={activeObjectId}
+        broadcastCandidates={broadcastCandidates}
+        isPlaying={isPlaying}
         isScreensaver={isScreensaver}
+        latestEpisode={latestEpisode}
+        logs={logs}
         onInspectObject={handleInspectObject}
         subject={subject}
+        timeStateLabel={timeStateLabel}
       />
 
       <div className="room-spatial-props" aria-hidden="true">
@@ -223,12 +235,10 @@ export function SubjectRoomView({
               <h2>{inspectedObject?.label ?? action.label}</h2>
               <p>
                 {inspectedObject
-                  ? "観察ログに残り、放送テーマ候補へ渡された。"
-                  : "気になる物を選ぶと、ここに反応が残る。"}
+                  ? "部屋の中の表示に反応が出て、ログと候補に残る。"
+                  : "CRT、PC、メモ、窓へ近づくと反応が出る。"}
               </p>
-              <button onClick={onRecordDialogue} type="button">
-                ひとことだけ聞く
-              </button>
+              <button onClick={onRecordDialogue} type="button">ひとことだけ聞く</button>
             </aside>
 
             <div className="room-signal-grid">

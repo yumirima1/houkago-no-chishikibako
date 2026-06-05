@@ -257,7 +257,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     getInitialBackgroundMode(),
   );
   const [activeObjectId, setActiveObjectId] = useState<RoomObjectId | null>(
-    roomMode === "listening" ? "crt" : null,
+    () =>
+      roomMode === "listening"
+        ? getRequestedSubject() === "kana"
+          ? "radio"
+          : "crt"
+        : null,
   );
   const [activePanel, setActivePanel] = useState<RoomPanel>(
     roomMode === "listening" ? "broadcast" : null,
@@ -335,6 +340,11 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const selectedObject = activeObjectId
     ? selectedSubject.roomObjects.find((object) => object.id === activeObjectId)
     : null;
+  const broadcastEntryObjectId = selectedSubject.roomObjects.some(
+    (object) => object.id === "crt",
+  )
+    ? "crt"
+    : "radio";
 
   const wakeRoom = useCallback(() => {
     setLastInteractionAt(Date.now());
@@ -360,11 +370,16 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     if (!selectedSubjectId) {
       selectSubject(effectiveSubjectId);
     }
-    setActiveObjectId("crt");
+    setActiveObjectId(broadcastEntryObjectId);
     setActivePanel("broadcast");
     setRoomMode("listening");
     setLastInteractionAt(Date.now());
-  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
+  }, [
+    broadcastEntryObjectId,
+    effectiveSubjectId,
+    selectSubject,
+    selectedSubjectId,
+  ]);
 
   const enterBackgroundMode = useCallback(() => {
     blurActiveElement();
@@ -449,7 +464,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       setActiveObjectId(objectId);
       recordObservation(selectedSubject.id, "room-object", nextAction);
 
-      if (objectId === "crt") {
+      if (objectId === "crt" || objectId === "radio") {
         setActivePanel("broadcast");
         setRoomMode("listening");
         return;
@@ -469,8 +484,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       if (objectId === "window") {
         setBackgroundMode("window");
-        setActivePanel(null);
-        setRoomMode("background");
+        setActivePanel("clock");
+        setRoomMode("room");
         return;
       }
 
@@ -479,6 +494,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           currentMode === "desk" ? "room" : "desk",
         );
         setActivePanel("mood");
+        setRoomMode("room");
+        return;
+      }
+
+      if (objectId === "clock") {
+        setActivePanel("clock");
         setRoomMode("room");
       }
     },
@@ -593,6 +614,8 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             action={currentSubjectAction}
             activeObjectId={activeObjectId}
             broadcastCandidates={broadcastCandidates}
+            isPlaying={isVoicePlaying}
+            latestEpisode={selectedEpisode}
             logs={logs}
             mode={roomMode === "screensaver" ? "screensaver" : "room"}
             onEnterRoom={() => {
@@ -603,6 +626,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             onRecordDialogue={handleRecordDialogue}
             relationshipAtmosphere={relationshipAtmosphere}
             subject={selectedSubject}
+            timeStateLabel={getTimeStateLabel()}
           />
 
           <section

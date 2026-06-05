@@ -49,7 +49,9 @@ export type RoomObjectId =
   | "terminal"
   | "memo"
   | "window"
-  | "lamp";
+  | "lamp"
+  | "radio"
+  | "clock";
 
 export type RoomObject = {
   id: RoomObjectId;
