@@ -17,6 +17,7 @@ const RoomScene3D = dynamic(() => import("@/components/room/RoomScene3D"), {
 
 type RoomSceneRootProps = {
   action: SubjectAction;
+  activeObjectId?: RoomObjectId | null;
   isScreensaver: boolean;
   onInspectObject: (objectId: RoomObjectId) => void;
   subject: ObservationSubject;
@@ -36,6 +37,7 @@ function shouldUse3DScene() {
 
 export function RoomSceneRoot({
   action,
+  activeObjectId,
   isScreensaver,
   onInspectObject,
   subject,
@@ -69,6 +71,7 @@ export function RoomSceneRoot({
     <div className="room-scene-root room-scene-root-3d">
       <RoomScene3D
         action={action}
+        activeObjectId={activeObjectId}
         isScreensaver={isScreensaver}
         subject={subject}
       />

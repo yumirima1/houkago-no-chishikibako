@@ -6,11 +6,13 @@ import * as THREE from "three";
 
 import {
   ObservationSubject,
+  RoomObjectId,
   SubjectAction,
 } from "@/components/observation/observationTypes";
 
 type RoomScene3DProps = {
   action: SubjectAction;
+  activeObjectId?: RoomObjectId | null;
   isScreensaver: boolean;
   subject: ObservationSubject;
 };
@@ -234,7 +236,19 @@ function OnAirSign({ accent }: { accent: string }) {
   );
 }
 
-function TartarRoomObjects({ accent }: { accent: string }) {
+function getObjectGlow(activeObjectId?: RoomObjectId | null) {
+  return activeObjectId ? 0.28 : 0;
+}
+
+function TartarRoomObjects({
+  accent,
+  activeObjectId,
+}: {
+  accent: string;
+  activeObjectId?: RoomObjectId | null;
+}) {
+  const glow = getObjectGlow(activeObjectId);
+
   return (
     <group>
       <mesh position={[-0.22, -0.18, 0.52]} rotation={[0.02, -0.14, 0]}>
@@ -242,7 +256,7 @@ function TartarRoomObjects({ accent }: { accent: string }) {
         <meshStandardMaterial
           color="#334155"
           emissive={accent}
-          emissiveIntensity={0.09}
+          emissiveIntensity={0.09 + (activeObjectId === "memo" ? glow : 0)}
           roughness={0.8}
         />
       </mesh>
@@ -255,7 +269,9 @@ function TartarRoomObjects({ accent }: { accent: string }) {
         <meshStandardMaterial
           color="#1e293b"
           emissive={accent}
-          emissiveIntensity={0.05}
+          emissiveIntensity={
+            0.05 + (activeObjectId === "terminal" ? glow : 0)
+          }
           roughness={0.76}
         />
       </mesh>
@@ -267,17 +283,35 @@ function TartarRoomObjects({ accent }: { accent: string }) {
       ))}
       <mesh position={[-1.62, -0.28, 0.12]}>
         <boxGeometry args={[0.24, 0.32, 0.28]} />
-        <meshStandardMaterial color="#111827" roughness={0.62} />
+        <meshStandardMaterial
+          color="#111827"
+          emissive={accent}
+          emissiveIntensity={activeObjectId === "crt" ? glow : 0}
+          roughness={0.62}
+        />
       </mesh>
       <mesh position={[-1.28, -0.28, 0.12]}>
         <boxGeometry args={[0.24, 0.32, 0.28]} />
-        <meshStandardMaterial color="#111827" roughness={0.62} />
+        <meshStandardMaterial
+          color="#111827"
+          emissive={accent}
+          emissiveIntensity={activeObjectId === "envelope" ? glow : 0}
+          roughness={0.62}
+        />
       </mesh>
     </group>
   );
 }
 
-function KanaRoomObjects({ accent }: { accent: string }) {
+function KanaRoomObjects({
+  accent,
+  activeObjectId,
+}: {
+  accent: string;
+  activeObjectId?: RoomObjectId | null;
+}) {
+  const glow = getObjectGlow(activeObjectId);
+
   return (
     <group>
       <group position={[-1.42, 0.02, 0.1]}>
@@ -294,6 +328,8 @@ function KanaRoomObjects({ accent }: { accent: string }) {
             <boxGeometry args={[0.055, 0.54, 0.12]} />
             <meshStandardMaterial
               color={index % 2 ? "#7f1d1d" : "#334155"}
+              emissive={accent}
+              emissiveIntensity={activeObjectId === "memo" ? glow * 0.35 : 0}
               roughness={0.7}
             />
           </mesh>
@@ -304,7 +340,7 @@ function KanaRoomObjects({ accent }: { accent: string }) {
         <meshStandardMaterial
           color="#4b2b38"
           emissive={accent}
-          emissiveIntensity={0.05}
+          emissiveIntensity={0.05 + (activeObjectId === "memo" ? glow : 0)}
           roughness={0.78}
         />
       </mesh>
@@ -313,7 +349,7 @@ function KanaRoomObjects({ accent }: { accent: string }) {
         <meshStandardMaterial
           color="#0f172a"
           emissive={accent}
-          emissiveIntensity={0.08}
+          emissiveIntensity={0.08 + (activeObjectId === "terminal" ? glow : 0)}
           roughness={0.72}
         />
       </mesh>
@@ -322,7 +358,7 @@ function KanaRoomObjects({ accent }: { accent: string }) {
         <meshStandardMaterial
           color="#1f2937"
           emissive={accent}
-          emissiveIntensity={0.08}
+          emissiveIntensity={0.08 + (activeObjectId === "crt" ? glow : 0)}
           roughness={0.64}
         />
       </mesh>
@@ -330,9 +366,15 @@ function KanaRoomObjects({ accent }: { accent: string }) {
   );
 }
 
-function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
+function RoomObjects({
+  action,
+  activeObjectId,
+  isScreensaver,
+  subject,
+}: RoomScene3DProps) {
   const palette = getPalette(subject);
   const actionPulse = 0.05 + (action.id.length % 4) * 0.018;
+  const activeGlow = getObjectGlow(activeObjectId);
   const roomRef = useRef<THREE.Group>(null);
   const lampRef = useRef<THREE.PointLight>(null);
 
@@ -358,7 +400,7 @@ function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
       <ambientLight intensity={palette.ambient} />
       <directionalLight
         color={palette.windowGlow}
-        intensity={0.22}
+        intensity={0.22 + (activeObjectId === "window" ? activeGlow : 0)}
         position={[2, 3, 2]}
       />
       <pointLight
@@ -366,14 +408,21 @@ function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
         color={palette.lamp}
         decay={1.7}
         distance={4.2}
-        intensity={palette.lampIntensity}
+        intensity={
+          palette.lampIntensity + (activeObjectId === "lamp" ? activeGlow : 0)
+        }
         position={[0.86, 1.05, 0.95]}
       />
       <pointLight
         color={palette.monitor}
         decay={1.5}
         distance={2.3}
-        intensity={0.72}
+        intensity={
+          0.72 +
+          (activeObjectId === "crt" || activeObjectId === "terminal"
+            ? activeGlow
+            : 0)
+        }
         position={[-1.1, 0.3, 0.75]}
       />
 
@@ -414,7 +463,11 @@ function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
             <meshStandardMaterial
               color="#06130f"
               emissive={palette.monitor}
-              emissiveIntensity={0.48 + actionPulse}
+              emissiveIntensity={
+                0.48 +
+                actionPulse +
+                (activeObjectId === "crt" ? activeGlow : 0)
+              }
               roughness={0.5}
             />
           </mesh>
@@ -438,7 +491,9 @@ function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
             <meshStandardMaterial
               color="#fed7aa"
               emissive={palette.lamp}
-              emissiveIntensity={0.62}
+              emissiveIntensity={
+                0.62 + (activeObjectId === "lamp" ? activeGlow : 0)
+              }
               roughness={0.34}
             />
           </mesh>
@@ -481,9 +536,15 @@ function RoomObjects({ action, isScreensaver, subject }: RoomScene3DProps) {
         </group>
 
         {subject.id === "tartar" ? (
-          <TartarRoomObjects accent={palette.accent} />
+          <TartarRoomObjects
+            accent={palette.accent}
+            activeObjectId={activeObjectId}
+          />
         ) : (
-          <KanaRoomObjects accent={palette.accent} />
+          <KanaRoomObjects
+            accent={palette.accent}
+            activeObjectId={activeObjectId}
+          />
         )}
       </group>
 

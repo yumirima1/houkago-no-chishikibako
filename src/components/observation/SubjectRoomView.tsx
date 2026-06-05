@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
 import { Clock } from "@/components/Clock";
 import {
   BroadcastThemeCandidate,
@@ -49,20 +51,46 @@ type SubjectRoomViewProps = {
 };
 
 type RoomObjectDockProps = {
+  activeObjectId: RoomObjectId | null;
   onInspectObject: (objectId: RoomObjectId) => void;
   subject: ObservationSubject;
 };
 
-function RoomObjectDock({ onInspectObject, subject }: RoomObjectDockProps) {
+function readSeenRoomHints() {
+  if (typeof window === "undefined") {
+    return { kana: false, tartar: false };
+  }
+
+  return {
+    kana: window.localStorage.getItem("houkago.roomHint.kana") === "1",
+    tartar: window.localStorage.getItem("houkago.roomHint.tartar") === "1",
+  };
+}
+
+function writeSeenRoomHint(subjectId: ObservationSubject["id"]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(`houkago.roomHint.${subjectId}`, "1");
+}
+
+function RoomObjectHotspots({
+  activeObjectId,
+  onInspectObject,
+  subject,
+}: RoomObjectDockProps) {
   return (
     <div
-      className="room-object-dock"
+      className="room-object-hotspots"
       aria-label={`${subject.name}の部屋のものを見る`}
     >
       {subject.roomObjects.map((object) => (
         <button
           aria-label={`${object.label}を見る`}
-          className={`room-object-dock-button room-object-dock-${object.id}`}
+          className={`room-object-hotspot room-object-hotspot-${object.id} ${
+            activeObjectId === object.id ? "is-active" : ""
+          }`}
           key={object.id}
           onClick={(event) => {
             event.stopPropagation();
@@ -88,13 +116,37 @@ export function SubjectRoomView({
   relationshipAtmosphere,
   subject,
 }: SubjectRoomViewProps) {
+  const [inspectedObjectId, setInspectedObjectId] =
+    useState<RoomObjectId | null>(null);
+  const [seenRoomHints, setSeenRoomHints] = useState(() => readSeenRoomHints());
   const subjectLogs = logs
     .filter((log) => log.subjectId === subject.id)
     .slice(0, 6);
   const isScreensaver = mode === "screensaver";
-  const objectLabels = new Map(
-    subject.roomObjects.map((object) => [object.id, object.label]),
+  const inspectedObject = subject.roomObjects.find(
+    (object) => object.id === inspectedObjectId,
   );
+  const latestLog = subjectLogs[0];
+  const latestCandidate = broadcastCandidates[0];
+  const objectLabels = useMemo(
+    () => new Map(subject.roomObjects.map((object) => [object.id, object.label])),
+    [subject.roomObjects],
+  );
+  const showFirstHint = !seenRoomHints[subject.id];
+
+  function markHintSeen() {
+    writeSeenRoomHint(subject.id);
+    setSeenRoomHints((currentHints) => ({
+      ...currentHints,
+      [subject.id]: true,
+    }));
+  }
+
+  function handleInspectObject(objectId: RoomObjectId) {
+    setInspectedObjectId(objectId);
+    markHintSeen();
+    onInspectObject(objectId);
+  }
 
   return (
     <section
@@ -105,8 +157,9 @@ export function SubjectRoomView({
     >
       <RoomSceneRoot
         action={action}
+        activeObjectId={inspectedObjectId}
         isScreensaver={isScreensaver}
-        onInspectObject={onInspectObject}
+        onInspectObject={handleInspectObject}
         subject={subject}
       />
 
@@ -117,7 +170,7 @@ export function SubjectRoomView({
               {isScreensaver ? "部屋を見る" : "部屋を見る"}
             </p>
             <h1>{subject.name}の部屋</h1>
-            <p>{action.mood}</p>
+            <p>{inspectedObject?.description ?? action.mood}</p>
           </div>
           <div className="subject-room-clock">
             <Clock />
@@ -132,104 +185,85 @@ export function SubjectRoomView({
             <p>{action.ambientCue}</p>
           </div>
         ) : (
-          <div className="room-control-layout">
-            <aside className="room-panel">
-              <p className="observation-kicker">いまの様子</p>
-              <h2>{action.label}</h2>
-              <p>{action.thought}</p>
-              <p className="room-reaction-line">{action.reaction}</p>
+          <div className="room-observation-hud">
+            {showFirstHint ? (
+              <button
+                className="room-first-hint"
+                onClick={markHintSeen}
+                type="button"
+              >
+                <span>最初だけ</span>
+                <strong>部屋の物に触れてみてください。</strong>
+                <small>観察対象の日常から、放送テーマが生まれます。</small>
+              </button>
+            ) : null}
+
+            <aside className="room-reaction-card">
+              <p className="observation-kicker">触れたもの</p>
+              <h2>{inspectedObject?.label ?? action.label}</h2>
+              <p>
+                {inspectedObject
+                  ? "反応が観察ログに残った。"
+                  : "気になる物を選ぶと、ここに反応が残る。"}
+              </p>
               <button onClick={onRecordDialogue} type="button">
-                ひとこと反応を見る
+                ひとことだけ聞く
               </button>
             </aside>
 
-            <aside className="room-panel room-relationship-panel">
-              <p className="observation-kicker">距離感</p>
-              <h2>{relationshipAtmosphere.headline}</h2>
-              <p>{relationshipAtmosphere.trustLine}</p>
-              <p>{relationshipAtmosphere.friendshipLine}</p>
-              <p>{relationshipAtmosphere.dependencyLine}</p>
-            </aside>
+            <div className="room-signal-grid">
+              <aside className="room-mini-card">
+                <p className="observation-kicker">距離感</p>
+                <strong>{relationshipAtmosphere.headline}</strong>
+                <span>{relationshipAtmosphere.trustLine}</span>
+              </aside>
 
-            <aside className="room-panel room-log-panel">
-              <p className="observation-kicker">観察箱</p>
-              <h2>観察ログ</h2>
-              {subjectLogs.length > 0 ? (
-                <ul>
-                  {subjectLogs.map((log) => (
-                    <li key={log.id}>
-                      <time>{formatLogTime(log.timestamp)}</time>
-                      <span>{log.logText ?? log.thought}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>まだログはない。部屋のものを見ると残る。</p>
-              )}
-            </aside>
+              <aside className="room-mini-card">
+                <p className="observation-kicker">観察ログ</p>
+                {latestLog ? (
+                  <span>
+                    <time>{formatLogTime(latestLog.timestamp)}</time>
+                    {latestLog.logText ?? latestLog.thought}
+                  </span>
+                ) : (
+                  <span>まだ何も残っていない。</span>
+                )}
+              </aside>
 
-            <aside className="room-panel room-theme-panel">
-              <p className="observation-kicker">放送ネタ候補</p>
-              <h2>放送テーマ候補履歴</h2>
-              {broadcastCandidates.length > 0 ? (
-                <ul>
-                  {broadcastCandidates.map((candidate) => (
-                    <li
-                      className={
-                        candidate.exportable ? "is-exportable" : undefined
-                      }
-                      key={candidate.id}
-                    >
-                      <div className="theme-candidate-heading">
-                        <strong>{candidate.theme}</strong>
-                        {candidate.exportable ? (
-                          <em>放送化できそう</em>
-                        ) : null}
-                      </div>
-                      <span>{candidate.hint}</span>
-                      <dl>
-                        <div>
-                          <dt>subject</dt>
-                          <dd>{subject.name}</dd>
-                        </div>
-                        <div>
-                          <dt>object</dt>
-                          <dd>
-                            {candidate.objectId
-                              ? objectLabels.get(candidate.objectId)
-                              : "行動"}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>action</dt>
-                          <dd>{candidate.actionLabel ?? candidate.actionId}</dd>
-                        </div>
-                        <div>
-                          <dt>createdAt</dt>
-                          <dd>{formatCandidateDate(candidate.createdAt)}</dd>
-                        </div>
-                        <div>
-                          <dt>count</dt>
-                          <dd>{candidate.count ?? 1}</dd>
-                        </div>
-                      </dl>
-                      {candidate.mood ? (
-                        <p className="theme-candidate-mood">{candidate.mood}</p>
-                      ) : null}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>観察ログが増えると、ここに放送テーマの種が残る。</p>
-              )}
-            </aside>
+              <aside className="room-mini-card">
+                <p className="observation-kicker">放送テーマ候補</p>
+                {latestCandidate ? (
+                  <>
+                    <strong>{latestCandidate.theme}</strong>
+                    <span>
+                      {latestCandidate.objectId
+                        ? objectLabels.get(latestCandidate.objectId)
+                        : "行動"}
+                      {latestCandidate.createdAt
+                        ? ` / ${formatCandidateDate(latestCandidate.createdAt)}`
+                        : ""}
+                    </span>
+                  </>
+                ) : (
+                  <span>観察が増えると、ここに種が出る。</span>
+                )}
+              </aside>
+            </div>
+
+            <ol className="observation-flow-strip" aria-label="放送が生まれる流れ">
+              <li className={inspectedObject ? "is-active" : undefined}>観察</li>
+              <li className={latestLog ? "is-active" : undefined}>ログ</li>
+              <li className={latestCandidate ? "is-active" : undefined}>候補</li>
+              <li>放送</li>
+            </ol>
           </div>
         )}
       </div>
 
       {!isScreensaver ? (
-        <RoomObjectDock
-          onInspectObject={onInspectObject}
+        <RoomObjectHotspots
+          activeObjectId={inspectedObjectId}
+          onInspectObject={handleInspectObject}
           subject={subject}
         />
       ) : null}

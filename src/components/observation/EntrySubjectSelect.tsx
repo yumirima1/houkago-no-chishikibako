@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   ObservationSubject,
@@ -21,10 +21,19 @@ export function EntrySubjectSelect({
   const [enteringSubjectId, setEnteringSubjectId] = useState<SubjectId | null>(
     null,
   );
+  const pendingSubjectRef = useRef<SubjectId | null>(null);
 
   function handleSelectSubject(subjectId: SubjectId) {
+    if (pendingSubjectRef.current === subjectId) {
+      return;
+    }
+
+    pendingSubjectRef.current = subjectId;
     setEnteringSubjectId(subjectId);
-    window.setTimeout(() => onSelectSubject(subjectId), 80);
+    window.setTimeout(() => {
+      pendingSubjectRef.current = null;
+      onSelectSubject(subjectId);
+    }, 80);
   }
 
   return (
@@ -47,6 +56,7 @@ export function EntrySubjectSelect({
             }`}
             key={subject.id}
             onClick={() => handleSelectSubject(subject.id)}
+            onPointerUp={() => handleSelectSubject(subject.id)}
             type="button"
           >
             <span>{subject.shortName}</span>
