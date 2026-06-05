@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Clock } from "@/components/Clock";
 import {
@@ -40,6 +40,7 @@ function formatCandidateDate(timestamp?: string) {
 
 type SubjectRoomViewProps = {
   action: SubjectAction;
+  activeObjectId: RoomObjectId | null;
   broadcastCandidates: BroadcastThemeCandidate[];
   logs: ObservationLog[];
   mode: Extract<RoomMode, "room" | "screensaver">;
@@ -107,6 +108,7 @@ function RoomObjectHotspots({
 
 export function SubjectRoomView({
   action,
+  activeObjectId,
   broadcastCandidates,
   logs,
   mode,
@@ -116,15 +118,17 @@ export function SubjectRoomView({
   relationshipAtmosphere,
   subject,
 }: SubjectRoomViewProps) {
-  const [inspectedObjectId, setInspectedObjectId] =
-    useState<RoomObjectId | null>(null);
-  const [seenRoomHints, setSeenRoomHints] = useState(() => readSeenRoomHints());
+  const [seenRoomHints, setSeenRoomHints] = useState({
+    kana: false,
+    tartar: false,
+  });
+  const [isHydrated, setIsHydrated] = useState(false);
   const subjectLogs = logs
     .filter((log) => log.subjectId === subject.id)
     .slice(0, 6);
   const isScreensaver = mode === "screensaver";
   const inspectedObject = subject.roomObjects.find(
-    (object) => object.id === inspectedObjectId,
+    (object) => object.id === activeObjectId,
   );
   const latestLog = subjectLogs[0];
   const latestCandidate = broadcastCandidates[0];
@@ -133,6 +137,15 @@ export function SubjectRoomView({
     [subject.roomObjects],
   );
   const showFirstHint = !seenRoomHints[subject.id];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setIsHydrated(true);
+      setSeenRoomHints(readSeenRoomHints());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function markHintSeen() {
     writeSeenRoomHint(subject.id);
@@ -143,7 +156,6 @@ export function SubjectRoomView({
   }
 
   function handleInspectObject(objectId: RoomObjectId) {
-    setInspectedObjectId(objectId);
     markHintSeen();
     onInspectObject(objectId);
   }
@@ -157,18 +169,27 @@ export function SubjectRoomView({
     >
       <RoomSceneRoot
         action={action}
-        activeObjectId={inspectedObjectId}
+        activeObjectId={activeObjectId}
         isScreensaver={isScreensaver}
         onInspectObject={handleInspectObject}
         subject={subject}
       />
 
+      <div className="room-spatial-props" aria-hidden="true">
+        <span className="room-prop room-prop-window" />
+        <span className="room-prop room-prop-desk" />
+        <span className="room-prop room-prop-crt" />
+        <span className="room-prop room-prop-terminal" />
+        <span className="room-prop room-prop-memo" />
+        <span className="room-prop room-prop-lamp" />
+        <span className="room-prop room-prop-shelf" />
+        <span className="room-prop room-prop-cables" />
+      </div>
+
       <div className="subject-room-overlay">
         <header className="subject-room-header">
           <div>
-            <p className="observation-kicker">
-              {isScreensaver ? "部屋を見る" : "部屋を見る"}
-            </p>
+            <p className="observation-kicker">{isScreensaver ? "背景" : "部屋"}</p>
             <h1>{subject.name}の部屋</h1>
             <p>{inspectedObject?.description ?? action.mood}</p>
           </div>
@@ -186,15 +207,14 @@ export function SubjectRoomView({
           </div>
         ) : (
           <div className="room-observation-hud">
-            {showFirstHint ? (
+            {!isHydrated || showFirstHint ? (
               <button
                 className="room-first-hint"
                 onClick={markHintSeen}
                 type="button"
               >
-                <span>最初だけ</span>
-                <strong>部屋の物に触れてみてください。</strong>
-                <small>観察対象の日常から、放送テーマが生まれます。</small>
+                <strong>部屋の物をタップすると、観察ログが残ります。</strong>
+                <small>観察から、次の放送テーマが生まれます。</small>
               </button>
             ) : null}
 
@@ -203,7 +223,7 @@ export function SubjectRoomView({
               <h2>{inspectedObject?.label ?? action.label}</h2>
               <p>
                 {inspectedObject
-                  ? "反応が観察ログに残った。"
+                  ? "観察ログに残り、放送テーマ候補へ渡された。"
                   : "気になる物を選ぶと、ここに反応が残る。"}
               </p>
               <button onClick={onRecordDialogue} type="button">
@@ -262,7 +282,7 @@ export function SubjectRoomView({
 
       {!isScreensaver ? (
         <RoomObjectHotspots
-          activeObjectId={inspectedObjectId}
+          activeObjectId={activeObjectId}
           onInspectObject={handleInspectObject}
           subject={subject}
         />

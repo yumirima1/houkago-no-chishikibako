@@ -32,7 +32,15 @@ function shouldUse3DScene() {
     return false;
   }
 
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return false;
+  }
+
+  const canvas = document.createElement("canvas");
+  const gl =
+    canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl");
+
+  return Boolean(gl);
 }
 
 export function RoomSceneRoot({

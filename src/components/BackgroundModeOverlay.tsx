@@ -2,6 +2,7 @@
 
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
 import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
+import { Clock } from "@/components/Clock";
 import { BackgroundMode } from "@/components/RainyNightBackground";
 import { Episode, getEpisodeNumberLabel } from "@/data/episodes";
 import {
@@ -23,6 +24,14 @@ function formatTime(seconds: number) {
 function parseDuration(duration: string) {
   const [minutes = "0", seconds = "0"] = duration.split(":");
   return Number(minutes) * 60 + Number(seconds);
+}
+
+function splitTitle(title: string) {
+  if (title.length <= 15) {
+    return [title];
+  }
+
+  return [title.slice(0, 15), title.slice(15)];
 }
 
 type BackgroundModeOverlayProps = {
@@ -78,11 +87,27 @@ export function BackgroundModeOverlay({
         className="ambient-stage"
         aria-label="背景モードプレイヤー"
       >
+        <div className="ambient-clock">
+          <div className="ambient-clock-ring">
+            <span className="clock-mark clock-mark-12" />
+            <span className="clock-mark clock-mark-3" />
+            <span className="clock-mark clock-mark-6" />
+            <span className="clock-mark clock-mark-9" />
+            <p className="ambient-clock-label">JST</p>
+            <div className="ambient-clock-time">
+              <Clock />
+            </div>
+          </div>
+        </div>
         <div className="ambient-episode">
           <p className="ambient-episode-number">
             NOW PLAYING / {episodeNumberLabel}
           </p>
-          <h2>{episode.title}</h2>
+          <h2>
+            {splitTitle(episode.title).map((line) => (
+              <span key={line}>{line}</span>
+            ))}
+          </h2>
         </div>
       </section>
 

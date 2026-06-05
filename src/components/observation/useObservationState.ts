@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   ObservationLog,
@@ -79,27 +79,10 @@ function writeJson<T>(key: string, value: T) {
 
 export function useObservationState() {
   const [selectedSubjectId, setSelectedSubjectIdState] =
-    useState<SubjectId | null>(() => {
-      if (typeof window === "undefined") {
-        return null;
-      }
-
-      const requestedSubject = readRequestedSubject();
-      const storedSubject = getStorage()?.getItem(selectedSubjectKey);
-
-      if (requestedSubject) {
-        return requestedSubject;
-      }
-
-      return storedSubject === "tartar" || storedSubject === "kana" ? storedSubject : null;
-    });
-  const [logs, setLogs] = useState<ObservationLog[]>(() =>
-    readJson<ObservationLog[]>(logsKey, []),
-  );
+    useState<SubjectId | null>(null);
+  const [logs, setLogs] = useState<ObservationLog[]>([]);
   const [relationships, setRelationships] =
-    useState<RelationshipMap>(() =>
-      readJson<RelationshipMap>(relationshipKey, defaultRelationships),
-    );
+    useState<RelationshipMap>(defaultRelationships);
 
   const selectedRelationship = useMemo(() => {
     if (!selectedSubjectId) {
@@ -152,6 +135,29 @@ export function useObservationState() {
     },
     [recordObservation],
   );
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const requestedSubject = readRequestedSubject();
+      const storedSubject = getStorage()?.getItem(selectedSubjectKey);
+
+      setLogs(readJson<ObservationLog[]>(logsKey, []));
+      setRelationships(readJson<RelationshipMap>(relationshipKey, defaultRelationships));
+
+      if (requestedSubject) {
+        setSelectedSubjectIdState(requestedSubject);
+        return;
+      }
+
+      setSelectedSubjectIdState(
+        storedSubject === "tartar" || storedSubject === "kana"
+          ? storedSubject
+          : null,
+      );
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   return {
     logs,

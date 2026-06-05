@@ -19,7 +19,7 @@ export function RoomFallback2D({
   subject,
 }: RoomFallback2DProps) {
   return (
-    <div className="subject-room-scene" aria-hidden="true">
+    <div className="subject-room-scene" aria-label={`${subject.name}の部屋`}>
       <div className="room-depth-layer room-depth-layer-back" />
       <div className="room-depth-layer room-depth-layer-mid" />
       <div className="subject-window">

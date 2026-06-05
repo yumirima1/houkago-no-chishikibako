@@ -2,14 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { AudioPlayer } from "@/components/AudioPlayer";
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
+import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
-import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
-import { BroadcastRoomBackground } from "@/components/background/BroadcastRoomBackground";
-import { EntrySubjectSelect } from "@/components/observation/EntrySubjectSelect";
 import { SubjectRoomView } from "@/components/observation/SubjectRoomView";
 import {
   RoomMode,
@@ -39,59 +36,73 @@ import {
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 import { useBroadcastAmbience } from "@/hooks/useBroadcastAmbience";
 
-const AUTO_HIDE_MS = 30_000;
+const AUTO_HIDE_MS = 45_000;
 
 const backgroundModes: { id: BackgroundMode; label: string }[] =
   backgroundModeProfiles;
+
+type ListeningRoomProps = {
+  episodes: Episode[];
+};
+
+type RoomPanel = "broadcast" | "terminal" | "memo" | "mood" | "clock" | null;
+
+type RoomNavigationMenuProps = {
+  isOpen: boolean;
+  onEnterBackground: () => void;
+  onEnterListening: () => void;
+  onEnterSubject: (subjectId: SubjectId) => void;
+  onOpenChange: (isOpen: boolean) => void;
+};
 
 function isBackgroundMode(value: string | null): value is BackgroundMode {
   return backgroundModes.some((mode) => mode.id === value);
 }
 
 function getInitialBackgroundMode() {
-  if (typeof window !== "undefined") {
-    const requestedMode = new URLSearchParams(window.location.search).get(
-      "background",
-    );
+  if (typeof window === "undefined") {
+    return "room";
+  }
 
-    if (isBackgroundMode(requestedMode)) {
-      return requestedMode;
-    }
+  const requestedMode = new URLSearchParams(window.location.search).get(
+    "background",
+  );
+
+  return isBackgroundMode(requestedMode) ? requestedMode : "room";
+}
+
+function getInitialRoomMode(): RoomMode {
+  if (typeof window === "undefined") {
+    return "room";
+  }
+
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get("mode") === "listening") {
+    return "listening";
+  }
+
+  if (params.get("mode") === "background" || params.get("ambient") === "1") {
+    return "background";
+  }
+
+  if (params.get("mode") === "screensaver") {
+    return "screensaver";
   }
 
   return "room";
 }
 
-function getInitialRoomMode(): RoomMode {
+function getRequestedSubject(): SubjectId {
   if (typeof window === "undefined") {
-    return "entry";
+    return "tartar";
   }
 
-  const params = new URLSearchParams(window.location.search);
-  const requestedMode = params.get("mode");
-  const requestedSubject = params.get("subject");
+  const requestedSubject = new URLSearchParams(window.location.search).get(
+    "subject",
+  );
 
-  if (requestedMode === "listening") {
-    return "listening";
-  }
-
-  // Broadcast Background Mode is still the listening surface, not Observation.
-  if (requestedMode === "background" || params.get("ambient") === "1") {
-    return "background";
-  }
-
-  if (
-    (requestedSubject === "tartar" || requestedSubject === "kana") &&
-    requestedMode === "screensaver"
-  ) {
-    return "screensaver";
-  }
-
-  if (requestedSubject === "tartar" || requestedSubject === "kana") {
-    return "room";
-  }
-
-  return "entry";
+  return requestedSubject === "kana" ? "kana" : "tartar";
 }
 
 function blurActiveElement() {
@@ -104,40 +115,55 @@ function blurActiveElement() {
   }
 }
 
-function getNextSundayUpdateLabel() {
-  const jstNow = new Date(
-    new Date().toLocaleString("en-US", { timeZone: "Asia/Tokyo" }),
-  );
-  const next = new Date(jstNow);
-  const daysUntilSunday = (7 - next.getDay()) % 7;
-
-  next.setDate(next.getDate() + daysUntilSunday);
-  next.setHours(3, 0, 0, 0);
-
-  if (next <= jstNow) {
-    next.setDate(next.getDate() + 7);
-  }
-
-  return `${next.getFullYear()}年${next.getMonth() + 1}月${next.getDate()}日 03:00`;
+function formatLogTime(timestamp: string) {
+  return new Intl.DateTimeFormat("ja-JP", {
+    hour: "2-digit",
+    hour12: false,
+    minute: "2-digit",
+    timeZone: "Asia/Tokyo",
+  }).format(new Date(timestamp));
 }
 
-type ListeningRoomProps = {
-  episodes: Episode[];
-};
+function formatTime(seconds: number) {
+  if (!Number.isFinite(seconds) || seconds < 0) {
+    return "00:00";
+  }
 
-type RoomNavigationMenuProps = {
-  isOpen: boolean;
-  onEnterBackground: () => void;
-  onEnterListening: () => void;
-  onEnterRoom: () => void;
-  onOpenChange: (isOpen: boolean) => void;
-};
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function getTimeStateLabel() {
+  const hour = Number(
+    new Intl.DateTimeFormat("ja-JP", {
+      hour: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Tokyo",
+    }).format(new Date()),
+  );
+
+  if (hour >= 5 && hour < 17) {
+    return "朝";
+  }
+
+  if (hour >= 17 && hour < 22) {
+    return "夕方";
+  }
+
+  if (hour >= 0 && hour < 4) {
+    return "深夜";
+  }
+
+  return "夜";
+}
 
 function RoomNavigationMenu({
   isOpen,
   onEnterBackground,
   onEnterListening,
-  onEnterRoom,
+  onEnterSubject,
   onOpenChange,
 }: RoomNavigationMenuProps) {
   const menuRef = useRef<HTMLElement | null>(null);
@@ -167,15 +193,11 @@ function RoomNavigationMenu({
       }
     }
 
-    document.addEventListener("mousedown", handlePointerDown, true);
     document.addEventListener("pointerdown", handlePointerDown, true);
-    document.addEventListener("touchstart", handlePointerDown, true);
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown, true);
       document.removeEventListener("pointerdown", handlePointerDown, true);
-      document.removeEventListener("touchstart", handlePointerDown, true);
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onOpenChange]);
@@ -197,10 +219,19 @@ function RoomNavigationMenu({
       {isOpen ? (
         <div className="room-menu-panel">
           <button onClick={() => handleSelect(onEnterListening)} type="button">
-            放送を聴く
+            放送室
           </button>
-          <button onClick={() => handleSelect(onEnterRoom)} type="button">
-            部屋を見る
+          <button
+            onClick={() => handleSelect(() => onEnterSubject("tartar"))}
+            type="button"
+          >
+            タルタルの部屋
+          </button>
+          <button
+            onClick={() => handleSelect(() => onEnterSubject("kana"))}
+            type="button"
+          >
+            かなの部屋
           </button>
           <button onClick={() => handleSelect(onEnterBackground)} type="button">
             背景モード
@@ -220,6 +251,29 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     selectedRelationship,
     selectedSubjectId,
   } = useObservationState();
+  const [fallbackSubjectId] = useState<SubjectId>(() => getRequestedSubject());
+  const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
+  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
+    getInitialBackgroundMode(),
+  );
+  const [activeObjectId, setActiveObjectId] = useState<RoomObjectId | null>(
+    roomMode === "listening" ? "crt" : null,
+  );
+  const [activePanel, setActivePanel] = useState<RoomPanel>(
+    roomMode === "listening" ? "broadcast" : null,
+  );
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
+  const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const bgm = useAmbientAudio({ isVoicePlaying });
+  const ambience = useBroadcastAmbience({ isActive: true });
+
+  const effectiveSubjectId = selectedSubjectId ?? fallbackSubjectId;
+  const selectedSubject = observationSubjects[effectiveSubjectId];
   const publicEpisodes = useMemo(
     () => sortEpisodesForPublicDisplay(episodes.filter(isUserVisibleEpisode)),
     [episodes],
@@ -234,25 +288,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [selectedEpisodeId, setSelectedEpisodeId] = useState(
     latestEpisode?.id ?? firstListenEpisode?.id ?? episodes[0]?.id,
   );
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
-    getInitialBackgroundMode(),
-  );
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
-  const [roomMenuState, setRoomMenuState] = useState<{
-    isOpen: boolean;
-    mode: RoomMode | null;
-  }>({ isOpen: false, mode: null });
-  const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
-  const [nextUpdateLabel] = useState(() => getNextSundayUpdateLabel());
-  const [isVoicePlaying, setIsVoicePlaying] = useState(false);
-  const [isTagPanelOpen, setIsTagPanelOpen] = useState(false);
-  const bgm = useAmbientAudio({ isVoicePlaying });
-  const ambience = useBroadcastAmbience({ isActive: true });
-
   const selectedEpisode = useMemo(
     () =>
       episodes.find((episode) => episode.id === selectedEpisodeId) ??
@@ -266,7 +301,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       ),
     [firstListenEpisode?.id, publicEpisodes],
   );
-
   const allTags = useMemo(
     () =>
       [
@@ -283,63 +317,65 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       selectedTags.every((tag) => getEpisodeTags(episode).includes(tag)),
     );
   }, [listEpisodes, selectedTags]);
-  const selectedSubject = selectedSubjectId
-    ? observationSubjects[selectedSubjectId]
-    : null;
-  const currentSubjectAction = selectedSubject
-    ? getSubjectAction(selectedSubject.id, {
-        logs,
-        relationship: selectedRelationship,
-      })
-    : null;
-  const relationshipAtmosphere = selectedSubject
-    ? getRelationshipAtmosphere(selectedSubject.id, selectedRelationship)
-    : null;
-  const broadcastCandidates = selectedSubject
-    ? getBroadcastThemeCandidates(logs, selectedSubject.id)
-    : [];
-  const isRoomMenuOpen =
-    roomMenuState.isOpen && roomMenuState.mode === roomMode;
-  const showInterface = roomMode === "listening";
-
-  const setRoomMenuOpen = useCallback(
-    (nextIsOpen: boolean) => {
-      setRoomMenuState({
-        isOpen: nextIsOpen,
-        mode: nextIsOpen ? roomMode : null,
-      });
-    },
-    [roomMode],
+  const currentSubjectAction = getSubjectAction(selectedSubject.id, {
+    logs,
+    relationship: selectedRelationship,
+  });
+  const relationshipAtmosphere = getRelationshipAtmosphere(
+    selectedSubject.id,
+    selectedRelationship,
   );
+  const broadcastCandidates = getBroadcastThemeCandidates(
+    logs,
+    selectedSubject.id,
+  );
+  const subjectLogs = logs
+    .filter((log) => log.subjectId === selectedSubject.id)
+    .slice(0, 8);
+  const selectedObject = activeObjectId
+    ? selectedSubject.roomObjects.find((object) => object.id === activeObjectId)
+    : null;
 
-  const wakeInterface = useCallback(() => {
-    setRoomMenuState({ isOpen: false, mode: null });
+  const wakeRoom = useCallback(() => {
     setLastInteractionAt(Date.now());
-    setRoomMode("listening");
-  }, []);
-
-  const enterRoomSelection = useCallback(() => {
-    blurActiveElement();
-    setRoomMenuState({ isOpen: false, mode: null });
-    setRoomMode("entry");
-  }, []);
-
-  const enterBackgroundMode = useCallback(() => {
-    blurActiveElement();
-    setRoomMenuState({ isOpen: false, mode: null });
-    setLastInteractionAt(Date.now());
-    setRoomMode("background");
-  }, []);
-
-  const markActivity = useCallback(() => {
-    if (roomMode === "listening") {
-      setLastInteractionAt(Date.now());
+    if (roomMode === "screensaver") {
+      setRoomMode("room");
     }
   }, [roomMode]);
 
-  const handlePlaybackChange = useCallback((nextIsPlaying: boolean) => {
-    setIsVoicePlaying(nextIsPlaying);
-  }, []);
+  const enterSubjectRoom = useCallback(
+    (subjectId: SubjectId) => {
+      blurActiveElement();
+      selectSubject(subjectId);
+      setActiveObjectId(null);
+      setActivePanel(null);
+      setRoomMode("room");
+      setLastInteractionAt(Date.now());
+    },
+    [selectSubject],
+  );
+
+  const enterListeningRoom = useCallback(() => {
+    blurActiveElement();
+    if (!selectedSubjectId) {
+      selectSubject(effectiveSubjectId);
+    }
+    setActiveObjectId("crt");
+    setActivePanel("broadcast");
+    setRoomMode("listening");
+    setLastInteractionAt(Date.now());
+  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
+
+  const enterBackgroundMode = useCallback(() => {
+    blurActiveElement();
+    if (!selectedSubjectId) {
+      selectSubject(effectiveSubjectId);
+    }
+    setActiveObjectId("window");
+    setActivePanel(null);
+    setRoomMode("background");
+    setLastInteractionAt(Date.now());
+  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
 
   const selectEpisode = useCallback((episodeId: string) => {
     setIsVoicePlaying(false);
@@ -354,21 +390,21 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       if (targetEpisode && !hasPlayableAudio(targetEpisode)) {
         selectEpisode(episodeId);
-        wakeInterface();
+        enterListeningRoom();
         return;
       }
 
       if (episodeId === selectedEpisode.id) {
         void audioRef.current?.play();
-        wakeInterface();
+        enterListeningRoom();
         return;
       }
 
       selectEpisode(episodeId);
       setShouldAutoPlayNext(true);
-      wakeInterface();
+      enterListeningRoom();
     },
-    [episodes, selectEpisode, selectedEpisode.id, wakeInterface],
+    [enterListeningRoom, episodes, selectEpisode, selectedEpisode.id],
   );
 
   const toggleSelectedEpisodePlayback = useCallback(() => {
@@ -405,6 +441,56 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     setShouldAutoPlayNext(true);
   }, [episodes, selectEpisode, selectedEpisode.id]);
 
+  const handleInspectObject = useCallback(
+    (objectId: RoomObjectId) => {
+      const nextAction = roomObjectAction(selectedSubject.id, objectId);
+
+      wakeRoom();
+      setActiveObjectId(objectId);
+      recordObservation(selectedSubject.id, "room-object", nextAction);
+
+      if (objectId === "crt") {
+        setActivePanel("broadcast");
+        setRoomMode("listening");
+        return;
+      }
+
+      if (objectId === "terminal") {
+        setActivePanel("terminal");
+        setRoomMode("room");
+        return;
+      }
+
+      if (objectId === "memo" || objectId === "envelope") {
+        setActivePanel("memo");
+        setRoomMode("room");
+        return;
+      }
+
+      if (objectId === "window") {
+        setBackgroundMode("window");
+        setActivePanel(null);
+        setRoomMode("background");
+        return;
+      }
+
+      if (objectId === "lamp") {
+        setBackgroundMode((currentMode) =>
+          currentMode === "desk" ? "room" : "desk",
+        );
+        setActivePanel("mood");
+        setRoomMode("room");
+      }
+    },
+    [recordObservation, selectedSubject.id, wakeRoom],
+  );
+
+  const handleRecordDialogue = useCallback(() => {
+    wakeRoom();
+    recordObservation(selectedSubject.id, "dialogue", currentSubjectAction);
+    setActivePanel("memo");
+  }, [currentSubjectAction, recordObservation, selectedSubject.id, wakeRoom]);
+
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags((currentTags) =>
       currentTags.includes(tag)
@@ -413,80 +499,25 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     );
   }, []);
 
-  const handleSelectSubject = useCallback(
-    (subjectId: SubjectId) => {
-      setRoomMenuState({ isOpen: false, mode: null });
-      selectSubject(subjectId);
-      setRoomMode("room");
-    },
-    [selectSubject],
-  );
-
-  const handleInspectObject = useCallback(
-    (objectId: RoomObjectId) => {
-      if (!selectedSubject) {
-        return;
-      }
-
-      const nextAction = roomObjectAction(selectedSubject.id, objectId);
-
-      recordObservation(selectedSubject.id, "room-object", nextAction);
-
-      if (objectId === "crt") {
-        setRoomMode("listening");
-      }
-
-      if (objectId === "lamp") {
-        setBackgroundMode((currentMode) =>
-          currentMode === "desk" ? "room" : "desk",
-        );
-      }
-    },
-    [recordObservation, selectedSubject],
-  );
-
-  const handleRecordDialogue = useCallback(() => {
-    if (!selectedSubject || !currentSubjectAction) {
-      return;
+  useEffect(() => {
+    if (!selectedSubjectId && roomMode !== "background") {
+      selectSubject(effectiveSubjectId);
     }
-
-    recordObservation(selectedSubject.id, "dialogue", currentSubjectAction);
-  }, [currentSubjectAction, recordObservation, selectedSubject]);
+  }, [effectiveSubjectId, roomMode, selectSubject, selectedSubjectId]);
 
   useEffect(() => {
-    const activityEvents = [
-      "mousemove",
-      "mousedown",
-      "keydown",
-      "touchstart",
-      "wheel",
-    ];
-
-    activityEvents.forEach((eventName) => {
-      window.addEventListener(eventName, markActivity, { passive: true });
-    });
-
-    return () => {
-      activityEvents.forEach((eventName) => {
-        window.removeEventListener(eventName, markActivity);
-      });
-    };
-  }, [markActivity]);
-
-  useEffect(() => {
-    if (roomMode !== "listening") {
+    if (roomMode !== "room" && roomMode !== "listening") {
       return;
     }
 
     const timer = window.setTimeout(() => {
       blurActiveElement();
-      if (selectedSubject) {
-        setRoomMode("screensaver");
-      }
+      setRoomMode("screensaver");
+      setActivePanel(null);
     }, AUTO_HIDE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [lastInteractionAt, roomMode, selectedSubject]);
+  }, [lastInteractionAt, roomMode]);
 
   useEffect(() => {
     if (!shouldAutoPlayNext) {
@@ -500,12 +531,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
     return () => window.clearTimeout(timer);
   }, [selectedEpisode.id, shouldAutoPlayNext]);
-
-  useEffect(() => {
-    if (roomMode === "screensaver") {
-      blurActiveElement();
-    }
-  }, [roomMode]);
 
   useEffect(() => {
     if (roomMode !== "screensaver") {
@@ -525,27 +550,23 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   }
 
   const selectedEpisodeNumberLabel = getEpisodeNumberLabel(selectedEpisode);
-  const monitorNowPlayingLabel = `${selectedEpisodeNumberLabel} ${selectedEpisode.title}`;
+  const displayDuration = duration > 0 ? duration : 0;
+  const progress = displayDuration
+    ? Math.min(100, Math.max(0, (currentTime / displayDuration) * 100))
+    : 0;
+  const isBackground = roomMode === "background";
 
   return (
-    <main className="relative min-h-screen overflow-hidden text-slate-100">
-      <BroadcastRoomBackground
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden bg-[#050812]"
-        isOnAir={isVoicePlaying}
-        mode={backgroundMode}
-        nowPlayingLabel={monitorNowPlayingLabel}
-      />
-
+    <main className="night-observation-shell min-h-screen text-slate-100">
       <RoomNavigationMenu
-        key={roomMode}
-        isOpen={isRoomMenuOpen}
+        isOpen={isMenuOpen}
         onEnterBackground={enterBackgroundMode}
-        onEnterListening={wakeInterface}
-        onEnterRoom={enterRoomSelection}
-        onOpenChange={setRoomMenuOpen}
+        onEnterListening={enterListeningRoom}
+        onEnterSubject={enterSubjectRoom}
+        onOpenChange={setIsMenuOpen}
       />
 
-      {roomMode === "background" ? (
+      {isBackground ? (
         <BackgroundModeOverlay
           ambienceEnabled={ambience.enabled}
           ambienceIsAvailable={ambience.isAvailable}
@@ -558,239 +579,245 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
           isPlaying={isVoicePlaying}
           onAmbienceEnabledChange={ambience.setEnabled}
           onAmbienceVolumeChange={ambience.setVolume}
-          onShowInterface={wakeInterface}
+          onShowInterface={() => {
+            setRoomMode("room");
+            setActiveObjectId("window");
+            setActivePanel("clock");
+            setLastInteractionAt(Date.now());
+          }}
           onTogglePlayback={toggleSelectedEpisodePlayback}
         />
-      ) : null}
+      ) : (
+        <>
+          <SubjectRoomView
+            action={currentSubjectAction}
+            activeObjectId={activeObjectId}
+            broadcastCandidates={broadcastCandidates}
+            logs={logs}
+            mode={roomMode === "screensaver" ? "screensaver" : "room"}
+            onEnterRoom={() => {
+              setRoomMode("room");
+              setLastInteractionAt(Date.now());
+            }}
+            onInspectObject={handleInspectObject}
+            onRecordDialogue={handleRecordDialogue}
+            relationshipAtmosphere={relationshipAtmosphere}
+            subject={selectedSubject}
+          />
 
-      {roomMode === "entry" ? (
-        <EntrySubjectSelect
-          onSelectSubject={handleSelectSubject}
-          onStartListening={wakeInterface}
-          subjects={Object.values(observationSubjects)}
-        />
-      ) : null}
-
-      {selectedSubject &&
-      currentSubjectAction &&
-      relationshipAtmosphere &&
-      (roomMode === "room" || roomMode === "screensaver") ? (
-        <SubjectRoomView
-          action={currentSubjectAction}
-          broadcastCandidates={broadcastCandidates}
-          logs={logs}
-          mode={roomMode}
-          onEnterRoom={() => setRoomMode("room")}
-          onInspectObject={handleInspectObject}
-          onRecordDialogue={handleRecordDialogue}
-          relationshipAtmosphere={relationshipAtmosphere}
-          subject={selectedSubject}
-        />
-      ) : null}
-
-      <div
-        className={`broadcast-listening-shell relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 transition-opacity duration-[900ms] sm:px-6 lg:px-8 ${
-          showInterface ? "is-active" : "is-hidden"
-        }`}
-        aria-hidden={!showInterface}
-      >
-        <header className="flex flex-col gap-4 border-b border-white/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-medium tracking-[0.28em] text-cyan-100/75">
-              NIGHT BROADCAST ROOM
-            </p>
-            <p className="mt-2 text-xl font-semibold text-slate-50">
-              放課後の知識箱
-            </p>
-            <p className="mt-2 text-sm text-slate-400">
-              夜更かしした人が戻ってくる、雨の放送室。
-              <span className="mt-1 block text-slate-500 sm:ml-3 sm:inline">
-                次回更新予定: {nextUpdateLabel}
-              </span>
-            </p>
-          </div>
-
-          <div className="flex min-w-0 max-w-full flex-col gap-2 sm:items-end">
-            <p className="max-w-44 text-right text-xs leading-6 text-slate-500">
-              放送と部屋は、右上のメニューから行き来できます。
-            </p>
-          </div>
-        </header>
-
-        <section className="grid min-h-[calc(100vh-6.5rem)] min-w-0 flex-1 items-center gap-5 py-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(23rem,0.82fr)] lg:py-8">
-          <div className="station-first-view min-h-[34rem] min-w-0 rounded-lg border border-white/10 bg-slate-950/22 p-4 backdrop-blur-[2px] sm:p-6 lg:min-h-[42rem]">
-            <div className="station-console">
-              <div className="station-console-screen">
-                <div className="station-console-scanlines" />
-                <p className="text-xs tracking-[0.28em] text-emerald-100/60">
-                  CRT MONITOR CLOCK
-                </p>
-                <Clock />
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                      isVoicePlaying
-                        ? "border-red-200/30 bg-red-500/15 text-red-100"
-                        : "border-slate-200/15 bg-slate-200/10 text-slate-300"
-                    }`}
-                  >
-                    {isVoicePlaying ? "● ON AIR" : "OFF AIR"}
-                  </span>
-                  <span className="rounded-full border border-cyan-100/20 bg-cyan-100/10 px-3 py-1.5 text-xs text-cyan-50">
-                    現実時刻同期
-                  </span>
-                </div>
-                <p className="mt-5 text-xs tracking-[0.22em] text-cyan-100/55">
-                  NOW PLAYING
-                </p>
-                <h1 className="mt-2 text-2xl font-semibold leading-tight text-slate-50 sm:text-4xl">
-                  {selectedEpisodeNumberLabel}
-                  <span className="mt-2 block text-balance">
-                    {selectedEpisode.title}
-                  </span>
-                </h1>
-                <p className="mt-4 max-w-xl break-words text-sm leading-7 text-slate-300 sm:text-base">
-                  {selectedEpisode.description}
-                </p>
-                <div className="mt-6 flex flex-wrap gap-2">
-                  <button
-                    className="min-h-11 rounded-md border border-cyan-100/25 bg-cyan-100/[0.14] px-4 text-sm font-semibold text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-                    disabled={!hasPlayableAudio(selectedEpisode)}
-                    onClick={toggleSelectedEpisodePlayback}
-                    type="button"
-                  >
-                    {isVoicePlaying ? "一時停止" : "放送を聴く"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="station-console-notes">
-                <div>
-                  <span>ROOM</span>
-                  <strong>雨 / CRT / 暖色照明</strong>
-                </div>
-                <div>
-                  <span>LATEST</span>
-                  <strong>#017 公開中</strong>
-                </div>
-                <div>
-                  <span>LIST</span>
-                  <strong>#018以降は非表示</strong>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="min-w-0 space-y-4">
-            <AudioPlayer
-              audioRef={audioRef}
-              episode={selectedEpisode}
-              onEnded={handleEpisodeEnded}
-              onLoadedMetadata={(nextDuration) => setDuration(nextDuration)}
-              onPlaybackChange={handlePlaybackChange}
-              onTimeUpdate={setCurrentTime}
-            />
-            <BgmControls
-              enabled={bgm.enabled}
-              isAvailable={bgm.isAvailable}
-              onEnabledChange={bgm.setEnabled}
-              onVolumeChange={bgm.setVolume}
-              volume={bgm.volume}
-            />
-            <AmbientSoundControls
-              enabled={ambience.enabled}
-              isAvailable={ambience.isAvailable}
-              onEnabledChange={ambience.setEnabled}
-              onVolumeChange={ambience.setVolume}
-              variant="inline"
-              volumes={ambience.volumes}
-            />
-          </div>
-        </section>
-
-        <div className="pb-14 pt-8">
           <section
-            aria-label="放送記録の索引"
-            className="mb-6 rounded-lg border border-white/10 bg-white/[0.045] p-4 backdrop-blur-sm"
+            className={`room-object-panel ${
+              activePanel ? "is-open" : "is-closed"
+            } room-object-panel-${activePanel ?? "none"}`}
+            aria-live="polite"
           >
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="room-object-panel-header">
               <div>
-                <h2 className="text-sm font-semibold text-slate-100">
-                  放送記録の索引
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  {selectedTags.length > 0
-                    ? `${selectedTags.length}件のタグで絞り込み中`
-                    : "必要なときだけ開けます"}
+                <p className="observation-kicker">
+                  {selectedObject?.label ?? "部屋"}
                 </p>
+                <h2>
+                  {activePanel === "broadcast"
+                    ? "放送室"
+                    : activePanel === "terminal"
+                      ? "観察端末"
+                      : activePanel === "memo"
+                        ? "思考の断片"
+                        : activePanel === "clock"
+                          ? "時計"
+                          : "空気"}
+                </h2>
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedTags.length > 0 ? (
-                  <button
-                    className="min-h-10 rounded-md border border-white/10 bg-white/[0.045] px-3 text-sm text-slate-300 transition-colors hover:bg-white/[0.08]"
-                    onClick={() => setSelectedTags([])}
-                    type="button"
-                  >
-                    解除
-                  </button>
-                ) : null}
-                <button
-                  aria-expanded={isTagPanelOpen}
-                  className="min-h-10 rounded-md border border-cyan-100/20 bg-cyan-100/[0.1] px-3 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.16] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-                  onClick={() => setIsTagPanelOpen((isOpen) => !isOpen)}
-                  type="button"
-                >
-                  {isTagPanelOpen ? "索引を閉じる" : "索引を開く"}
-                </button>
-              </div>
+              <button
+                aria-label="パネルを閉じる"
+                onClick={() => setActivePanel(null)}
+                type="button"
+              >
+                ×
+              </button>
             </div>
 
-            {selectedTags.length > 0 ? (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selectedTags.map((tag) => (
-                  <button
-                    className="rounded-full border border-cyan-100/35 bg-cyan-100/[0.14] px-3 py-1.5 text-sm text-cyan-50 transition-colors hover:bg-cyan-100/[0.2] focus:outline-none focus:ring-2 focus:ring-cyan-200/60"
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    type="button"
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            {activePanel === "broadcast" ? (
+              <div className="room-panel-scroll">
+                <div className="room-broadcast-now">
+                  <span className={isVoicePlaying ? "is-live" : ""}>
+                    {isVoicePlaying ? "ON AIR" : "STANDBY"}
+                  </span>
+                  <strong>
+                    {selectedEpisodeNumberLabel} {selectedEpisode.title}
+                  </strong>
+                  <p>{selectedEpisode.description}</p>
+                  {hasPlayableAudio(selectedEpisode) ? (
+                    <audio
+                      key={selectedEpisode.id}
+                      ref={audioRef}
+                      controls
+                      onEnded={() => {
+                        setIsVoicePlaying(false);
+                        handleEpisodeEnded();
+                      }}
+                      onLoadedMetadata={(event) =>
+                        setDuration(event.currentTarget.duration)
+                      }
+                      onPause={() => setIsVoicePlaying(false)}
+                      onPlay={() => setIsVoicePlaying(true)}
+                      onTimeUpdate={(event) =>
+                        setCurrentTime(event.currentTarget.currentTime)
+                      }
+                      preload="metadata"
+                      src={selectedEpisode.audioUrl}
+                    >
+                      お使いのブラウザは音声再生に対応していません。
+                    </audio>
+                  ) : (
+                    <p>この回は準備中です。</p>
+                  )}
+                  <div className="room-progress">
+                    <span>{formatTime(currentTime)}</span>
+                    <i>
+                      <b style={{ width: `${progress}%` }} />
+                    </i>
+                    <span>{duration ? formatTime(duration) : selectedEpisode.duration}</span>
+                  </div>
+                </div>
 
-            {isTagPanelOpen ? (
-              <div className="mt-4 flex max-h-72 flex-wrap gap-2 overflow-y-auto border-t border-white/10 pt-4">
-                {allTags.map((tag) => {
-                  const isSelected = selectedTags.includes(tag);
+                <BgmControls
+                  enabled={bgm.enabled}
+                  isAvailable={bgm.isAvailable}
+                  onEnabledChange={bgm.setEnabled}
+                  onVolumeChange={bgm.setVolume}
+                  volume={bgm.volume}
+                />
+                <AmbientSoundControls
+                  enabled={ambience.enabled}
+                  isAvailable={ambience.isAvailable}
+                  onEnabledChange={ambience.setEnabled}
+                  onVolumeChange={ambience.setVolume}
+                  variant="inline"
+                  volumes={ambience.volumes}
+                />
 
-                  return (
+                <div className="room-tag-strip">
+                  {allTags.slice(0, 14).map((tag) => (
                     <button
-                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
-                        isSelected
-                          ? "border-cyan-100/40 bg-cyan-100/[0.16] text-cyan-50"
-                          : "border-white/10 bg-white/[0.045] text-slate-300 hover:bg-white/[0.08]"
-                      }`}
+                      className={
+                        selectedTags.includes(tag) ? "is-active" : undefined
+                      }
                       key={tag}
                       onClick={() => toggleTag(tag)}
                       type="button"
                     >
                       {tag}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+                <EpisodeList
+                  episodes={filteredEpisodes}
+                  onSelectEpisode={playEpisode}
+                  selectedEpisodeId={selectedEpisode.id}
+                />
+              </div>
+            ) : null}
+
+            {activePanel === "terminal" ? (
+              <div className="room-panel-scroll">
+                <div className="terminal-readout">
+                  <p>観察ログ</p>
+                  {subjectLogs.length > 0 ? (
+                    <ol>
+                      {subjectLogs.map((log) => (
+                        <li key={log.id}>
+                          <time>{formatLogTime(log.timestamp)}</time>
+                          <span>{log.logText ?? log.thought}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <span>まだ何も残っていない。</span>
+                  )}
+                </div>
+
+                <div className="terminal-readout">
+                  <p>放送テーマ候補履歴</p>
+                  {broadcastCandidates.length > 0 ? (
+                    <ol>
+                      {broadcastCandidates.map((candidate) => (
+                        <li key={candidate.id}>
+                          <strong>{candidate.theme}</strong>
+                          <span>{candidate.hint}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <span>部屋の物を触ると、ここに候補が残る。</span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {activePanel === "memo" ? (
+              <div className="room-panel-scroll">
+                <div className="memo-paper">
+                  <p>{selectedObject?.description ?? currentSubjectAction.thought}</p>
+                  <strong>{currentSubjectAction.thought}</strong>
+                  <span>broadcastHint: {currentSubjectAction.broadcastHint}</span>
+                  <span>themeCandidate: {currentSubjectAction.themeCandidate}</span>
+                </div>
+                {broadcastCandidates[0] ? (
+                  <div className="terminal-readout">
+                    <p>最新の候補</p>
+                    <strong>{broadcastCandidates[0].theme}</strong>
+                    <span>{broadcastCandidates[0].hint}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {activePanel === "mood" ? (
+              <div className="room-panel-scroll">
+                <div className="terminal-readout">
+                  <p>光が変わった</p>
+                  <strong>{relationshipAtmosphere.headline}</strong>
+                  <span>{relationshipAtmosphere.trustLine}</span>
+                  <span>{currentSubjectAction.ambientCue}</span>
+                </div>
+              </div>
+            ) : null}
+
+            {activePanel === "clock" ? (
+              <div className="room-panel-scroll">
+                <div className="terminal-readout">
+                  <p>現在時刻</p>
+                  <Clock />
+                  <strong>{getTimeStateLabel()}</strong>
+                  <span>
+                    現実の時刻に合わせて、雨、窓の外光、CRTの明るさが少しだけ変わる。
+                  </span>
+                </div>
               </div>
             ) : null}
           </section>
-          <EpisodeList
-            episodes={filteredEpisodes}
-            onSelectEpisode={playEpisode}
-            selectedEpisodeId={selectedEpisode.id}
-          />
-        </div>
-      </div>
+
+          <div className="room-audio-pocket" aria-hidden={activePanel === "broadcast"}>
+            {activePanel !== "broadcast" && hasPlayableAudio(selectedEpisode) ? (
+              <audio
+                key={selectedEpisode.id}
+                ref={audioRef}
+                onEnded={() => {
+                  setIsVoicePlaying(false);
+                  handleEpisodeEnded();
+                }}
+                onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+                onPause={() => setIsVoicePlaying(false)}
+                onPlay={() => setIsVoicePlaying(true)}
+                onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+                preload="metadata"
+                src={selectedEpisode.audioUrl}
+              />
+            ) : null}
+          </div>
+        </>
+      )}
     </main>
   );
 }
