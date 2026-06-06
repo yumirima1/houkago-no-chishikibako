@@ -3654,6 +3654,78 @@ audio {
   display: block;
 }
 
+.night-observation-shell .room-first-hint {
+  width: min(13.5rem, 72vw);
+  border-radius: 0.38rem;
+  padding: 0.62rem 0.72rem;
+  opacity: 0.62;
+}
+
+.night-observation-shell .room-first-hint small {
+  display: none;
+}
+
+.night-observation-shell .room-reaction-card,
+.night-observation-shell .room-signal-grid,
+.night-observation-shell .observation-flow-strip {
+  display: none;
+}
+
+.room-object-hotspot {
+  min-width: 4.6rem;
+  min-height: 4.6rem;
+  border-radius: 0.45rem;
+  cursor: pointer;
+}
+
+.room-object-hotspot::before,
+.room-object-hotspot::after {
+  display: none;
+}
+
+.room-object-hotspot span {
+  top: calc(100% - 0.2rem);
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 0.32rem;
+  padding: 0.22rem 0.46rem;
+  color: rgba(226, 232, 240, 0.76);
+  background: rgba(2, 6, 23, 0.58);
+  box-shadow:
+    0 0.55rem 1.4rem rgba(0, 0, 0, 0.22),
+    inset 0 0 0.9rem rgba(125, 211, 252, 0.025);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translate(-50%, -0.18rem);
+}
+
+.room-object-hotspot:hover span,
+.room-object-hotspot:focus-visible span,
+.room-object-hotspot.is-active span {
+  opacity: 0.78;
+  transform: translate(-50%, 0);
+}
+
+.room-scene-html.scene-object-whisper > div {
+  min-width: auto;
+  border-color: rgba(226, 232, 240, 0.08);
+  border-radius: 0.32rem;
+  padding: 0.2rem 0.42rem;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.48), rgba(2, 6, 23, 0.28)),
+    rgba(2, 6, 23, 0.26);
+  box-shadow:
+    0 0.6rem 1.4rem rgba(0, 0, 0, 0.2),
+    0 0 1.2rem rgba(125, 211, 252, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.room-scene-html.scene-object-whisper span {
+  color: rgba(226, 232, 240, 0.78);
+  font-size: 0.55rem;
+  letter-spacing: 0.08em;
+}
+
 @media (max-width: 900px) {
   .night-observation-shell .room-observation-hud {
     width: min(17rem, 34vw);
@@ -3744,6 +3816,50 @@ audio {
 
   .room-object-panel-broadcast {
     max-height: 46svh;
+  }
+
+  .room-scene-root-3d + .room-spatial-props {
+    display: block;
+    opacity: 0.36;
+  }
+
+  .room-prop-window {
+    top: 16%;
+    right: 5%;
+    width: 46vw;
+    height: 22vh;
+  }
+
+  .room-prop-desk {
+    right: 2%;
+    bottom: 13%;
+    width: 82vw;
+    height: 13vh;
+  }
+
+  .room-prop-crt {
+    left: 10%;
+    top: 52%;
+    width: 28vw;
+  }
+
+  .room-prop-terminal {
+    left: 54%;
+    top: 56%;
+    width: 22vw;
+  }
+
+  .room-prop-memo {
+    left: 42%;
+    top: 68%;
+    width: 22vw;
+  }
+
+  .room-prop-lamp {
+    left: 66%;
+    top: 46%;
+    width: 16vw;
+    height: 14vh;
   }
 
   .room-scene-html {

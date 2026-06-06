@@ -1,9 +1,9 @@
 "use client";
 
 import { Html } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import type { ReactNode } from "react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import {
@@ -45,6 +45,36 @@ type CameraTarget = {
   position: [number, number, number];
 };
 
+type WindowRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+
+type WindowWorld = {
+  accent: string;
+  aurora?: boolean;
+  cars?: boolean;
+  cityLights?: boolean;
+  fireworks?: boolean;
+  fog: number;
+  glitch?: boolean;
+  id: string;
+  label: string;
+  lightning?: boolean;
+  meteor?: boolean;
+  moon?: boolean;
+  rain: "none" | "light" | "normal" | "heavy";
+  rarity: WindowRarity;
+  signal?: boolean;
+  skyBottom: string;
+  skyTop: string;
+  snow?: boolean;
+};
+
+type ObjectInteractionHandlers = {
+  onPointerOut: (event: ThreeEvent<PointerEvent>) => void;
+  onPointerOver: (event: ThreeEvent<PointerEvent>) => void;
+};
+
+type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHandlers;
+
 const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
   idle: {
     lookAt: [-0.12, 0.12, -0.28],
@@ -79,8 +109,8 @@ const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
     position: [0.54, 0.46, 2.36],
   },
   window: {
-    lookAt: [1.62, 0.62, -1.82],
-    position: [1.18, 0.96, 2.16],
+    lookAt: [1.02, 0.72, -1.36],
+    position: [0.76, 0.98, 2.16],
   },
 };
 
@@ -106,6 +136,359 @@ function getTimePhase() {
   }
 
   return "night";
+}
+
+function hashSeed(input: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash ^= input.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return Math.abs(hash >>> 0);
+}
+
+function getTodayKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+  }).format(new Date());
+}
+
+const windowWorlds: Record<WindowRarity, WindowWorld[]> = {
+  common: [
+    {
+      accent: "#60a5fa",
+      cityLights: true,
+      fog: 0.18,
+      id: "midnight-rain",
+      label: "深夜の雨",
+      rain: "normal",
+      rarity: "common",
+      skyBottom: "#0b1b33",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#93c5fd",
+      cityLights: true,
+      fog: 0.24,
+      id: "clouded-night",
+      label: "曇りの夜",
+      rain: "none",
+      rarity: "common",
+      skyBottom: "#111827",
+      skyTop: "#030712",
+    },
+    {
+      accent: "#7dd3fc",
+      fog: 0.14,
+      id: "light-rain",
+      label: "小雨",
+      rain: "light",
+      rarity: "common",
+      skyBottom: "#0f223d",
+      skyTop: "#030712",
+    },
+    {
+      accent: "#64748b",
+      fog: 0.08,
+      id: "quiet-night",
+      label: "静かな夜",
+      moon: true,
+      rain: "none",
+      rarity: "common",
+      skyBottom: "#0a1020",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#fbbf24",
+      cityLights: true,
+      fog: 0.12,
+      id: "distant-city",
+      label: "遠くの街明かり",
+      rain: "light",
+      rarity: "common",
+      skyBottom: "#172033",
+      skyTop: "#020617",
+    },
+  ],
+  uncommon: [
+    {
+      accent: "#fb923c",
+      fog: 0.1,
+      id: "dusk",
+      label: "夕暮れ",
+      rain: "none",
+      rarity: "uncommon",
+      skyBottom: "#7c2d12",
+      skyTop: "#1e1b4b",
+    },
+    {
+      accent: "#bfdbfe",
+      fog: 0.16,
+      id: "dawn",
+      label: "朝焼け",
+      rain: "none",
+      rarity: "uncommon",
+      skyBottom: "#fbbf77",
+      skyTop: "#1d4ed8",
+    },
+    {
+      accent: "#93c5fd",
+      cityLights: true,
+      fog: 0.22,
+      id: "hard-rain",
+      label: "強めの雨",
+      rain: "heavy",
+      rarity: "uncommon",
+      skyBottom: "#0b1b33",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#cbd5e1",
+      fog: 0.5,
+      id: "fog",
+      label: "霧",
+      rain: "none",
+      rarity: "uncommon",
+      skyBottom: "#1f2937",
+      skyTop: "#0f172a",
+    },
+    {
+      accent: "#f97316",
+      cars: true,
+      fog: 0.15,
+      id: "car-lights",
+      label: "遠くで車のライトが流れる",
+      rain: "light",
+      rarity: "uncommon",
+      skyBottom: "#111827",
+      skyTop: "#020617",
+    },
+  ],
+  rare: [
+    {
+      accent: "#c4b5fd",
+      lightning: true,
+      fog: 0.25,
+      id: "thunder",
+      label: "雷",
+      rain: "heavy",
+      rarity: "rare",
+      skyBottom: "#111827",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#e5e7eb",
+      fog: 0.72,
+      id: "dense-fog",
+      label: "濃霧",
+      rain: "none",
+      rarity: "rare",
+      skyBottom: "#1f2937",
+      skyTop: "#111827",
+    },
+    {
+      accent: "#bfdbfe",
+      fog: 0.08,
+      id: "meteor",
+      label: "流れ星",
+      meteor: true,
+      rain: "none",
+      rarity: "rare",
+      skyBottom: "#172554",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#fde68a",
+      fog: 0.12,
+      id: "large-moon",
+      label: "月が大きい夜",
+      moon: true,
+      rain: "none",
+      rarity: "rare",
+      skyBottom: "#172033",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#facc15",
+      cityLights: true,
+      fog: 0.14,
+      id: "one-building",
+      label: "遠くのビルだけ点灯している",
+      rain: "light",
+      rarity: "rare",
+      skyBottom: "#0f172a",
+      skyTop: "#020617",
+    },
+  ],
+  epic: [
+    {
+      accent: "#e0f2fe",
+      fog: 0.18,
+      id: "snow",
+      label: "雪",
+      rain: "none",
+      rarity: "epic",
+      skyBottom: "#1e3a5f",
+      skyTop: "#082f49",
+      snow: true,
+    },
+    {
+      accent: "#f472b6",
+      fireworks: true,
+      fog: 0.08,
+      id: "fireworks",
+      label: "花火",
+      rain: "none",
+      rarity: "epic",
+      skyBottom: "#2e1065",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#ef4444",
+      fog: 0.16,
+      id: "red-moon",
+      label: "赤い月",
+      moon: true,
+      rain: "none",
+      rarity: "epic",
+      skyBottom: "#3f1212",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#22d3ee",
+      fog: 0.12,
+      id: "radio-tower",
+      label: "遠くの電波塔が光る",
+      rain: "light",
+      rarity: "epic",
+      signal: true,
+      skyBottom: "#083344",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#fbbf24",
+      cityLights: true,
+      fog: 0.2,
+      id: "after-rain-reflection",
+      label: "雨上がりで地面が反射している",
+      rain: "light",
+      rarity: "epic",
+      skyBottom: "#1e293b",
+      skyTop: "#020617",
+    },
+  ],
+  legendary: [
+    {
+      accent: "#5eead4",
+      aurora: true,
+      fog: 0.1,
+      id: "aurora",
+      label: "オーロラ",
+      rain: "none",
+      rarity: "legendary",
+      skyBottom: "#064e3b",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#a7f3d0",
+      fog: 0.18,
+      id: "signal-light",
+      label: "謎の信号光",
+      rain: "none",
+      rarity: "legendary",
+      signal: true,
+      skyBottom: "#083344",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#c084fc",
+      fog: 0.24,
+      glitch: true,
+      id: "almost-shadow",
+      label: "一瞬だけ人影のようなもの",
+      rain: "light",
+      rarity: "legendary",
+      skyBottom: "#18181b",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#67e8f9",
+      fog: 0.16,
+      glitch: true,
+      id: "bugged-night",
+      label: "世界が少しバグったような夜",
+      rain: "none",
+      rarity: "legendary",
+      skyBottom: "#0f172a",
+      skyTop: "#020617",
+    },
+    {
+      accent: "#fb7185",
+      fog: 0.18,
+      id: "on-air-sky",
+      label: "ON AIR光が空に反射している夜",
+      rain: "light",
+      rarity: "legendary",
+      signal: true,
+      skyBottom: "#451a2c",
+      skyTop: "#020617",
+    },
+  ],
+};
+
+function pickWindowRarity(roll: number): WindowRarity {
+  if (roll < 0.005) {
+    return "legendary";
+  }
+
+  if (roll < 0.02) {
+    return "epic";
+  }
+
+  if (roll < 0.1) {
+    return "rare";
+  }
+
+  if (roll < 0.3) {
+    return "uncommon";
+  }
+
+  return "common";
+}
+
+function getWindowWorld(subject: ObservationSubject): WindowWorld {
+  const phase = getTimePhase();
+  const seed = hashSeed(`${getTodayKey()}-${subject.id}-observation-world`);
+  const rarity = pickWindowRarity((seed % 1000) / 1000);
+  const choices = windowWorlds[rarity];
+  const world = choices[Math.floor(seed / 1000) % choices.length];
+
+  if (phase === "morning" && rarity === "common") {
+    return {
+      ...world,
+      accent: "#bfdbfe",
+      label: `${world.label} / 朝`,
+      skyBottom: "#3b82f6",
+      skyTop: "#0f172a",
+    };
+  }
+
+  if (phase === "evening" && rarity === "common") {
+    return {
+      ...world,
+      accent: "#fb923c",
+      label: `${world.label} / 夕方`,
+      skyBottom: "#7c2d12",
+      skyTop: "#312e81",
+    };
+  }
+
+  return world;
 }
 
 function getPalette(subject: ObservationSubject): SubjectPalette {
@@ -147,17 +530,30 @@ function CameraRig({ activeObjectId }: { activeObjectId?: RoomObjectId | null })
   const nextLookAt = useRef(new THREE.Vector3());
   const nextPosition = useRef(new THREE.Vector3());
 
-  useFrame(({ camera, clock, pointer }) => {
+  useFrame(({ camera, clock, pointer, size }) => {
     const target = cameraTargets[activeObjectId ?? "idle"] ?? cameraTargets.idle;
     const selected = Boolean(activeObjectId);
     const breathe = Math.sin(clock.elapsedTime * 0.38) * 0.018;
+    const isNarrow = size.width < 700;
 
     nextPosition.current
       .set(...target.position)
-      .add(new THREE.Vector3(pointer.x * 0.08, pointer.y * 0.045 + breathe, 0));
+      .add(
+        new THREE.Vector3(
+          pointer.x * 0.08 + (isNarrow ? -0.14 : 0),
+          pointer.y * 0.045 + breathe + (isNarrow ? 0.06 : 0),
+          isNarrow ? 0.72 : 0,
+        ),
+      );
     nextLookAt.current
       .set(...target.lookAt)
-      .add(new THREE.Vector3(pointer.x * 0.055, pointer.y * 0.025, 0));
+      .add(
+        new THREE.Vector3(
+          pointer.x * 0.055,
+          pointer.y * 0.025 + (isNarrow ? -0.16 : 0),
+          0,
+        ),
+      );
 
     positionRef.current.lerp(nextPosition.current, selected ? 0.045 : 0.026);
     lookAtRef.current.lerp(nextLookAt.current, selected ? 0.055 : 0.03);
@@ -170,11 +566,13 @@ function CameraRig({ activeObjectId }: { activeObjectId?: RoomObjectId | null })
 
 function RainLayer({
   count,
+  color = "#bfdbfe",
   opacity,
   speed,
   width,
 }: {
   count: number;
+  color?: string;
   opacity: number;
   speed: number;
   width: number;
@@ -200,23 +598,370 @@ function RainLayer({
       {drops.map((drop, index) => (
         <mesh key={index} position={[drop.x, drop.y, 0.025]}>
           <boxGeometry args={[width, 0.11 + width * 7, 0.006]} />
-          <meshBasicMaterial color="#bfdbfe" transparent opacity={opacity} />
+          <meshBasicMaterial color={color} transparent opacity={opacity} />
         </mesh>
       ))}
     </group>
   );
 }
 
-function RainWindow({ active }: { active: boolean }) {
+function SnowLayer({ active }: { active: boolean }) {
+  const snowRef = useRef<THREE.Group>(null);
+  const flakes = useMemo(
+    () =>
+      Array.from({ length: 30 }, (_, index) => ({
+        x: -0.45 + (index % 6) * 0.18,
+        y: -0.34 + Math.floor(index / 6) * 0.16,
+        z: 0.03 + (index % 3) * 0.006,
+      })),
+    [],
+  );
+
+  useFrame(({ clock }) => {
+    if (snowRef.current) {
+      snowRef.current.position.y = -((clock.elapsedTime * 0.025) % 0.24);
+      snowRef.current.position.x = Math.sin(clock.elapsedTime * 0.42) * 0.018;
+    }
+  });
+
   return (
-    <group position={[1.68, 0.62, -1.58]}>
-      <RainLayer count={26} opacity={active ? 0.32 : 0.18} speed={0.055} width={0.005} />
-      <RainLayer count={18} opacity={active ? 0.4 : 0.26} speed={0.1} width={0.009} />
-      <RainLayer count={12} opacity={active ? 0.5 : 0.32} speed={0.16} width={0.012} />
+    <group ref={snowRef}>
+      {flakes.map((flake, index) => (
+        <mesh key={index} position={[flake.x, flake.y, flake.z]}>
+          <boxGeometry args={[0.012, 0.012, 0.004]} />
+          <meshBasicMaterial color="#e0f2fe" transparent opacity={active ? 0.52 : 0.34} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function WindowWorldBackdrop({
+  active,
+  world,
+}: {
+  active: boolean;
+  world: WindowWorld;
+}) {
+  const signalOpacity = active ? 0.72 : 0.42;
+
+  return (
+    <group position={[0, 0, 0.04]}>
+      <mesh>
+        <planeGeometry args={[0.94, 0.76]} />
+        <meshBasicMaterial color={world.skyTop} />
+      </mesh>
+      <mesh position={[0, -0.15, 0.002]}>
+        <planeGeometry args={[0.94, 0.48]} />
+        <meshBasicMaterial color={world.skyBottom} transparent opacity={0.74} />
+      </mesh>
+      <mesh position={[0, -0.27, 0.004]}>
+        <boxGeometry args={[0.92, 0.1, 0.01]} />
+        <meshBasicMaterial color="#020617" transparent opacity={0.62} />
+      </mesh>
+      {world.cityLights
+        ? Array.from({ length: 7 }, (_, index) => (
+            <mesh
+              key={index}
+              position={[-0.36 + index * 0.12, -0.2 + (index % 2) * 0.025, 0.012]}
+            >
+              <boxGeometry args={[0.045, 0.012, 0.006]} />
+              <meshBasicMaterial
+                blending={THREE.AdditiveBlending}
+                color={index % 2 ? world.accent : "#fbbf24"}
+                depthWrite={false}
+                transparent
+                opacity={active ? 0.46 : 0.26}
+              />
+            </mesh>
+          ))
+        : null}
+      {world.cars ? (
+        <mesh position={[-0.05, -0.31, 0.015]} rotation={[0, 0, -0.03]}>
+          <boxGeometry args={[0.5, 0.015, 0.006]} />
+          <meshBasicMaterial
+            blending={THREE.AdditiveBlending}
+            color="#fb923c"
+            depthWrite={false}
+            transparent
+            opacity={active ? 0.46 : 0.28}
+          />
+        </mesh>
+      ) : null}
+      {world.moon ? (
+        <mesh position={[0.26, 0.22, 0.012]}>
+          <circleGeometry args={[0.08, 18]} />
+          <meshBasicMaterial
+            blending={THREE.AdditiveBlending}
+            color={world.accent}
+            depthWrite={false}
+            transparent
+            opacity={active ? 0.76 : 0.5}
+          />
+        </mesh>
+      ) : null}
+      {world.meteor ? (
+        <mesh position={[-0.1, 0.22, 0.018]} rotation={[0, 0, -0.5]}>
+          <boxGeometry args={[0.38, 0.01, 0.006]} />
+          <meshBasicMaterial
+            blending={THREE.AdditiveBlending}
+            color="#bfdbfe"
+            depthWrite={false}
+            transparent
+            opacity={active ? 0.78 : 0.42}
+          />
+        </mesh>
+      ) : null}
+      {world.lightning ? (
+        <mesh position={[0.08, 0.12, 0.018]} rotation={[0, 0, -0.2]}>
+          <boxGeometry args={[0.035, 0.42, 0.006]} />
+          <meshBasicMaterial
+            blending={THREE.AdditiveBlending}
+            color="#ddd6fe"
+            depthWrite={false}
+            transparent
+            opacity={active ? 0.58 : 0.18}
+          />
+        </mesh>
+      ) : null}
+      {world.aurora ? (
+        <group>
+          <mesh position={[-0.12, 0.16, 0.014]} rotation={[0, 0, 0.16]}>
+            <planeGeometry args={[0.74, 0.09]} />
+            <meshBasicMaterial
+              blending={THREE.AdditiveBlending}
+              color="#5eead4"
+              depthWrite={false}
+              transparent
+              opacity={active ? 0.46 : 0.24}
+            />
+          </mesh>
+          <mesh position={[0.18, 0.09, 0.015]} rotation={[0, 0, -0.1]}>
+            <planeGeometry args={[0.58, 0.07]} />
+            <meshBasicMaterial
+              blending={THREE.AdditiveBlending}
+              color="#a78bfa"
+              depthWrite={false}
+              transparent
+              opacity={active ? 0.32 : 0.16}
+            />
+          </mesh>
+        </group>
+      ) : null}
+      {world.fireworks ? (
+        <group position={[0.18, 0.12, 0.018]}>
+          {Array.from({ length: 8 }, (_, index) => (
+            <mesh key={index} rotation={[0, 0, (index / 8) * Math.PI * 2]}>
+              <boxGeometry args={[0.13, 0.008, 0.006]} />
+              <meshBasicMaterial
+                blending={THREE.AdditiveBlending}
+                color={index % 2 ? "#f472b6" : "#facc15"}
+                depthWrite={false}
+                transparent
+                opacity={active ? 0.54 : 0.24}
+              />
+            </mesh>
+          ))}
+        </group>
+      ) : null}
+      {world.signal ? (
+        <group position={[0.32, -0.12, 0.016]}>
+          <mesh>
+            <boxGeometry args={[0.025, 0.34, 0.006]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.75} />
+          </mesh>
+          <mesh position={[0, 0.18, 0.008]}>
+            <boxGeometry args={[0.08, 0.035, 0.006]} />
+            <meshBasicMaterial
+              blending={THREE.AdditiveBlending}
+              color={world.accent}
+              depthWrite={false}
+              transparent
+              opacity={signalOpacity}
+            />
+          </mesh>
+        </group>
+      ) : null}
+      {world.glitch ? (
+        <group>
+          <mesh position={[-0.26, -0.16, 0.017]}>
+            <boxGeometry args={[0.048, 0.24, 0.008]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.58} />
+          </mesh>
+          <mesh position={[0.02, 0.04, 0.018]}>
+            <boxGeometry args={[0.46, 0.012, 0.006]} />
+            <meshBasicMaterial
+              blending={THREE.AdditiveBlending}
+              color={world.accent}
+              depthWrite={false}
+              transparent
+              opacity={active ? 0.22 : 0.11}
+            />
+          </mesh>
+        </group>
+      ) : null}
+      {world.fog > 0 ? (
+        <mesh position={[0, 0, 0.022]}>
+          <planeGeometry args={[0.94, 0.76]} />
+          <meshBasicMaterial color="#cbd5e1" transparent opacity={world.fog * (active ? 0.42 : 0.28)} />
+        </mesh>
+      ) : null}
+    </group>
+  );
+}
+
+function RainWindow({
+  active,
+  world,
+}: {
+  active: boolean;
+  world: WindowWorld;
+}) {
+  const rainLevel = world.rain === "heavy" ? 1.45 : world.rain === "light" ? 0.62 : world.rain === "none" ? 0 : 1;
+
+  return (
+    <group position={[0, 0, 0.055]}>
+      <WindowWorldBackdrop active={active} world={world} />
+      {rainLevel > 0 ? (
+        <>
+          <RainLayer
+            count={Math.round(22 * rainLevel)}
+            opacity={(active ? 0.3 : 0.16) * rainLevel}
+            speed={0.055}
+            width={0.005}
+          />
+          <RainLayer
+            count={Math.round(14 * rainLevel)}
+            opacity={(active ? 0.36 : 0.22) * rainLevel}
+            speed={0.1}
+            width={0.009}
+          />
+          <RainLayer
+            count={Math.round(9 * rainLevel)}
+            opacity={(active ? 0.43 : 0.27) * rainLevel}
+            speed={0.16}
+            width={0.012}
+          />
+        </>
+      ) : null}
+      {world.snow ? <SnowLayer active={active} /> : null}
+      <mesh position={[0.18, 0.13, 0.038]} rotation={[0, 0, -0.28]}>
+        <planeGeometry args={[0.68, 0.035]} />
+        <meshBasicMaterial
+          blending={THREE.AdditiveBlending}
+          color={world.accent}
+          depthWrite={false}
+          transparent
+          opacity={active ? 0.18 : 0.09}
+        />
+      </mesh>
+      <mesh position={[-0.22, -0.18, 0.039]} rotation={[0, 0, -0.2]}>
+        <planeGeometry args={[0.48, 0.024]} />
+        <meshBasicMaterial
+          blending={THREE.AdditiveBlending}
+          color={world.rarity === "legendary" ? world.accent : "#93c5fd"}
+          depthWrite={false}
+          transparent
+          opacity={active ? 0.18 : 0.08}
+        />
+      </mesh>
       <mesh position={[0, -0.02, 0.03]}>
         <boxGeometry args={[0.98, 0.8, 0.014]} />
         <meshBasicMaterial color="#dbeafe" transparent opacity={active ? 0.07 : 0.038} />
       </mesh>
+    </group>
+  );
+}
+
+function GlowPlane({
+  color,
+  opacity,
+  position,
+  rotation,
+  scale,
+}: {
+  color: string;
+  opacity: number;
+  position: [number, number, number];
+  rotation?: [number, number, number];
+  scale: [number, number, number];
+}) {
+  return (
+    <mesh position={position} rotation={rotation} scale={scale}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial
+        blending={THREE.AdditiveBlending}
+        color={color}
+        depthWrite={false}
+        transparent
+        opacity={opacity}
+      />
+    </mesh>
+  );
+}
+
+function LightBloom({
+  activeBroadcast,
+  activeWindow,
+  palette,
+  subject,
+}: {
+  activeBroadcast: boolean;
+  activeWindow: boolean;
+  palette: SubjectPalette;
+  subject: ObservationSubject;
+}) {
+  const crtOpacity = subject.id === "tartar" ? (activeBroadcast ? 0.22 : 0.12) : 0;
+  const lampOpacity = subject.id === "kana" ? 0.16 : 0.14;
+
+  return (
+    <group>
+      <GlowPlane
+        color={palette.lamp}
+        opacity={lampOpacity}
+        position={[0.74, -0.245, 0.5]}
+        rotation={[-Math.PI / 2, 0, -0.22]}
+        scale={[1.8, 0.9, 1]}
+      />
+      <GlowPlane
+        color={palette.lamp}
+        opacity={0.07}
+        position={[0.7, -0.79, 0.14]}
+        rotation={[-Math.PI / 2, 0, -0.16]}
+        scale={[2.1, 1.2, 1]}
+      />
+      {subject.id === "tartar" ? (
+        <>
+          <GlowPlane
+            color={palette.monitor}
+            opacity={crtOpacity}
+            position={[-1.08, 0.02, 0.91]}
+            rotation={[0.07, 0.32, -0.02]}
+            scale={[1.2, 0.62, 1]}
+          />
+          <GlowPlane
+            color={palette.monitor}
+            opacity={activeBroadcast ? 0.12 : 0.06}
+            position={[-0.84, -0.248, 0.64]}
+            rotation={[-Math.PI / 2, 0, 0.18]}
+            scale={[1.4, 0.6, 1]}
+          />
+        </>
+      ) : null}
+      <GlowPlane
+        color={palette.windowGlow}
+        opacity={activeWindow ? 0.18 : 0.09}
+        position={[1.28, -0.78, -0.72]}
+        rotation={[-Math.PI / 2, 0, -0.35]}
+        scale={[2.3, 1.15, 1]}
+      />
+      <GlowPlane
+        color="#3b82f6"
+        opacity={activeWindow ? 0.12 : 0.065}
+        position={[1.36, 0.3, -1.66]}
+        rotation={[0, -0.08, 0]}
+        scale={[1.2, 1.0, 1]}
+      />
     </group>
   );
 }
@@ -255,10 +1000,12 @@ function DustParticles({ color }: { color: string }) {
 function ClockFace({
   accent,
   active,
+  bindObject,
   onInspectObject,
 }: {
   accent: string;
   active: boolean;
+  bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   const handRef = useRef<THREE.Mesh>(null);
@@ -277,6 +1024,7 @@ function ClockFace({
         onInspectObject("clock");
       }}
       position={[1.1, 1.17, -2.05]}
+      {...bindObject("clock")}
     >
       <mesh>
         <cylinderGeometry args={[0.18, 0.18, 0.025, 32]} />
@@ -284,6 +1032,7 @@ function ClockFace({
           color="#0f172a"
           emissive={accent}
           emissiveIntensity={active ? 0.34 : 0.1}
+          flatShading
           roughness={0.62}
         />
       </mesh>
@@ -314,6 +1063,7 @@ function OnAirSign({ accent, active }: { accent: string; active: boolean }) {
           color="#230712"
           emissive="#ef4444"
           emissiveIntensity={0.24}
+          flatShading
           roughness={0.48}
         />
       </mesh>
@@ -346,6 +1096,41 @@ function SceneHtml({
     >
       {children}
     </Html>
+  );
+}
+
+const objectLabelPositions: Record<RoomObjectId, [number, number, number]> = {
+  clock: [1.1, 1.42, -1.72],
+  crt: [-1.08, 0.54, 0.98],
+  envelope: [-1.42, 1.38, -1.76],
+  lamp: [1.08, 0.56, 0.62],
+  memo: [-0.12, 0.02, 0.92],
+  radio: [1.2, 0.02, 0.38],
+  terminal: [0.66, 0.3, 0.78],
+  window: [1.02, 1.18, -1.08],
+};
+
+function ObjectWhisperLabel({
+  label,
+  objectId,
+}: {
+  label?: string;
+  objectId?: RoomObjectId | null;
+}) {
+  if (!objectId || !label) {
+    return null;
+  }
+
+  return (
+    <SceneHtml
+      className="is-active scene-object-whisper"
+      position={objectLabelPositions[objectId]}
+      rotation={[0, 0, 0]}
+    >
+      <div>
+        <span>{label}</span>
+      </div>
+    </SceneHtml>
   );
 }
 
@@ -434,9 +1219,11 @@ function MemoReadout({
 function WindowReadout({
   active,
   timeStateLabel,
+  world,
 }: {
   active: boolean;
   timeStateLabel: string;
+  world: WindowWorld;
 }) {
   if (!active) {
     return null;
@@ -445,13 +1232,13 @@ function WindowReadout({
   return (
     <SceneHtml
       className="is-active scene-window-readout"
-      position={[1.46, 0.65, -1.5]}
+      position={[1.08, 0.72, -0.96]}
       rotation={[0, -0.08, 0]}
     >
       <div>
-        <span>雨 / {timeStateLabel}</span>
-        <strong>背景モード</strong>
-        <small>窓の外光と雨筋が部屋の明るさを少し変える</small>
+        <span>{timeStateLabel} / {world.rarity}</span>
+        <strong>{world.label}</strong>
+        <small>今日の窓。外光と雨筋が部屋の明るさを少し変える</small>
       </div>
     </SceneHtml>
   );
@@ -514,11 +1301,13 @@ function ClockReadout({
 function DeskClutter({
   accent,
   activeMemo,
+  bindObject,
   onInspectObject,
   subject,
 }: {
   accent: string;
   activeMemo: boolean;
+  bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
   subject: ObservationSubject;
 }) {
@@ -533,30 +1322,37 @@ function DeskClutter({
         }}
         position={[-0.18, -0.22, 0.58]}
         rotation={[0.04, -0.18, -0.11]}
+        {...bindObject("memo")}
       >
         <boxGeometry args={[0.42, 0.012, 0.28]} />
         <meshStandardMaterial
           color={paperColor}
           emissive={accent}
           emissiveIntensity={activeMemo ? 0.2 : 0.035}
+          flatShading
           roughness={0.86}
         />
       </mesh>
       <mesh position={[0.16, -0.21, 0.7]} rotation={[0, 0.1, 0.18]}>
         <boxGeometry args={[0.2, 0.009, 0.13]} />
-        <meshStandardMaterial color="#fef3c7" roughness={0.9} />
+        <meshStandardMaterial color="#fef3c7" flatShading roughness={0.9} />
       </mesh>
       <mesh position={[0.34, -0.19, 0.54]} rotation={[0, 0, -0.38]}>
         <cylinderGeometry args={[0.012, 0.012, 0.42, 10]} />
-        <meshStandardMaterial color="#0f172a" emissive={accent} emissiveIntensity={0.04} />
+        <meshStandardMaterial
+          color="#0f172a"
+          emissive={accent}
+          emissiveIntensity={0.04}
+          flatShading
+        />
       </mesh>
       <mesh position={[0.62, -0.17, 0.28]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.085, 0.085, 0.16, 22]} />
-        <meshStandardMaterial color="#1f2937" roughness={0.7} />
+        <meshStandardMaterial color="#1f2937" flatShading roughness={0.7} />
       </mesh>
       <mesh position={[0.64, -0.06, 0.28]}>
         <torusGeometry args={[0.07, 0.008, 6, 18]} />
-        <meshStandardMaterial color="#334155" roughness={0.78} />
+        <meshStandardMaterial color="#334155" flatShading roughness={0.78} />
       </mesh>
       {subject.id === "tartar"
         ? [-0.58, -0.48, -0.38, -0.28].map((x, index) => (
@@ -570,13 +1366,136 @@ function DeskClutter({
   );
 }
 
+function BookStack({
+  accent,
+  active,
+  bindObject,
+  onInspectObject,
+  position,
+}: {
+  accent: string;
+  active: boolean;
+  bindObject: ObjectInteractionBinder;
+  onInspectObject: (objectId: RoomObjectId) => void;
+  position: [number, number, number];
+}) {
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onInspectObject("envelope");
+      }}
+      position={position}
+      {...bindObject("envelope")}
+    >
+      {["#1e293b", "#334155", "#581c87"].map((color, index) => (
+        <mesh key={color} position={[0, index * 0.055, 0]} rotation={[0, 0, index * 0.03]}>
+          <boxGeometry args={[0.42 - index * 0.04, 0.045, 0.26]} />
+          <meshStandardMaterial
+            color={color}
+            emissive={accent}
+            emissiveIntensity={active ? 0.06 : 0}
+            flatShading
+            roughness={0.76}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function LowPolyChair({
+  accent,
+  subject,
+}: {
+  accent: string;
+  subject: ObservationSubject;
+}) {
+  const color = subject.id === "kana" ? "#2e1f2d" : "#111827";
+
+  return (
+    <group position={[-1.5, -0.48, 0.24]} rotation={[0, 0.34, 0]}>
+      <mesh>
+        <boxGeometry args={[0.48, 0.1, 0.5]} />
+        <meshStandardMaterial color={color} flatShading roughness={0.82} />
+      </mesh>
+      <mesh position={[0, 0.35, -0.2]} rotation={[0.15, 0, 0]}>
+        <boxGeometry args={[0.5, 0.72, 0.08]} />
+        <meshStandardMaterial
+          color={color}
+          emissive={accent}
+          emissiveIntensity={0.025}
+          flatShading
+          roughness={0.86}
+        />
+      </mesh>
+      <mesh position={[-0.18, -0.28, 0.16]}>
+        <boxGeometry args={[0.06, 0.46, 0.06]} />
+        <meshStandardMaterial color="#0b0f19" flatShading roughness={0.8} />
+      </mesh>
+      <mesh position={[0.18, -0.28, 0.16]}>
+        <boxGeometry args={[0.06, 0.46, 0.06]} />
+        <meshStandardMaterial color="#0b0f19" flatShading roughness={0.8} />
+      </mesh>
+    </group>
+  );
+}
+
+function DeskLampShade({ color }: { color: string }) {
+  return (
+    <mesh position={[0, 0.34, 0]} rotation={[0, 0, 0.08]}>
+      <coneGeometry args={[0.22, 0.18, 5]} />
+      <meshStandardMaterial
+        color="#5b3b22"
+        emissive={color}
+        emissiveIntensity={0.18}
+        flatShading
+        roughness={0.54}
+      />
+    </mesh>
+  );
+}
+
+function LowPolyPlant({ accent }: { accent: string }) {
+  return (
+    <group position={[-1.74, -0.52, -0.44]}>
+      <mesh>
+        <cylinderGeometry args={[0.13, 0.1, 0.18, 6]} />
+        <meshStandardMaterial color="#422006" flatShading roughness={0.78} />
+      </mesh>
+      {Array.from({ length: 5 }, (_, index) => (
+        <mesh
+          key={index}
+          position={[
+            Math.sin(index * 1.4) * 0.08,
+            0.18 + (index % 2) * 0.04,
+            Math.cos(index * 1.4) * 0.05,
+          ]}
+          rotation={[0.25 + index * 0.1, 0, index * 0.9]}
+        >
+          <coneGeometry args={[0.045, 0.24, 4]} />
+          <meshStandardMaterial
+            color={index % 2 ? "#166534" : "#14532d"}
+            emissive={accent}
+            emissiveIntensity={0.02}
+            flatShading
+            roughness={0.9}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function TartarExtras({
   accent,
   activeObjectId,
+  bindObject,
   onInspectObject,
 }: {
   accent: string;
   activeObjectId?: RoomObjectId | null;
+  bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
@@ -588,18 +1507,20 @@ function TartarExtras({
         }}
         position={[0.66, -0.07, 0.58]}
         rotation={[0.04, -0.16, 0]}
+        {...bindObject("terminal")}
       >
         <boxGeometry args={[0.52, 0.32, 0.055]} />
         <meshStandardMaterial
           color="#07111f"
           emissive={accent}
           emissiveIntensity={activeObjectId === "terminal" ? 0.42 : 0.16}
+          flatShading
           roughness={0.56}
         />
       </mesh>
       <mesh position={[0.66, -0.28, 0.45]}>
         <boxGeometry args={[0.58, 0.035, 0.3]} />
-        <meshStandardMaterial color="#111827" roughness={0.82} />
+        <meshStandardMaterial color="#111827" flatShading roughness={0.82} />
       </mesh>
       <mesh
         onClick={(event) => {
@@ -607,12 +1528,14 @@ function TartarExtras({
           onInspectObject("radio");
         }}
         position={[1.24, -0.18, 0.16]}
+        {...bindObject("radio")}
       >
         <boxGeometry args={[0.4, 0.2, 0.28]} />
         <meshStandardMaterial
           color="#1f2937"
           emissive="#ef4444"
           emissiveIntensity={activeObjectId === "radio" ? 0.24 : 0.08}
+          flatShading
           roughness={0.64}
         />
       </mesh>
@@ -622,12 +1545,31 @@ function TartarExtras({
           onInspectObject("envelope");
         }}
         position={[-1.48, 1.2, -2.0]}
+        {...bindObject("envelope")}
       >
-        <sphereGeometry args={[0.045, 14, 10]} />
+        <boxGeometry args={[0.09, 0.055, 0.035]} />
         <meshStandardMaterial
           color="#ef4444"
           emissive="#ef4444"
           emissiveIntensity={activeObjectId === "envelope" ? 0.74 : 0.32}
+          flatShading
+        />
+      </mesh>
+      <BookStack
+        accent={accent}
+        active={activeObjectId === "envelope"}
+        bindObject={bindObject}
+        onInspectObject={onInspectObject}
+        position={[-0.7, -0.18, 0.22]}
+      />
+      <mesh position={[-0.92, -0.23, -0.06]} rotation={[0, 0, 0.18]}>
+        <boxGeometry args={[0.32, 0.012, 0.18]} />
+        <meshStandardMaterial
+          color="#d7c594"
+          emissive={accent}
+          emissiveIntensity={0.035}
+          flatShading
+          roughness={0.9}
         />
       </mesh>
     </group>
@@ -637,10 +1579,12 @@ function TartarExtras({
 function KanaExtras({
   accent,
   activeObjectId,
+  bindObject,
   onInspectObject,
 }: {
   accent: string;
   activeObjectId?: RoomObjectId | null;
+  bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
@@ -651,10 +1595,11 @@ function KanaExtras({
           onInspectObject("envelope");
         }}
         position={[-1.42, 0.02, 0.08]}
+        {...bindObject("envelope")}
       >
         <mesh>
           <boxGeometry args={[0.72, 0.82, 0.16]} />
-          <meshStandardMaterial color="#241817" roughness={0.78} />
+          <meshStandardMaterial color="#241817" flatShading roughness={0.78} />
         </mesh>
         {Array.from({ length: 7 }, (_, index) => (
           <mesh
@@ -667,6 +1612,7 @@ function KanaExtras({
               color={index % 2 ? "#7f1d1d" : "#334155"}
               emissive={accent}
               emissiveIntensity={activeObjectId === "envelope" ? 0.08 : 0}
+              flatShading
               roughness={0.7}
             />
           </mesh>
@@ -679,12 +1625,14 @@ function KanaExtras({
         }}
         position={[0.68, -0.17, 0.48]}
         rotation={[0.04, -0.18, 0]}
+        {...bindObject("terminal")}
       >
         <boxGeometry args={[0.18, 0.34, 0.04]} />
         <meshStandardMaterial
           color="#0f172a"
           emissive={accent}
           emissiveIntensity={activeObjectId === "terminal" ? 0.38 : 0.12}
+          flatShading
           roughness={0.72}
         />
       </mesh>
@@ -694,13 +1642,26 @@ function KanaExtras({
           onInspectObject("radio");
         }}
         position={[1.18, -0.2, 0.12]}
+        {...bindObject("radio")}
       >
         <cylinderGeometry args={[0.15, 0.15, 0.16, 22]} />
         <meshStandardMaterial
           color="#1f2937"
           emissive={accent}
           emissiveIntensity={activeObjectId === "radio" ? 0.28 : 0.1}
+          flatShading
           roughness={0.64}
+        />
+      </mesh>
+      <LowPolyPlant accent={accent} />
+      <mesh position={[0.1, -0.19, 0.18]} rotation={[0, 0.1, -0.06]}>
+        <boxGeometry args={[0.36, 0.012, 0.22]} />
+        <meshStandardMaterial
+          color="#f3d1c2"
+          emissive={accent}
+          emissiveIntensity={0.025}
+          flatShading
+          roughness={0.88}
         />
       </mesh>
     </group>
@@ -711,15 +1672,21 @@ function RoomObjects({
   action,
   activeObjectId,
   broadcastCandidates,
+  hoveredObjectId,
   isPlaying,
   isScreensaver,
   latestEpisode,
   logs,
+  onHoverObject,
   onInspectObject,
   subject,
   timeStateLabel,
-}: RoomScene3DProps) {
+}: RoomScene3DProps & {
+  hoveredObjectId?: RoomObjectId | null;
+  onHoverObject: (objectId: RoomObjectId | null) => void;
+}) {
   const palette = getPalette(subject);
+  const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
   const actionPulse = 0.04 + (action.id.length % 4) * 0.014;
   const roomRef = useRef<THREE.Group>(null);
   const lampLightRef = useRef<THREE.PointLight>(null);
@@ -728,13 +1695,37 @@ function RoomObjects({
   const latestCandidate = broadcastCandidates[0];
   const activeBroadcast =
     activeObjectId === "crt" || activeObjectId === "radio";
+  const whisperObjectId = hoveredObjectId ?? activeObjectId;
+  const objectLabels = useMemo(
+    () => new Map(subject.roomObjects.map((object) => [object.id, object.label])),
+    [subject.roomObjects],
+  );
+  const bindObject: ObjectInteractionBinder = (objectId) => ({
+    onPointerOut: (event) => {
+      event.stopPropagation();
+      onHoverObject(null);
+    },
+    onPointerOver: (event) => {
+      event.stopPropagation();
+      onHoverObject(objectId);
+    },
+  });
+  const isObjectLit = (objectId: RoomObjectId) =>
+    activeObjectId === objectId || hoveredObjectId === objectId;
 
-  useFrame(({ clock, pointer }) => {
+  useFrame(({ clock, pointer, size }) => {
     const elapsed = clock.getElapsedTime();
+    const isNarrow = size.width < 700;
 
     if (roomRef.current) {
       roomRef.current.rotation.y = Math.sin(elapsed * 0.1) * 0.012 + pointer.x * 0.012;
       roomRef.current.rotation.x = pointer.y * -0.005;
+      roomRef.current.position.y = THREE.MathUtils.lerp(
+        roomRef.current.position.y,
+        isNarrow ? 0.34 : 0,
+        0.08,
+      );
+      roomRef.current.scale.setScalar(isNarrow ? 0.92 : 1);
     }
 
     if (lampLightRef.current) {
@@ -751,65 +1742,99 @@ function RoomObjects({
   return (
     <>
       <color attach="background" args={[palette.sky]} />
-      <fog attach="fog" args={[palette.sky, 3.3, 7.4]} />
+      <fog attach="fog" args={[palette.sky, 3.1, 7.2]} />
       <ambientLight intensity={palette.ambient} />
+      <hemisphereLight
+        color={windowWorld.accent}
+        groundColor="#030712"
+        intensity={0.13}
+      />
       <directionalLight
-        color={palette.windowGlow}
-        intensity={activeObjectId === "window" ? 0.44 : 0.24}
-        position={[2.4, 2.6, 1.1]}
+        color={windowWorld.accent}
+        intensity={activeObjectId === "window" ? 0.5 : 0.28}
+        position={[2.6, 2.2, -0.2]}
       />
       <pointLight
         ref={lampLightRef}
         color={palette.lamp}
         decay={2}
-        distance={2.8}
-        intensity={palette.lampIntensity}
-        position={[0.96, 0.66, 0.52]}
+        distance={3.35}
+        intensity={palette.lampIntensity + 0.18}
+        position={[0.95, 0.5, 0.48]}
+      />
+      <spotLight
+        angle={0.72}
+        color={palette.lamp}
+        decay={2}
+        distance={3}
+        intensity={activeObjectId === "lamp" ? 0.42 : 0.28}
+        penumbra={0.88}
+        position={[0.9, 0.84, 0.52]}
+        target-position={[0.35, -0.25, 0.48]}
       />
       <pointLight
         color={palette.monitor}
         decay={1.7}
-        distance={2.2}
-        intensity={0.55 + (activeBroadcast ? 0.24 : 0)}
-        position={[-1.08, 0.18, 0.82]}
+        distance={2.85}
+        intensity={0.78 + (activeBroadcast ? 0.34 : 0)}
+        position={[-1.02, 0.1, 0.9]}
       />
       <pointLight
-        color="#3b82f6"
+        color={palette.monitor}
+        decay={2.1}
+        distance={1.75}
+        intensity={subject.id === "tartar" ? 0.28 : 0.1}
+        position={[-0.58, -0.18, 0.62]}
+      />
+      <pointLight
+        color={windowWorld.accent}
         decay={2}
-        distance={4.8}
-        intensity={activeObjectId === "window" ? 0.36 : 0.18}
-        position={[1.7, 0.8, -1.34]}
+        distance={5.4}
+        intensity={activeObjectId === "window" ? 0.46 : 0.24}
+        position={[1.22, 0.76, -0.9]}
       />
 
       <group ref={roomRef}>
         <mesh receiveShadow position={[0, -0.86, -0.12]}>
           <boxGeometry args={[4.8, 0.12, 3.9]} />
-          <meshStandardMaterial color="#060a16" roughness={0.96} />
+          <meshStandardMaterial
+            color="#060a16"
+            flatShading
+            metalness={0.08}
+            roughness={0.58}
+          />
         </mesh>
         <mesh receiveShadow position={[0, 0.74, -2.04]}>
           <boxGeometry args={[4.8, 3.2, 0.1]} />
-          <meshStandardMaterial color={palette.wall} roughness={0.94} />
+          <meshStandardMaterial color={palette.wall} flatShading roughness={0.94} />
         </mesh>
         <mesh receiveShadow position={[-2.42, 0.68, -0.12]}>
           <boxGeometry args={[0.1, 3.1, 3.9]} />
-          <meshStandardMaterial color="#050914" roughness={0.94} />
+          <meshStandardMaterial color="#050914" flatShading roughness={0.94} />
         </mesh>
-        <mesh receiveShadow position={[2.42, 0.7, -0.12]}>
+        <mesh receiveShadow position={[2.74, 0.7, -0.12]}>
           <boxGeometry args={[0.08, 3.1, 3.9]} />
-          <meshStandardMaterial color="#030712" roughness={0.96} />
+          <meshStandardMaterial color="#030712" flatShading roughness={0.96} />
         </mesh>
 
         <mesh receiveShadow position={[0, -0.34, 0.35]}>
           <boxGeometry args={[3.08, 0.18, 1.16]} />
-          <meshStandardMaterial color="#2c1d12" roughness={0.78} />
+          <meshStandardMaterial
+            color="#2c1d12"
+            emissive={palette.lamp}
+            emissiveIntensity={0.025}
+            flatShading
+            metalness={0.06}
+            roughness={0.48}
+          />
         </mesh>
         <mesh position={[-1.22, -0.75, 0.05]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
-          <meshStandardMaterial color="#160f0b" roughness={0.82} />
+          <meshStandardMaterial color="#160f0b" flatShading roughness={0.82} />
         </mesh>
         <mesh position={[1.22, -0.75, 0.05]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
-          <meshStandardMaterial color="#160f0b" roughness={0.82} />
+          <meshStandardMaterial color="#160f0b" flatShading roughness={0.82} />
         </mesh>
 
         {subject.id === "tartar" ? (
@@ -820,17 +1845,19 @@ function RoomObjects({
             }}
             position={[-1.12, 0.04, 0.54]}
             rotation={[0.07, 0.32, -0.02]}
+            {...bindObject("crt")}
           >
             <mesh>
               <boxGeometry args={[1.1, 0.74, 0.6]} />
-              <meshStandardMaterial color="#1f2937" roughness={0.78} />
+              <meshStandardMaterial color="#1f2937" flatShading roughness={0.78} />
             </mesh>
             <mesh position={[0, 0.02, 0.32]}>
               <boxGeometry args={[0.82, 0.46, 0.035]} />
               <meshStandardMaterial
                 color="#06130f"
                 emissive={palette.monitor}
-                emissiveIntensity={0.42 + actionPulse + (activeObjectId === "crt" ? 0.24 : 0)}
+                emissiveIntensity={0.42 + actionPulse + (isObjectLit("crt") ? 0.26 : 0)}
+                flatShading
                 roughness={0.5}
               />
             </mesh>
@@ -840,6 +1867,7 @@ function RoomObjects({
                 color={palette.monitor}
                 emissive={palette.monitor}
                 emissiveIntensity={0.72}
+                flatShading
               />
             </mesh>
           </group>
@@ -851,18 +1879,21 @@ function RoomObjects({
             onInspectObject("lamp");
           }}
           position={[1.02, -0.06, 0.46]}
+          {...bindObject("lamp")}
         >
           <mesh>
             <cylinderGeometry args={[0.07, 0.12, 0.62, 18]} />
-            <meshStandardMaterial color="#4b3324" roughness={0.66} />
+            <meshStandardMaterial color="#4b3324" flatShading roughness={0.66} />
           </mesh>
-          <mesh position={[0, 0.37, 0]}>
-            <sphereGeometry args={[0.18, 20, 14]} />
+          <DeskLampShade color={palette.lamp} />
+          <mesh position={[0, 0.38, 0]}>
+            <dodecahedronGeometry args={[0.14, 0]} />
             <meshStandardMaterial
               ref={lampBulbRef}
               color="#fed7aa"
               emissive={palette.lamp}
-              emissiveIntensity={activeObjectId === "lamp" ? 0.72 : 0.52}
+              emissiveIntensity={isObjectLit("lamp") ? 0.72 : 0.52}
+              flatShading
               roughness={0.34}
             />
           </mesh>
@@ -873,64 +1904,62 @@ function RoomObjects({
             event.stopPropagation();
             onInspectObject("window");
           }}
-          position={[1.68, 0.62, -1.98]}
+          position={[1.08, 0.7, -1.38]}
+          {...bindObject("window")}
         >
           <mesh>
             <boxGeometry args={[1.16, 0.98, 0.05]} />
             <meshStandardMaterial
               color="#071225"
-              emissive="#172554"
-              emissiveIntensity={activeObjectId === "window" ? 0.38 : 0.18}
+              emissive={windowWorld.accent}
+              emissiveIntensity={isObjectLit("window") ? 0.42 : 0.22}
+              flatShading
               roughness={0.6}
             />
           </mesh>
           <mesh position={[0, 0, 0.034]}>
             <boxGeometry args={[0.92, 0.75, 0.025]} />
-            <meshBasicMaterial color="#0c1c35" transparent opacity={0.8} />
+            <meshBasicMaterial color="#0c1c35" transparent opacity={0.32} />
           </mesh>
-          <RainWindow active={activeObjectId === "window"} />
+          <RainWindow active={isObjectLit("window")} world={windowWorld} />
         </group>
 
         <ClockFace
           accent={palette.accent}
-          active={activeObjectId === "clock"}
+          active={isObjectLit("clock")}
+          bindObject={bindObject}
           onInspectObject={onInspectObject}
         />
         <OnAirSign accent={palette.accent} active={activeBroadcast || isPlaying} />
 
-        <group position={[-1.72, -0.16, 0.38]}>
-          <mesh>
-            <sphereGeometry args={[0.42, 28, 18]} />
-            <meshStandardMaterial
-              color={palette.avatar}
-              emissive={palette.accent}
-              emissiveIntensity={0.045 + actionPulse}
-              roughness={0.76}
-            />
-          </mesh>
-          <mesh position={[0.08, 0.5, 0]}>
-            <sphereGeometry args={[0.2, 18, 12]} />
-            <meshStandardMaterial color={palette.avatar} roughness={0.7} />
-          </mesh>
-        </group>
+        <LowPolyChair accent={palette.accent} subject={subject} />
 
         <DeskClutter
           accent={palette.accent}
-          activeMemo={activeObjectId === "memo"}
+          activeMemo={isObjectLit("memo")}
+          bindObject={bindObject}
           onInspectObject={onInspectObject}
+          subject={subject}
+        />
+        <LightBloom
+          activeBroadcast={activeBroadcast}
+          activeWindow={activeObjectId === "window"}
+          palette={palette}
           subject={subject}
         />
 
         {subject.id === "tartar" ? (
           <TartarExtras
             accent={palette.accent}
-            activeObjectId={activeObjectId}
+            activeObjectId={hoveredObjectId ?? activeObjectId}
+            bindObject={bindObject}
             onInspectObject={onInspectObject}
           />
         ) : (
           <KanaExtras
             accent={palette.accent}
-            activeObjectId={activeObjectId}
+            activeObjectId={hoveredObjectId ?? activeObjectId}
+            bindObject={bindObject}
             onInspectObject={onInspectObject}
           />
         )}
@@ -953,19 +1982,29 @@ function RoomObjects({
         action={action}
         candidate={latestCandidate}
       />
-      <WindowReadout active={activeObjectId === "window"} timeStateLabel={timeStateLabel} />
+      <WindowReadout
+        active={activeObjectId === "window"}
+        timeStateLabel={timeStateLabel}
+        world={windowWorld}
+      />
       <RadioReadout
         active={activeObjectId === "radio"}
         episode={latestEpisode}
         isPlaying={isPlaying}
       />
       <ClockReadout active={activeObjectId === "clock"} timeStateLabel={timeStateLabel} />
+      <ObjectWhisperLabel
+        label={whisperObjectId ? objectLabels.get(whisperObjectId) : undefined}
+        objectId={whisperObjectId}
+      />
       <DustParticles color={palette.accent} />
     </>
   );
 }
 
 export default function RoomScene3D(props: RoomScene3DProps) {
+  const [hoveredObjectId, setHoveredObjectId] = useState<RoomObjectId | null>(null);
+
   return (
     <Canvas
       camera={{ fov: 56, position: cameraTargets.idle.position }}
@@ -980,7 +2019,11 @@ export default function RoomScene3D(props: RoomScene3DProps) {
       shadows={false}
     >
       <CameraRig activeObjectId={props.activeObjectId} />
-      <RoomObjects {...props} />
+      <RoomObjects
+        {...props}
+        hoveredObjectId={hoveredObjectId}
+        onHoverObject={setHoveredObjectId}
+      />
     </Canvas>
   );
 }
