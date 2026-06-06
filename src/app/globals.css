@@ -1047,6 +1047,10 @@ body {
     rgba(2, 6, 23, 0.54);
 }
 
+.scene-window-readout {
+  width: 14.2rem;
+}
+
 .room-scene-3d-loading {
   position: absolute;
   inset: 0;
@@ -3806,6 +3810,10 @@ audio {
 
   .room-scene-html {
     width: 9.4rem;
+  }
+
+  .room-scene-html.scene-window-readout {
+    width: min(13.4rem, 78vw);
   }
 
   .room-scene-html > div {

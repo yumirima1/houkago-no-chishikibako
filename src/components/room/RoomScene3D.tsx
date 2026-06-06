@@ -17,6 +17,7 @@ import {
   createEpisodeSeedFromThemeCandidate,
   createThemeCandidateFromRoomState,
   ObservationEpisodeSeed,
+  ObservationThemeCandidate,
 } from "@/components/observation/themeEngine";
 import { Episode, getEpisodeNumberLabel } from "@/data/episodes";
 
@@ -1425,17 +1426,31 @@ function MemoReadout({
 function WindowReadout({
   active,
   episodeSeed,
+  themeCandidate,
   timeStateLabel,
   world,
 }: {
   active: boolean;
   episodeSeed: ObservationEpisodeSeed;
+  themeCandidate: ObservationThemeCandidate;
   timeStateLabel: string;
   world: WindowWorld;
 }) {
   if (!active) {
     return null;
   }
+
+  const observationNotes = [
+    world.rain === "heavy"
+      ? "強い雨筋"
+      : world.rain === "normal"
+        ? "雨の匂い"
+        : world.rain === "light"
+          ? "細い雨"
+          : "静かな空",
+    world.cityLights ? "信号の光" : world.moon ? "月の輪郭" : "雲の影",
+    world.signal ? "遠い信号" : world.cars ? "車の光" : "電線の音",
+  ];
 
   return (
     <SceneHtml
@@ -1444,9 +1459,10 @@ function WindowReadout({
       rotation={[0, -0.08, 0]}
     >
       <div>
-        <span>{timeStateLabel} / {world.rarity}</span>
-        <strong>{world.label}</strong>
-        <small>{episodeSeed.episodeQuestion}</small>
+        <span>今日の観察 / {timeStateLabel}</span>
+        <strong>{observationNotes.join(" / ")}</strong>
+        <small>themeCandidate: {themeCandidate.theme}</small>
+        <small>この窓から生まれそうな問い: {episodeSeed.episodeQuestion}</small>
       </div>
     </SceneHtml>
   );
@@ -2597,6 +2613,7 @@ function RoomObjects({
       <WindowReadout
         active={activeObjectId === "window"}
         episodeSeed={windowEpisodeSeed}
+        themeCandidate={windowThemeCandidate}
         timeStateLabel={timeStateLabel}
         world={windowWorld}
       />
