@@ -941,9 +941,7 @@ body {
 }
 
 .room-scene-root-3d {
-  background:
-    radial-gradient(circle at 72% 52%, rgba(251, 191, 36, 0.1), transparent 28%),
-    linear-gradient(180deg, rgba(4, 8, 18, 0.18), rgba(2, 6, 23, 0.74));
+  background: #101827;
 }
 
 .room-scene-3d-canvas {
@@ -2971,9 +2969,7 @@ audio {
 
 .night-observation-shell .subject-room-overlay {
   padding: clamp(0.85rem, 2.2vw, 1.6rem);
-  background:
-    linear-gradient(90deg, rgba(2, 6, 23, 0.22), transparent 28% 82%, rgba(2, 6, 23, 0.18)),
-    linear-gradient(180deg, rgba(2, 6, 23, 0.18), transparent 34%, rgba(2, 6, 23, 0.38));
+  background: transparent;
 }
 
 .night-observation-shell .subject-room-header {
@@ -3042,26 +3038,16 @@ audio {
 
 .room-scene-root-3d::after,
 .subject-room-scene::after {
-  position: absolute;
-  inset: 0;
-  background:
-    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 4px),
-    radial-gradient(circle at 50% 46%, transparent 52%, rgba(0, 0, 0, 0.46));
-  content: "";
-  pointer-events: none;
+  display: none;
+  content: none;
 }
 
 .room-scene-root-3d {
-  animation: room-camera-breathe 18s ease-in-out infinite;
+  animation: none;
 }
 
 .room-spatial-props {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  overflow: hidden;
-  perspective: 900px;
-  pointer-events: none;
+  display: none;
 }
 
 .room-prop {
@@ -3816,50 +3802,6 @@ audio {
 
   .room-object-panel-broadcast {
     max-height: 46svh;
-  }
-
-  .room-scene-root-3d + .room-spatial-props {
-    display: block;
-    opacity: 0.36;
-  }
-
-  .room-prop-window {
-    top: 16%;
-    right: 5%;
-    width: 46vw;
-    height: 22vh;
-  }
-
-  .room-prop-desk {
-    right: 2%;
-    bottom: 13%;
-    width: 82vw;
-    height: 13vh;
-  }
-
-  .room-prop-crt {
-    left: 10%;
-    top: 52%;
-    width: 28vw;
-  }
-
-  .room-prop-terminal {
-    left: 54%;
-    top: 56%;
-    width: 22vw;
-  }
-
-  .room-prop-memo {
-    left: 42%;
-    top: 68%;
-    width: 22vw;
-  }
-
-  .room-prop-lamp {
-    left: 66%;
-    top: 46%;
-    width: 16vw;
-    height: 14vh;
   }
 
   .room-scene-html {
