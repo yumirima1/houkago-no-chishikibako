@@ -1,33 +1,35 @@
 {
   "id": "episode-020",
-  "title": "正しさだけでは、人はなぜ動かないのか",
-  "description": "論理、感情、納得、物語の関係を、理系と文系の役割差として話す。",
-  "audioUrl": "/audio/episode-020.mp3",
+  "title": "地図アプリがあるのになぜ迷うのか",
+  "description": "地図、現在地、方向感覚、目的地までの不安を通して、便利な案内でも迷う理由を考える。",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "27:00",
+  "publishedAt": "2026-06-06",
+  "duration": "22:00",
   "tags": [
-    "哲学",
-    "心理学",
-    "社会"
+    "地図",
+    "空間",
+    "スマホ",
+    "生活"
   ],
   "themes": [
-    "哲学",
-    "心理学",
-    "社会"
+    "地図",
+    "空間",
+    "スマホ",
+    "生活"
   ],
   "speakers": {
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "published",
+  "productionStatus": "reviewing",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-020.json",
-    "durationTargetMinutes": 27,
+    "durationTargetMinutes": 22,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"
-    }
+    },
+    "status": "audio-pending"
   }
 }

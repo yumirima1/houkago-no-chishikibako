@@ -1,17 +1,16 @@
 {
   id: "episode-022",
-  title: "ミームはなぜ言葉より速く伝わるのか",
-  description: "ミーム、画像、文脈、内輪感の広がりを、番組内輪ネタの作り方にもつなげる。",
-  audioUrl: "/audio/episode-022.mp3",
+  title: "人はなぜ積読をしてしまうのか",
+  description: "買った本、読めない本、未来の知的な自分への期待を、机の端の本から考える。",
   type: "regular",
   durationType: "normal",
-  publishedAt: "2026-05-31",
-  duration: "23:00",
-  tags: ["インターネット文化","ミーム","言語"],
-  themes: ["インターネット文化","ミーム","言語"],
+  publishedAt: "2026-06-06",
+  duration: "24:00",
+  tags: ["本","読書","心理学","生活"],
+  themes: ["本","読書","心理学","生活"],
   speakers: {
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "published",
+  productionStatus: "reviewing",
 }

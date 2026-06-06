@@ -1,0 +1,35 @@
+{
+  "id": "episode-035",
+  "title": "なぜ誰も見ていない部屋を整えたくなるのか",
+  "description": "机を片づける夜、見えない場所の整理、誰も来ない部屋の準備を話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-06-06",
+  "duration": "21:00",
+  "tags": [
+    "部屋",
+    "整理",
+    "心理学",
+    "生活"
+  ],
+  "themes": [
+    "部屋",
+    "整理",
+    "心理学",
+    "生活"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "reviewing",
+  "source": {
+    "reviewedScriptPath": "content/reviewed/episode-035.json",
+    "durationTargetMinutes": 21,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    },
+    "status": "audio-pending"
+  }
+}

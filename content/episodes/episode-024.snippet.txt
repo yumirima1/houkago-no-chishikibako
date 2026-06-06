@@ -1,17 +1,16 @@
 {
   id: "episode-024",
-  title: "小さなWebサイトを作ることは、なぜこんなに楽しいのか",
-  description: "公開すること、静的運用、個人メディア、作った場所に人が来る感覚を話す。",
-  audioUrl: "/audio/episode-024.mp3",
+  title: "人はなぜ部屋に性格が出るのか",
+  description: "机、配線、置きっぱなしのカップ、本棚を見ながら、部屋に性格がにじむ理由を考える。",
   type: "regular",
   durationType: "normal",
-  publishedAt: "2026-05-31",
-  duration: "24:00",
-  tags: ["コンピュータ","Web開発","ものづくり","インターネット"],
-  themes: ["コンピュータ","Web開発","ものづくり","インターネット"],
+  publishedAt: "2026-06-06",
+  duration: "18:00",
+  tags: ["部屋","生活","観察","心理学"],
+  themes: ["部屋","生活","観察","心理学"],
   speakers: {
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "published",
+  productionStatus: "reviewing",
 }

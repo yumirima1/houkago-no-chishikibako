@@ -19,7 +19,7 @@ export function RoomFallback2D({
   subject,
 }: RoomFallback2DProps) {
   return (
-    <div className="subject-room-scene" aria-label={`${subject.name}の部屋`}>
+    <div className="subject-room-scene" aria-label={`${subject.name}の窓辺`}>
       <div className="room-depth-layer room-depth-layer-back" />
       <div className="room-depth-layer room-depth-layer-mid" />
       <div className="subject-window">
@@ -49,10 +49,10 @@ export function RoomFallback2D({
         ))}
       </div>
       <div className="subject-lamp" />
-      <div className="subject-avatar">
-        <span>{subject.name}</span>
+      <div className="subject-avatar" aria-label="空いた椅子">
+        <span>空いた椅子</span>
       </div>
-      <div className="observation-box-device">観察箱</div>
+      <div className="observation-box-device">窓辺ログ</div>
     </div>
   );
 }

@@ -1,33 +1,35 @@
 {
   "id": "episode-021",
-  "title": "時間は流れているのか、それとも私たちが流されているのか",
-  "description": "時間の物理、体感時間、記憶を組み合わせた夜向きの回。",
-  "audioUrl": "/audio/episode-021.mp3",
+  "title": "便利になるほど時間が足りなくなるのはなぜか",
+  "description": "時短、通知、選択肢、予定の詰め込みを手がかりに、便利さと忙しさの関係を話す。",
   "type": "regular",
   "durationType": "normal",
-  "publishedAt": "2026-05-31",
-  "duration": "29:00",
+  "publishedAt": "2026-06-06",
+  "duration": "23:00",
   "tags": [
-    "科学",
     "時間",
-    "哲学"
+    "生活",
+    "技術",
+    "心理学"
   ],
   "themes": [
-    "科学",
     "時間",
-    "哲学"
+    "生活",
+    "技術",
+    "心理学"
   ],
   "speakers": {
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "published",
+  "productionStatus": "reviewing",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-021.json",
-    "durationTargetMinutes": 29,
+    "durationTargetMinutes": 23,
     "voices": {
       "rikei": "rikei",
       "bunkei": "bunkei"
-    }
+    },
+    "status": "audio-pending"
   }
 }

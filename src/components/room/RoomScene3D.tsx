@@ -3,7 +3,7 @@
 import { Html } from "@react-three/drei";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import type { ReactNode } from "react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import {
@@ -13,6 +13,11 @@ import {
   RoomObjectId,
   SubjectAction,
 } from "@/components/observation/observationTypes";
+import {
+  createEpisodeSeedFromThemeCandidate,
+  createThemeCandidateFromRoomState,
+  ObservationEpisodeSeed,
+} from "@/components/observation/themeEngine";
 import { Episode, getEpisodeNumberLabel } from "@/data/episodes";
 
 type RoomScene3DProps = {
@@ -1419,10 +1424,12 @@ function MemoReadout({
 
 function WindowReadout({
   active,
+  episodeSeed,
   timeStateLabel,
   world,
 }: {
   active: boolean;
+  episodeSeed: ObservationEpisodeSeed;
   timeStateLabel: string;
   world: WindowWorld;
 }) {
@@ -1439,7 +1446,7 @@ function WindowReadout({
       <div>
         <span>{timeStateLabel} / {world.rarity}</span>
         <strong>{world.label}</strong>
-        <small>今日の窓。外光と雨筋が部屋の明るさを少し変える</small>
+        <small>{episodeSeed.episodeQuestion}</small>
       </div>
     </SceneHtml>
   );
@@ -1617,15 +1624,52 @@ function BookStack({
 
 function LowPolyChair({
   accent,
+  introActive,
   subject,
 }: {
   accent: string;
+  introActive: boolean;
   subject: ObservationSubject;
 }) {
   const color = subject.id === "kana" ? "#3a2939" : "#1f2937";
+  const chairRef = useRef<THREE.Group>(null);
+  const introStartedAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    introStartedAt.current = null;
+  }, [introActive]);
+
+  useFrame(({ clock }) => {
+    const chair = chairRef.current;
+
+    if (!chair) {
+      return;
+    }
+
+    const finalPosition = new THREE.Vector3(-0.78, -0.66, 1.18);
+    const startPosition = new THREE.Vector3(-0.52, -0.66, 0.84);
+
+    if (!introActive || subject.id !== "tartar") {
+      chair.position.copy(finalPosition);
+      chair.rotation.y = -0.42;
+      return;
+    }
+
+    if (introStartedAt.current === null) {
+      introStartedAt.current = clock.elapsedTime;
+    }
+
+    const elapsed = clock.elapsedTime - introStartedAt.current;
+    const pullProgress = THREE.MathUtils.smoothstep(elapsed, 0.45, 2.05);
+    const settle = Math.sin(Math.min(1, elapsed / 2.4) * Math.PI) * 0.035;
+
+    chair.position.lerpVectors(startPosition, finalPosition, pullProgress);
+    chair.position.x += settle;
+    chair.rotation.y = THREE.MathUtils.lerp(-0.1, -0.42, pullProgress);
+  });
 
   return (
-    <group position={[-0.78, -0.66, 1.18]} rotation={[0, -0.42, 0]}>
+    <group ref={chairRef} position={[-0.78, -0.66, 1.18]} rotation={[0, -0.42, 0]}>
       <mesh position={[0, 0.06, 0]}>
         <boxGeometry args={[0.58, 0.12, 0.56]} />
         <meshStandardMaterial
@@ -1667,6 +1711,104 @@ function LowPolyChair({
             <meshStandardMaterial color="#111827" flatShading roughness={0.72} />
           </mesh>
         </group>
+      ))}
+    </group>
+  );
+}
+
+function EntryTartarTrace({
+  accent,
+  active,
+}: {
+  accent: string;
+  active: boolean;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const startedAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    startedAt.current = null;
+  }, [active]);
+
+  useFrame(({ clock }) => {
+    const group = groupRef.current;
+
+    if (!group) {
+      return;
+    }
+
+    if (!active) {
+      group.visible = false;
+      return;
+    }
+
+    if (startedAt.current === null) {
+      startedAt.current = clock.elapsedTime;
+    }
+
+    const elapsed = clock.elapsedTime - startedAt.current;
+    group.visible = elapsed < 4.8;
+
+    const rise = THREE.MathUtils.smoothstep(elapsed, 0.9, 2.0);
+    const leave = THREE.MathUtils.smoothstep(elapsed, 2.05, 4.2);
+    const breathe = Math.sin(clock.elapsedTime * 2.1) * 0.012;
+
+    group.position.set(
+      THREE.MathUtils.lerp(-0.63, 2.15, leave),
+      THREE.MathUtils.lerp(-0.3, -0.02, rise) + breathe,
+      THREE.MathUtils.lerp(0.86, -0.78, leave),
+    );
+    group.rotation.y = THREE.MathUtils.lerp(-0.28, -1.45, leave);
+    group.scale.setScalar(THREE.MathUtils.lerp(0.86, 0.72, leave));
+  });
+
+  return (
+    <group ref={groupRef} position={[-0.63, -0.3, 0.86]} rotation={[0, -0.28, 0]}>
+      <mesh position={[0, 0.42, 0]}>
+        <dodecahedronGeometry args={[0.13, 0]} />
+        <meshStandardMaterial
+          color="#1f2937"
+          emissive={accent}
+          emissiveIntensity={0.08}
+          flatShading
+          roughness={0.78}
+          transparent
+          opacity={0.92}
+        />
+      </mesh>
+      <mesh position={[0, 0.18, 0]}>
+        <boxGeometry args={[0.22, 0.34, 0.12]} />
+        <meshStandardMaterial
+          color="#111827"
+          emissive={accent}
+          emissiveIntensity={0.05}
+          flatShading
+          roughness={0.82}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      {[-0.09, 0.09].map((x) => (
+        <mesh key={x} position={[x, -0.08, 0.01]} rotation={[0.12, 0, x > 0 ? -0.12 : 0.16]}>
+          <boxGeometry args={[0.06, 0.28, 0.06]} />
+          <meshStandardMaterial color="#0f172a" flatShading roughness={0.84} transparent opacity={0.86} />
+        </mesh>
+      ))}
+      {[-0.14, 0.14].map((x) => (
+        <mesh key={x} position={[x, 0.17, 0.02]} rotation={[0, 0, x > 0 ? -0.55 : 0.55]}>
+          <boxGeometry args={[0.055, 0.26, 0.055]} />
+          <meshStandardMaterial color="#172033" flatShading roughness={0.84} transparent opacity={0.82} />
+        </mesh>
+      ))}
+      {[0, 1, 2].map((index) => (
+        <mesh
+          key={index}
+          position={[-0.35 + index * 0.26, -0.54, 0.2 - index * 0.18]}
+          rotation={[-Math.PI / 2, 0, -0.18 + index * 0.11]}
+        >
+          <planeGeometry args={[0.18, 0.04]} />
+          <meshBasicMaterial color={accent} transparent opacity={0.12 - index * 0.025} />
+        </mesh>
       ))}
     </group>
   );
@@ -2068,12 +2210,46 @@ function RoomObjects({
 }) {
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
+  const [introActive, setIntroActive] = useState(false);
   const actionPulse = 0.04 + (action.id.length % 4) * 0.014;
   const roomRef = useRef<THREE.Group>(null);
   const lampLightRef = useRef<THREE.PointLight>(null);
   const lampBulbRef = useRef<THREE.MeshStandardMaterial>(null);
   const latestLog = logs.find((log) => log.subjectId === subject.id);
   const latestCandidate = broadcastCandidates[0];
+  const windowThemeCandidate = useMemo(
+    () =>
+      createThemeCandidateFromRoomState({
+        latestLog,
+        subjectId: subject.id,
+        window: {
+          id: windowWorld.id,
+          label: windowWorld.label,
+          rain: windowWorld.rain,
+          rarity: windowWorld.rarity,
+          timeStateLabel,
+        },
+      }),
+    [latestLog, subject.id, timeStateLabel, windowWorld],
+  );
+  const windowEpisodeSeed = useMemo(
+    () =>
+      createEpisodeSeedFromThemeCandidate({
+        candidate: windowThemeCandidate,
+        roomState: {
+          latestLog,
+          subjectId: subject.id,
+          window: {
+            id: windowWorld.id,
+            label: windowWorld.label,
+            rain: windowWorld.rain,
+            rarity: windowWorld.rarity,
+            timeStateLabel,
+          },
+        },
+      }),
+    [latestLog, subject.id, timeStateLabel, windowThemeCandidate, windowWorld],
+  );
   const activeBroadcast =
     activeObjectId === "crt" || activeObjectId === "radio";
   const whisperObjectId = hoveredObjectId ?? activeObjectId;
@@ -2093,6 +2269,28 @@ function RoomObjects({
   });
   const isObjectLit = (objectId: RoomObjectId) =>
     activeObjectId === objectId || hoveredObjectId === objectId;
+
+  useEffect(() => {
+    if (subject.id !== "tartar" || typeof window === "undefined") {
+      const timer = window.setTimeout(() => setIntroActive(false), 0);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const timer = window.setTimeout(() => setIntroActive(false), 0);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    const startTimer = window.setTimeout(() => setIntroActive(true), 0);
+    const endTimer = window.setTimeout(() => setIntroActive(false), 5_200);
+
+    return () => {
+      window.clearTimeout(startTimer);
+      window.clearTimeout(endTimer);
+    };
+  }, [subject.id]);
 
   useFrame(({ clock, pointer, size }) => {
     const elapsed = clock.getElapsedTime();
@@ -2319,7 +2517,14 @@ function RoomObjects({
         />
         <OnAirSign accent={palette.accent} active={activeBroadcast || isPlaying} />
 
-        <LowPolyChair accent={palette.accent} subject={subject} />
+        <LowPolyChair
+          accent={palette.accent}
+          introActive={introActive}
+          subject={subject}
+        />
+        {subject.id === "tartar" ? (
+          <EntryTartarTrace accent={palette.accent} active={introActive} />
+        ) : null}
 
         <DeskClutter
           accent={palette.accent}
@@ -2391,6 +2596,7 @@ function RoomObjects({
       />
       <WindowReadout
         active={activeObjectId === "window"}
+        episodeSeed={windowEpisodeSeed}
         timeStateLabel={timeStateLabel}
         world={windowWorld}
       />

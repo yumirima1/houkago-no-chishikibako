@@ -1,0 +1,16 @@
+{
+  id: "episode-030",
+  title: "人はなぜ秘密を持つのか",
+  description: "日記、未送信の下書き、言わないでおく優しさを手がかりに、秘密の役割を考える。",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-06-06",
+  duration: "24:00",
+  tags: ["秘密","人間関係","心理学","言葉"],
+  themes: ["秘密","人間関係","心理学","言葉"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "reviewing",
+}

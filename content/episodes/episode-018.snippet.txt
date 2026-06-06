@@ -1,17 +1,16 @@
 {
   id: "episode-018",
-  title: "ブラウザという窓から、私たちは何年世界を見てきたのか",
-  description: "Webブラウザ、検索、ページ、アプリ化したWebの歴史と感覚を話す。",
-  audioUrl: "/audio/episode-018.mp3",
+  title: "人はなぜ「あとでやる」を信じるのか",
+  description: "先延ばし、時間の見積もり、未来の自分への期待を、机の上に残ったメモから考える。",
   type: "regular",
   durationType: "normal",
-  publishedAt: "2026-05-31",
-  duration: "26:00",
-  tags: ["コンピュータ","Web開発","インターネット"],
-  themes: ["コンピュータ","Web開発","インターネット"],
+  publishedAt: "2026-06-06",
+  duration: "20:00",
+  tags: ["心理学","時間","生活","思考"],
+  themes: ["心理学","時間","生活","思考"],
   speakers: {
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "published",
+  productionStatus: "reviewing",
 }

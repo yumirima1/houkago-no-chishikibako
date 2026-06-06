@@ -1,0 +1,16 @@
+{
+  id: "episode-034",
+  title: "偶然と運命の違いは何か",
+  description: "たまたま見た窓外の光、再会、タイミングを手がかりに、偶然と運命の境目を考える。",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-06-06",
+  duration: "20:00",
+  tags: ["偶然","運命","哲学","生活"],
+  themes: ["偶然","運命","哲学","生活"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "reviewing",
+}

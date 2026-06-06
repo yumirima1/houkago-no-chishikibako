@@ -1,0 +1,16 @@
+{
+  id: "episode-027",
+  title: "人はなぜ昔のネットを語りたがるのか",
+  description: "個人サイト、掲示板、検索前の寄り道を手がかりに、昔のネットを語る気持ちを話す。",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-06-06",
+  duration: "21:00",
+  tags: ["インターネット","記憶","文化","生活"],
+  themes: ["インターネット","記憶","文化","生活"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "reviewing",
+}

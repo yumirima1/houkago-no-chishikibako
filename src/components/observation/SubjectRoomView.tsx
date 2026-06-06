@@ -88,7 +88,7 @@ function RoomObjectHotspots({
   return (
     <div
       className="room-object-hotspots"
-      aria-label={`${subject.name}の部屋のものを見る`}
+      aria-label={`${subject.name}の窓辺のものを見る`}
     >
       {subject.roomObjects.map((object) => (
         <button
@@ -201,8 +201,8 @@ export function SubjectRoomView({
       <div className="subject-room-overlay">
         <header className="subject-room-header">
           <div>
-            <p className="observation-kicker">{isScreensaver ? "背景" : "部屋"}</p>
-            <h1>{subject.name}の部屋</h1>
+            <p className="observation-kicker">{isScreensaver ? "背景" : "窓辺"}</p>
+            <h1>{subject.name}の窓辺</h1>
             <p>{inspectedObject?.description ?? action.mood}</p>
           </div>
           <div className="subject-room-clock">
@@ -225,7 +225,7 @@ export function SubjectRoomView({
                 onClick={markHintSeen}
                 type="button"
               >
-                <strong>部屋の物をタップすると、観察ログが残ります。</strong>
+                <strong>窓辺の物をタップすると、観察ログが残ります。</strong>
                 <small>観察から、次の放送テーマが生まれます。</small>
               </button>
             ) : null}
@@ -235,8 +235,8 @@ export function SubjectRoomView({
               <h2>{inspectedObject?.label ?? action.label}</h2>
               <p>
                 {inspectedObject
-                  ? "部屋の中の表示に反応が出て、ログと候補に残る。"
-                  : "CRT、PC、メモ、窓へ近づくと反応が出る。"}
+                  ? "窓辺の表示に反応が出て、ログと候補に残る。"
+                  : "窓、CRT、PC、メモへ近づくと反応が出る。"}
               </p>
               <button onClick={onRecordDialogue} type="button">ひとことだけ聞く</button>
             </aside>

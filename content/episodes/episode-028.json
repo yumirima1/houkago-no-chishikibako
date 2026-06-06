@@ -1,0 +1,35 @@
+{
+  "id": "episode-028",
+  "title": "なぜ深夜の会話は特別に感じるのか",
+  "description": "雨、窓、眠気、声の距離を手がかりに、深夜の会話だけが少し本当らしくなる理由を考える。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-06-06",
+  "duration": "22:00",
+  "tags": [
+    "深夜",
+    "会話",
+    "ラジオ",
+    "心理学"
+  ],
+  "themes": [
+    "深夜",
+    "会話",
+    "ラジオ",
+    "心理学"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "reviewing",
+  "source": {
+    "reviewedScriptPath": "content/reviewed/episode-028.json",
+    "durationTargetMinutes": 22,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    },
+    "status": "audio-pending"
+  }
+}

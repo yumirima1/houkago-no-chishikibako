@@ -1,0 +1,16 @@
+{
+  id: "episode-033",
+  title: "人はなぜ収集をやめられないのか",
+  description: "本、ステッカー、古いケーブル、保存した画像を通して、集めることの安心を話す。",
+  type: "regular",
+  durationType: "normal",
+  publishedAt: "2026-06-06",
+  duration: "19:00",
+  tags: ["収集","記憶","生活","心理学"],
+  themes: ["収集","記憶","生活","心理学"],
+  speakers: {
+  "science": "理系担当",
+  "humanities": "文系担当"
+},
+  productionStatus: "reviewing",
+}

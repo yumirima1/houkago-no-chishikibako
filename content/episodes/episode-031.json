@@ -1,0 +1,35 @@
+{
+  "id": "episode-031",
+  "title": "知識は集めるものか繋げるものか",
+  "description": "メモ、本、検索、放送テーマの断片から、知識は保管か接続かを話す。",
+  "type": "regular",
+  "durationType": "normal",
+  "publishedAt": "2026-06-06",
+  "duration": "25:00",
+  "tags": [
+    "知識",
+    "学び",
+    "思考",
+    "放送"
+  ],
+  "themes": [
+    "知識",
+    "学び",
+    "思考",
+    "放送"
+  ],
+  "speakers": {
+    "science": "理系担当",
+    "humanities": "文系担当"
+  },
+  "productionStatus": "reviewing",
+  "source": {
+    "reviewedScriptPath": "content/reviewed/episode-031.json",
+    "durationTargetMinutes": 25,
+    "voices": {
+      "rikei": "rikei",
+      "bunkei": "bunkei"
+    },
+    "status": "audio-pending"
+  }
+}
