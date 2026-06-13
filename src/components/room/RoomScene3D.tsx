@@ -84,23 +84,24 @@ type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHand
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 
 const windowSideLayout = {
-  cameraIdleLookAt: [0.16, 0.52, -1.86] as [number, number, number],
-  cameraIdlePosition: [-0.34, 0.78, 3.36] as [number, number, number],
-  chairFinalPosition: [-0.86, -0.66, 1.36] as [number, number, number],
-  chairStartPosition: [-0.58, -0.66, 0.92] as [number, number, number],
-  chairRotationY: -0.5,
-  crtPosition: [-1.34, -0.04, 0.18] as [number, number, number],
+  cameraIdleLookAt: [0.16, 0.68, -2.02] as [number, number, number],
+  cameraIdlePosition: [-0.26, 0.92, 3.28] as [number, number, number],
+  chairFinalPosition: [-1.18, -0.74, 1.46] as [number, number, number],
+  chairScale: [0.74, 0.74, 0.74] as [number, number, number],
+  chairStartPosition: [-0.7, -0.74, 0.96] as [number, number, number],
+  chairRotationY: -0.56,
+  crtPosition: [-1.28, -0.08, 0.04] as [number, number, number],
   crtRotation: [0.05, 0.5, -0.02] as [number, number, number],
-  crtScale: [0.9, 0.9, 0.9] as [number, number, number],
-  deskLegZ: -0.18,
-  deskPosition: [0, -0.42, 0.16] as [number, number, number],
-  deskSize: [3.84, 0.16, 1.14] as [number, number, number],
-  lampPosition: [1.2, -0.1, 0.16] as [number, number, number],
-  officeEquipmentPosition: [0.8, -0.2, 0.04] as [number, number, number],
+  crtScale: [0.82, 0.82, 0.82] as [number, number, number],
+  deskLegZ: -0.32,
+  deskPosition: [0.04, -0.49, -0.02] as [number, number, number],
+  deskSize: [3.72, 0.14, 0.96] as [number, number, number],
+  lampPosition: [1.18, -0.16, 0.02] as [number, number, number],
+  officeEquipmentPosition: [0.82, -0.24, -0.1] as [number, number, number],
   officeEquipmentRotation: [0.02, -0.4, 0] as [number, number, number],
-  officeEquipmentScale: [0.62, 0.62, 0.62] as [number, number, number],
-  windowPosition: [0.16, 0.82, -2.12] as [number, number, number],
-  windowScale: [2.36, 2.12, 1] as [number, number, number],
+  officeEquipmentScale: [0.55, 0.55, 0.55] as [number, number, number],
+  windowPosition: [0.18, 0.86, -2.16] as [number, number, number],
+  windowScale: [2.76, 2.44, 1] as [number, number, number],
 };
 
 const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
@@ -137,8 +138,8 @@ const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
     position: [-0.05, 0.4, 2.12],
   },
   window: {
-    lookAt: [0.16, 0.86, -2.08],
-    position: [-0.04, 0.88, 1.72],
+    lookAt: [0.18, 0.92, -2.14],
+    position: [-0.02, 0.92, 1.56],
   },
 };
 
@@ -1711,6 +1712,7 @@ function LowPolyChair({
       ref={chairRef}
       position={windowSideLayout.chairFinalPosition}
       rotation={[0, windowSideLayout.chairRotationY, 0]}
+      scale={windowSideLayout.chairScale}
     >
       <mesh position={[0, 0.06, 0]}>
         <boxGeometry args={[0.58, 0.12, 0.56]} />
@@ -2755,9 +2757,9 @@ function RoomObjects({
             0.24,
             (activeObjectId === "window" ? 0.13 : 0.075) * getRarityStrength(windowWorld.rarity),
           )}
-          position={[0.1, -0.815, -0.92]}
+          position={[0.12, -0.835, -1.08]}
           rotation={[-Math.PI / 2, 0, -0.2]}
-          scale={[3.4, 1.34, 1]}
+          scale={[3.75, 1.08, 1]}
         />
         <GlowPlane
           color={windowWorld.accent}
@@ -2765,9 +2767,9 @@ function RoomObjects({
             0.16,
             (activeObjectId === "window" ? 0.09 : 0.052) * getRarityStrength(windowWorld.rarity),
           )}
-          position={[0.08, 0.52, -2.16]}
+          position={[0.16, 0.62, -2.18]}
           rotation={[0, 0, 0]}
-          scale={[2.8, 1.8, 1]}
+          scale={[3.3, 2.08, 1]}
         />
 
         {subject.id === "tartar" ? (
