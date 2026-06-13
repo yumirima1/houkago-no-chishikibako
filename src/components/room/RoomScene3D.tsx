@@ -83,10 +83,30 @@ type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHand
 
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 
+const windowSideLayout = {
+  cameraIdleLookAt: [0.16, 0.52, -1.86] as [number, number, number],
+  cameraIdlePosition: [-0.34, 0.78, 3.36] as [number, number, number],
+  chairFinalPosition: [-0.86, -0.66, 1.36] as [number, number, number],
+  chairStartPosition: [-0.58, -0.66, 0.92] as [number, number, number],
+  chairRotationY: -0.5,
+  crtPosition: [-1.34, -0.04, 0.18] as [number, number, number],
+  crtRotation: [0.05, 0.5, -0.02] as [number, number, number],
+  crtScale: [0.9, 0.9, 0.9] as [number, number, number],
+  deskLegZ: -0.18,
+  deskPosition: [0, -0.42, 0.16] as [number, number, number],
+  deskSize: [3.84, 0.16, 1.14] as [number, number, number],
+  lampPosition: [1.2, -0.1, 0.16] as [number, number, number],
+  officeEquipmentPosition: [0.8, -0.2, 0.04] as [number, number, number],
+  officeEquipmentRotation: [0.02, -0.4, 0] as [number, number, number],
+  officeEquipmentScale: [0.62, 0.62, 0.62] as [number, number, number],
+  windowPosition: [0.16, 0.82, -2.12] as [number, number, number],
+  windowScale: [2.36, 2.12, 1] as [number, number, number],
+};
+
 const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
   idle: {
-    lookAt: [0.08, 0.34, -1.55],
-    position: [-0.18, 0.82, 3.82],
+    lookAt: windowSideLayout.cameraIdleLookAt,
+    position: windowSideLayout.cameraIdlePosition,
   },
   clock: {
     lookAt: [1.34, 1.22, -2.02],
@@ -117,8 +137,8 @@ const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
     position: [-0.05, 0.4, 2.12],
   },
   window: {
-    lookAt: [0.08, 0.86, -2.02],
-    position: [-0.08, 0.86, 1.86],
+    lookAt: [0.16, 0.86, -2.08],
+    position: [-0.04, 0.88, 1.72],
   },
 };
 
@@ -1664,12 +1684,12 @@ function LowPolyChair({
       return;
     }
 
-    const finalPosition = new THREE.Vector3(-0.78, -0.66, 1.18);
-    const startPosition = new THREE.Vector3(-0.52, -0.66, 0.84);
+    const finalPosition = new THREE.Vector3(...windowSideLayout.chairFinalPosition);
+    const startPosition = new THREE.Vector3(...windowSideLayout.chairStartPosition);
 
     if (!introActive || subject.id !== "tartar") {
       chair.position.copy(finalPosition);
-      chair.rotation.y = -0.42;
+      chair.rotation.y = windowSideLayout.chairRotationY;
       return;
     }
 
@@ -1683,11 +1703,15 @@ function LowPolyChair({
 
     chair.position.lerpVectors(startPosition, finalPosition, pullProgress);
     chair.position.x += settle;
-    chair.rotation.y = THREE.MathUtils.lerp(-0.1, -0.42, pullProgress);
+    chair.rotation.y = THREE.MathUtils.lerp(-0.12, windowSideLayout.chairRotationY, pullProgress);
   });
 
   return (
-    <group ref={chairRef} position={[-0.78, -0.66, 1.18]} rotation={[0, -0.42, 0]}>
+    <group
+      ref={chairRef}
+      position={windowSideLayout.chairFinalPosition}
+      rotation={[0, windowSideLayout.chairRotationY, 0]}
+    >
       <mesh position={[0, 0.06, 0]}>
         <boxGeometry args={[0.58, 0.12, 0.56]} />
         <meshStandardMaterial
@@ -2055,9 +2079,9 @@ function OfficeEquipmentModel({ accent }: { accent: string }) {
   return (
     <primitive
       object={scene}
-      position={[0.72, -0.18, 0.2]}
-      rotation={[0.02, -0.34, 0]}
-      scale={[0.72, 0.72, 0.72]}
+      position={windowSideLayout.officeEquipmentPosition}
+      rotation={windowSideLayout.officeEquipmentRotation}
+      scale={windowSideLayout.officeEquipmentScale}
     />
   );
 }
@@ -2524,7 +2548,7 @@ function RoomObjects({
         decay={2}
         distance={3.65}
         intensity={palette.lampIntensity + 0.32}
-        position={[1.18, 0.52, 0.28]}
+        position={[windowSideLayout.lampPosition[0], 0.5, windowSideLayout.lampPosition[2]]}
       />
       <spotLight
         angle={0.72}
@@ -2533,15 +2557,15 @@ function RoomObjects({
         distance={3}
         intensity={activeObjectId === "lamp" ? 0.58 : 0.38}
         penumbra={0.88}
-        position={[1.16, 0.86, 0.28]}
-        target-position={[0.24, -0.25, 0.56]}
+        position={[windowSideLayout.lampPosition[0] - 0.02, 0.82, windowSideLayout.lampPosition[2]]}
+        target-position={[0.2, -0.32, 0.36]}
       />
       <pointLight
         color={palette.monitor}
         decay={1.7}
         distance={2.85}
         intensity={0.78 + (activeBroadcast ? 0.34 : 0)}
-        position={[-1.34, 0.06, 0.72]}
+        position={[windowSideLayout.crtPosition[0], 0.04, windowSideLayout.crtPosition[2] + 0.28]}
       />
       <pointLight
         color={palette.monitor}
@@ -2555,7 +2579,7 @@ function RoomObjects({
         decay={2}
         distance={5.8}
         intensity={activeObjectId === "window" ? 0.9 : 0.58}
-        position={[0.12, 0.96, -1.76]}
+        position={[windowSideLayout.windowPosition[0], 0.98, windowSideLayout.windowPosition[2] + 0.28]}
       />
 
       <group ref={roomRef}>
@@ -2584,8 +2608,8 @@ function RoomObjects({
         </mesh>
         <WallLifeDetails accent={palette.accent} world={windowWorld} />
 
-        <mesh receiveShadow position={[0.0, -0.36, 0.4]} rotation={[0, -0.035, 0]}>
-          <boxGeometry args={[3.92, 0.18, 1.26]} />
+        <mesh receiveShadow position={windowSideLayout.deskPosition} rotation={[0, -0.035, 0]}>
+          <boxGeometry args={windowSideLayout.deskSize} />
           <meshStandardMaterial
             color="#4a2e1d"
             emissive={palette.lamp}
@@ -2595,11 +2619,11 @@ function RoomObjects({
             roughness={0.48}
           />
         </mesh>
-        <mesh position={[-1.62, -0.75, -0.02]}>
+        <mesh position={[-1.58, -0.76, windowSideLayout.deskLegZ]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
           <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
         </mesh>
-        <mesh position={[1.62, -0.75, 0.02]}>
+        <mesh position={[1.58, -0.76, windowSideLayout.deskLegZ + 0.04]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
           <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
         </mesh>
@@ -2610,8 +2634,9 @@ function RoomObjects({
               event.stopPropagation();
               onInspectObject("crt");
             }}
-            position={[-1.34, 0.0, 0.34]}
-            rotation={[0.05, 0.46, -0.02]}
+            position={windowSideLayout.crtPosition}
+            rotation={windowSideLayout.crtRotation}
+            scale={windowSideLayout.crtScale}
             {...bindObject("crt")}
           >
             <mesh>
@@ -2645,7 +2670,7 @@ function RoomObjects({
             event.stopPropagation();
             onInspectObject("lamp");
           }}
-          position={[1.18, -0.06, 0.28]}
+          position={windowSideLayout.lampPosition}
           {...bindObject("lamp")}
         >
           <mesh>
@@ -2671,8 +2696,8 @@ function RoomObjects({
             event.stopPropagation();
             onInspectObject("window");
           }}
-          position={[0.08, 0.82, -2.08]}
-          scale={[2.04, 1.86, 1]}
+          position={windowSideLayout.windowPosition}
+          scale={windowSideLayout.windowScale}
           {...bindObject("window")}
         >
           <WindowFrame active={isObjectLit("window")} world={windowWorld} />
