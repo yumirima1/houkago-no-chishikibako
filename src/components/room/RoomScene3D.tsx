@@ -82,6 +82,7 @@ type ObjectInteractionHandlers = {
 type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHandlers;
 
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
+const TELEVISION_MODEL_URL = "/models/television.glb";
 
 const windowSideLayout = {
   cameraIdleLookAt: [0.16, 0.68, -2.02] as [number, number, number],
@@ -90,9 +91,10 @@ const windowSideLayout = {
   chairScale: [0.74, 0.74, 0.74] as [number, number, number],
   chairStartPosition: [-0.7, -0.74, 0.96] as [number, number, number],
   chairRotationY: -0.56,
-  crtPosition: [-1.28, -0.08, 0.04] as [number, number, number],
+  crtFallbackScale: [0.72, 0.72, 0.72] as [number, number, number],
+  crtPosition: [-1.34, -0.1, -0.04] as [number, number, number],
   crtRotation: [0.05, 0.5, -0.02] as [number, number, number],
-  crtScale: [0.82, 0.82, 0.82] as [number, number, number],
+  crtScale: [0.96, 0.96, 0.96] as [number, number, number],
   deskLegZ: -0.32,
   deskPosition: [0.04, -0.49, -0.02] as [number, number, number],
   deskSize: [3.72, 0.14, 0.96] as [number, number, number],
@@ -2033,7 +2035,7 @@ class ModelErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.warn("Office equipment GLB failed to load.", error, info.componentStack);
+    console.warn("Room GLB failed to load.", error, info.componentStack);
   }
 
   render() {
@@ -2089,6 +2091,130 @@ function OfficeEquipmentModel({ accent }: { accent: string }) {
 }
 
 useGLTF.preload(OFFICE_EQUIPMENT_MODEL_URL);
+useGLTF.preload(TELEVISION_MODEL_URL);
+
+function TelevisionModel() {
+  const gltf = useGLTF(TELEVISION_MODEL_URL);
+  const scene = useMemo(() => {
+    const clonedScene = gltf.scene.clone(true);
+
+    clonedScene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+
+      object.castShadow = false;
+      object.receiveShadow = false;
+      object.frustumCulled = true;
+
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+
+      const clonedMaterials = materials.map((material) => material.clone());
+      object.material = Array.isArray(object.material)
+        ? clonedMaterials
+        : clonedMaterials[0];
+
+      clonedMaterials.forEach((material) => {
+        if (material instanceof THREE.MeshStandardMaterial) {
+          material.roughness = Math.max(material.roughness, 0.72);
+          material.metalness = Math.min(material.metalness, 0.22);
+        }
+      });
+    });
+
+    return clonedScene;
+  }, [gltf.scene]);
+
+  return <primitive object={scene} />;
+}
+
+function CodeGeneratedCrt({
+  actionPulse,
+  active,
+  palette,
+}: {
+  actionPulse: number;
+  active: boolean;
+  palette: SubjectPalette;
+}) {
+  return (
+    <group scale={windowSideLayout.crtFallbackScale}>
+      <mesh>
+        <boxGeometry args={[0.92, 0.62, 0.5]} />
+        <meshStandardMaterial color="#1f2937" flatShading roughness={0.78} />
+      </mesh>
+      <mesh position={[0, 0.02, 0.32]}>
+        <boxGeometry args={[0.68, 0.36, 0.035]} />
+        <meshStandardMaterial
+          color="#06130f"
+          emissive={palette.monitor}
+          emissiveIntensity={0.42 + actionPulse + (active ? 0.26 : 0)}
+          flatShading
+          roughness={0.5}
+        />
+      </mesh>
+      <mesh position={[0.3, -0.18, 0.29]}>
+        <sphereGeometry args={[0.025, 12, 8]} />
+        <meshStandardMaterial
+          color={palette.monitor}
+          emissive={palette.monitor}
+          emissiveIntensity={0.72}
+          flatShading
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function BroadcastReceiver({
+  actionPulse,
+  active,
+  bindObject,
+  onInspectObject,
+  palette,
+}: {
+  actionPulse: number;
+  active: boolean;
+  bindObject: ObjectInteractionBinder;
+  onInspectObject: (objectId: RoomObjectId) => void;
+  palette: SubjectPalette;
+}) {
+  const fallback = (
+    <CodeGeneratedCrt
+      actionPulse={actionPulse}
+      active={active}
+      palette={palette}
+    />
+  );
+
+  return (
+    <group
+      onClick={(event) => {
+        event.stopPropagation();
+        onInspectObject("crt");
+      }}
+      position={windowSideLayout.crtPosition}
+      rotation={windowSideLayout.crtRotation}
+      scale={windowSideLayout.crtScale}
+      {...bindObject("crt")}
+    >
+      <ModelErrorBoundary fallback={fallback}>
+        <Suspense fallback={fallback}>
+          <TelevisionModel />
+        </Suspense>
+      </ModelErrorBoundary>
+      <GlowPlane
+        color={palette.monitor}
+        opacity={active ? 0.16 : 0.085}
+        position={[-0.08, 0.0, 0.255]}
+        rotation={[0, 0, 0]}
+        scale={[0.46, 0.34, 1]}
+      />
+    </group>
+  );
+}
 
 function EquipmentInteractionShell({
   activeObjectId,
@@ -2421,7 +2547,7 @@ function RoomObjects({
 }) {
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
-  const [introActive, setIntroActive] = useState(false);
+  const introActive = false;
   const actionPulse = 0.04 + (action.id.length % 4) * 0.014;
   const roomRef = useRef<THREE.Group>(null);
   const lampLightRef = useRef<THREE.PointLight>(null);
@@ -2480,28 +2606,6 @@ function RoomObjects({
   });
   const isObjectLit = (objectId: RoomObjectId) =>
     activeObjectId === objectId || hoveredObjectId === objectId;
-
-  useEffect(() => {
-    if (subject.id !== "tartar" || typeof window === "undefined") {
-      const timer = window.setTimeout(() => setIntroActive(false), 0);
-
-      return () => window.clearTimeout(timer);
-    }
-
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      const timer = window.setTimeout(() => setIntroActive(false), 0);
-
-      return () => window.clearTimeout(timer);
-    }
-
-    const startTimer = window.setTimeout(() => setIntroActive(true), 0);
-    const endTimer = window.setTimeout(() => setIntroActive(false), 5_200);
-
-    return () => {
-      window.clearTimeout(startTimer);
-      window.clearTimeout(endTimer);
-    };
-  }, [subject.id]);
 
   useFrame(({ clock, pointer, size }) => {
     const elapsed = clock.getElapsedTime();
@@ -2631,40 +2735,13 @@ function RoomObjects({
         </mesh>
 
         {subject.id === "tartar" ? (
-          <group
-            onClick={(event) => {
-              event.stopPropagation();
-              onInspectObject("crt");
-            }}
-            position={windowSideLayout.crtPosition}
-            rotation={windowSideLayout.crtRotation}
-            scale={windowSideLayout.crtScale}
-            {...bindObject("crt")}
-          >
-            <mesh>
-              <boxGeometry args={[0.92, 0.62, 0.5]} />
-              <meshStandardMaterial color="#1f2937" flatShading roughness={0.78} />
-            </mesh>
-            <mesh position={[0, 0.02, 0.32]}>
-              <boxGeometry args={[0.68, 0.36, 0.035]} />
-              <meshStandardMaterial
-                color="#06130f"
-                emissive={palette.monitor}
-                emissiveIntensity={0.42 + actionPulse + (isObjectLit("crt") ? 0.26 : 0)}
-                flatShading
-                roughness={0.5}
-              />
-            </mesh>
-            <mesh position={[0.3, -0.18, 0.29]}>
-              <sphereGeometry args={[0.025, 12, 8]} />
-              <meshStandardMaterial
-                color={palette.monitor}
-                emissive={palette.monitor}
-                emissiveIntensity={0.72}
-                flatShading
-              />
-            </mesh>
-          </group>
+          <BroadcastReceiver
+            actionPulse={actionPulse}
+            active={isObjectLit("crt")}
+            bindObject={bindObject}
+            onInspectObject={onInspectObject}
+            palette={palette}
+          />
         ) : null}
 
         <group
