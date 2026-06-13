@@ -1,9 +1,9 @@
 "use client";
 
-import { Html } from "@react-three/drei";
+import { Html, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
-import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 import * as THREE from "three";
 
 import {
@@ -80,6 +80,8 @@ type ObjectInteractionHandlers = {
 };
 
 type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHandlers;
+
+const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 
 const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
   idle: {
@@ -1994,6 +1996,173 @@ function WallLifeDetails({
   );
 }
 
+class ModelErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.warn("Office equipment GLB failed to load.", error, info.componentStack);
+  }
+
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
+}
+
+function OfficeEquipmentModel({ accent }: { accent: string }) {
+  const gltf = useGLTF(OFFICE_EQUIPMENT_MODEL_URL);
+  const scene = useMemo(() => {
+    const clonedScene = gltf.scene.clone(true);
+
+    clonedScene.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) {
+        return;
+      }
+
+      object.castShadow = false;
+      object.receiveShadow = false;
+      object.frustumCulled = true;
+
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
+
+      const softenedMaterials = materials.map((material) => material.clone());
+      object.material = Array.isArray(object.material)
+        ? softenedMaterials
+        : softenedMaterials[0];
+
+      softenedMaterials.forEach((material) => {
+        if (material instanceof THREE.MeshStandardMaterial) {
+          material.color.set("#737868");
+          material.roughness = Math.max(material.roughness, 0.66);
+          material.metalness = Math.min(material.metalness, 0.18);
+          material.emissive = new THREE.Color(accent);
+          material.emissiveIntensity = 0.012;
+        }
+      });
+    });
+
+    return clonedScene;
+  }, [accent, gltf.scene]);
+
+  return (
+    <primitive
+      object={scene}
+      position={[0.72, -0.18, 0.2]}
+      rotation={[0.02, -0.34, 0]}
+      scale={[0.72, 0.72, 0.72]}
+    />
+  );
+}
+
+useGLTF.preload(OFFICE_EQUIPMENT_MODEL_URL);
+
+function EquipmentInteractionShell({
+  activeObjectId,
+  bindObject,
+  onInspectObject,
+}: {
+  activeObjectId?: RoomObjectId | null;
+  bindObject: ObjectInteractionBinder;
+  onInspectObject: (objectId: RoomObjectId) => void;
+}) {
+  return (
+    <group>
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onInspectObject("terminal");
+        }}
+        position={[0.32, -0.04, 0.5]}
+        rotation={[0.03, -0.22, 0]}
+        {...bindObject("terminal")}
+      >
+        <boxGeometry args={[0.76, 0.5, 0.18]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onInspectObject("radio");
+        }}
+        position={[1.22, -0.13, 0.16]}
+        {...bindObject("radio")}
+      >
+        <boxGeometry args={[0.46, 0.28, 0.36]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <mesh
+        onClick={(event) => {
+          event.stopPropagation();
+          onInspectObject("envelope");
+        }}
+        position={[-1.48, 1.2, -2.0]}
+        {...bindObject("envelope")}
+      >
+        <boxGeometry args={[0.12, 0.08, 0.06]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      {activeObjectId === "terminal" ? (
+        <GlowPlane
+          color="#67e8f9"
+          opacity={0.12}
+          position={[0.32, -0.2, 0.72]}
+          rotation={[-Math.PI / 2, 0, -0.05]}
+          scale={[1.0, 0.48, 1]}
+        />
+      ) : null}
+    </group>
+  );
+}
+
+function TartarEquipmentLayer({
+  accent,
+  activeObjectId,
+  bindObject,
+  onInspectObject,
+}: {
+  accent: string;
+  activeObjectId?: RoomObjectId | null;
+  bindObject: ObjectInteractionBinder;
+  onInspectObject: (objectId: RoomObjectId) => void;
+}) {
+  const fallback = (
+    <TartarExtras
+      accent={accent}
+      activeObjectId={activeObjectId}
+      bindObject={bindObject}
+      onInspectObject={onInspectObject}
+    />
+  );
+
+  return (
+    <ModelErrorBoundary fallback={fallback}>
+      <Suspense fallback={fallback}>
+        <OfficeEquipmentModel accent={accent} />
+        <EquipmentInteractionShell
+          activeObjectId={activeObjectId}
+          bindObject={bindObject}
+          onInspectObject={onInspectObject}
+        />
+        <BookStack
+          accent={accent}
+          active={activeObjectId === "envelope"}
+          bindObject={bindObject}
+          onInspectObject={onInspectObject}
+          position={[-1.02, -0.18, 0.08]}
+        />
+      </Suspense>
+    </ModelErrorBoundary>
+  );
+}
+
 function TartarExtras({
   accent,
   activeObjectId,
@@ -2577,7 +2746,7 @@ function RoomObjects({
         />
 
         {subject.id === "tartar" ? (
-          <TartarExtras
+          <TartarEquipmentLayer
             accent={palette.accent}
             activeObjectId={hoveredObjectId ?? activeObjectId}
             bindObject={bindObject}
