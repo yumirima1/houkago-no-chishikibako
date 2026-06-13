@@ -1059,6 +1059,76 @@ body {
     linear-gradient(180deg, #061424, #050812 62%, #03040a);
 }
 
+.window-side-scene-loading {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 58% 34%, rgba(147, 197, 253, 0.1), transparent 28%),
+    linear-gradient(180deg, #07111f 0%, #050812 58%, #03040a 100%);
+}
+
+.window-side-scene-loading::before {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(2, 6, 23, 0.64), transparent 28%, transparent 72%, rgba(2, 6, 23, 0.7)),
+    linear-gradient(180deg, transparent 45%, rgba(2, 6, 23, 0.7));
+  content: "";
+}
+
+.window-side-loading-window {
+  position: absolute;
+  left: 22%;
+  top: 12%;
+  width: 58%;
+  height: 58%;
+  border: 16px solid rgba(79, 48, 36, 0.72);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.8) 0 36%, rgba(90, 64, 88, 0.68) 37% 72%, rgba(7, 18, 37, 0.82) 73%),
+    linear-gradient(90deg, transparent 0 48%, rgba(2, 6, 23, 0.86) 49% 52%, transparent 53%);
+  box-shadow:
+    0 22px 80px rgba(15, 23, 42, 0.68),
+    inset 0 0 0 1px rgba(191, 219, 254, 0.08);
+}
+
+.window-side-loading-window span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: rgba(2, 6, 23, 0.82);
+}
+
+.window-side-loading-window span:first-child {
+  top: 46%;
+}
+
+.window-side-loading-window span:last-child {
+  top: 67%;
+}
+
+.window-side-loading-desk {
+  position: absolute;
+  left: 9%;
+  right: 5%;
+  bottom: 4%;
+  height: 22%;
+  background: linear-gradient(180deg, rgba(89, 52, 26, 0.84), rgba(47, 29, 17, 0.94));
+  transform: skewX(-6deg);
+}
+
+.window-side-loading-light {
+  position: absolute;
+  right: 21%;
+  bottom: 21%;
+  width: 11%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.5), rgba(251, 146, 60, 0.12) 54%, transparent 70%);
+  filter: blur(4px);
+}
+
 .room-depth-layer {
   position: absolute;
   inset: 0;

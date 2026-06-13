@@ -2168,6 +2168,27 @@ function CodeGeneratedCrt({
   );
 }
 
+function ReceiverLoadingSilhouette({ palette }: { palette: SubjectPalette }) {
+  return (
+    <group scale={windowSideLayout.crtFallbackScale}>
+      <mesh>
+        <boxGeometry args={[0.78, 0.48, 0.42]} />
+        <meshStandardMaterial
+          color="#0f172a"
+          emissive={palette.monitor}
+          emissiveIntensity={0.08}
+          flatShading
+          roughness={0.86}
+        />
+      </mesh>
+      <mesh position={[0, 0.02, 0.24]}>
+        <boxGeometry args={[0.54, 0.28, 0.025]} />
+        <meshBasicMaterial color="#123025" transparent opacity={0.46} />
+      </mesh>
+    </group>
+  );
+}
+
 function BroadcastReceiver({
   actionPulse,
   active,
@@ -2201,7 +2222,7 @@ function BroadcastReceiver({
       {...bindObject("crt")}
     >
       <ModelErrorBoundary fallback={fallback}>
-        <Suspense fallback={fallback}>
+        <Suspense fallback={<ReceiverLoadingSilhouette palette={palette} />}>
           <TelevisionModel />
         </Suspense>
       </ModelErrorBoundary>
@@ -2274,6 +2295,23 @@ function EquipmentInteractionShell({
   );
 }
 
+function OfficeEquipmentLoadingSilhouette({ accent }: { accent: string }) {
+  return (
+    <group>
+      <mesh position={windowSideLayout.officeEquipmentPosition} rotation={windowSideLayout.officeEquipmentRotation}>
+        <boxGeometry args={[0.46, 0.16, 0.28]} />
+        <meshStandardMaterial
+          color="#172033"
+          emissive={accent}
+          emissiveIntensity={0.035}
+          flatShading
+          roughness={0.86}
+        />
+      </mesh>
+    </group>
+  );
+}
+
 function TartarEquipmentLayer({
   accent,
   activeObjectId,
@@ -2296,7 +2334,7 @@ function TartarEquipmentLayer({
 
   return (
     <ModelErrorBoundary fallback={fallback}>
-      <Suspense fallback={fallback}>
+      <Suspense fallback={<OfficeEquipmentLoadingSilhouette accent={accent} />}>
         <OfficeEquipmentModel accent={accent} />
         <EquipmentInteractionShell
           activeObjectId={activeObjectId}

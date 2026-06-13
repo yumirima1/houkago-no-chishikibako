@@ -14,7 +14,7 @@ import { Episode } from "@/data/episodes";
 import { RoomFallback2D } from "@/components/room/RoomFallback2D";
 
 const RoomScene3D = dynamic(() => import("@/components/room/RoomScene3D"), {
-  loading: () => <div className="room-scene-3d-loading" />,
+  loading: () => <WindowSideSceneLoading />,
   ssr: false,
 });
 
@@ -51,6 +51,19 @@ function shouldUse3DScene() {
   return Boolean(gl);
 }
 
+function WindowSideSceneLoading() {
+  return (
+    <div className="window-side-scene-loading" aria-label="窓辺を読み込み中">
+      <div className="window-side-loading-window">
+        <span />
+        <span />
+      </div>
+      <div className="window-side-loading-desk" />
+      <div className="window-side-loading-light" />
+    </div>
+  );
+}
+
 export function RoomSceneRoot({
   action,
   activeObjectId,
@@ -63,7 +76,7 @@ export function RoomSceneRoot({
   subject,
   timeStateLabel,
 }: RoomSceneRootProps) {
-  const [use3DScene, setUse3DScene] = useState(false);
+  const [use3DScene, setUse3DScene] = useState<boolean | null>(null);
 
   useEffect(() => {
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -78,7 +91,11 @@ export function RoomSceneRoot({
     };
   }, []);
 
-  if (!use3DScene) {
+  if (use3DScene === null) {
+    return <WindowSideSceneLoading />;
+  }
+
+  if (use3DScene === false) {
     return (
       <RoomFallback2D
         isScreensaver={isScreensaver}
