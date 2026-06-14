@@ -86,8 +86,6 @@ type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHand
 type RoomExportStatus = "idle" | "exporting" | "saved" | "error";
 type BroadcastFocusStage = "idle" | "zooming" | "fullscreen" | "closing";
 
-const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
-const TELEVISION_MODEL_URL = "/models/television.glb";
 const AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL = "/models/window-side-room-authored.glb";
 const BROADCAST_FOCUS_ZOOM_MS = 920;
 const BROADCAST_FOCUS_FADE_MS = 420;
@@ -1269,8 +1267,6 @@ function AuthoredRoomHotspots({
   );
 }
 
-useGLTF.preload(OFFICE_EQUIPMENT_MODEL_URL);
-useGLTF.preload(TELEVISION_MODEL_URL);
 useGLTF.preload(AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL);
 
 function RoomObjects({
