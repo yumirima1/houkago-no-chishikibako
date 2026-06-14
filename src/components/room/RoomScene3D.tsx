@@ -88,6 +88,7 @@ type BroadcastFocusStage = "idle" | "zooming" | "fullscreen" | "closing";
 
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 const TELEVISION_MODEL_URL = "/models/television.glb";
+const AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL = "/models/window-side-room-authored.glb";
 const BROADCAST_FOCUS_ZOOM_MS = 920;
 const BROADCAST_FOCUS_FADE_MS = 420;
 
@@ -762,555 +763,6 @@ function SceneExporter() {
   );
 }
 
-function RainLayer({
-  count,
-  color = "#bfdbfe",
-  opacity,
-  speed,
-  width,
-}: {
-  count: number;
-  color?: string;
-  opacity: number;
-  speed: number;
-  width: number;
-}) {
-  const rainRef = useRef<THREE.Group>(null);
-  const drops = useMemo(
-    () =>
-      Array.from({ length: count }, (_, index) => ({
-        x: -0.52 + (index % 8) * 0.15,
-        y: -0.38 + Math.floor(index / 8) * 0.16,
-      })),
-    [count],
-  );
-
-  useFrame(({ clock }) => {
-    if (rainRef.current) {
-      rainRef.current.position.y = -((clock.elapsedTime * speed) % 0.32);
-    }
-  });
-
-  return (
-    <group ref={rainRef} rotation={[0, -0.08, -0.18]}>
-      {drops.map((drop, index) => (
-        <mesh key={index} position={[drop.x, drop.y, 0.025]}>
-          <boxGeometry args={[width, 0.11 + width * 7, 0.006]} />
-          <meshBasicMaterial color={color} transparent opacity={opacity} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function SnowLayer({ active }: { active: boolean }) {
-  const snowRef = useRef<THREE.Group>(null);
-  const flakes = useMemo(
-    () =>
-      Array.from({ length: 30 }, (_, index) => ({
-        x: -0.45 + (index % 6) * 0.18,
-        y: -0.34 + Math.floor(index / 6) * 0.16,
-        z: 0.03 + (index % 3) * 0.006,
-      })),
-    [],
-  );
-
-  useFrame(({ clock }) => {
-    if (snowRef.current) {
-      snowRef.current.position.y = -((clock.elapsedTime * 0.025) % 0.24);
-      snowRef.current.position.x = Math.sin(clock.elapsedTime * 0.42) * 0.018;
-    }
-  });
-
-  return (
-    <group ref={snowRef}>
-      {flakes.map((flake, index) => (
-        <mesh key={index} position={[flake.x, flake.y, flake.z]}>
-          <boxGeometry args={[0.012, 0.012, 0.004]} />
-          <meshBasicMaterial color="#e0f2fe" transparent opacity={active ? 0.52 : 0.34} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function WindowWorldBackdrop({
-  active,
-  world,
-}: {
-  active: boolean;
-  world: WindowWorld;
-}) {
-  const rarityStrength = getRarityStrength(world.rarity);
-  const farBuildings = [
-    [-0.56, -0.2, 0.1, 0.34, "#07111f"],
-    [-0.38, -0.16, 0.13, 0.45, "#0a1626"],
-    [-0.18, -0.22, 0.1, 0.28, "#050c18"],
-    [0.05, -0.17, 0.15, 0.44, "#0b1727"],
-    [0.28, -0.2, 0.12, 0.36, "#07111d"],
-    [0.5, -0.15, 0.12, 0.48, "#0d1828"],
-  ] as const;
-  const midBuildings = [
-    [-0.44, -0.25, 0.15, 0.46, "#08101b"],
-    [-0.18, -0.27, 0.16, 0.36, "#0d1320"],
-    [0.12, -0.23, 0.2, 0.52, "#060d18"],
-    [0.42, -0.26, 0.14, 0.4, "#101827"],
-  ] as const;
-  const lit = world.cityLights || world.signal || world.rarity !== "common";
-
-  return (
-    <group name="WindowOutsideWorld" position={[0, 0, -0.12]}>
-      <mesh name="DistantNightSky" position={[0, 0.03, -0.36]}>
-        <planeGeometry args={[1.42, 1.1]} />
-        <meshBasicMaterial color={world.skyTop} depthWrite={false} />
-      </mesh>
-      <mesh name="LowerCityGlow" position={[0.04, -0.22, -0.34]}>
-        <planeGeometry args={[1.32, 0.58]} />
-        <meshBasicMaterial color={world.skyBottom} depthWrite={false} transparent opacity={0.82} />
-      </mesh>
-      <mesh name="RainySkyBloom" position={[0.1, -0.03, -0.32]}>
-        <planeGeometry args={[1.1, 0.62]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={Math.min(0.32, 0.09 * rarityStrength + (active ? 0.08 : 0.04))}
-        />
-      </mesh>
-      <group name="FarCityBlocks" position={[0, 0, -0.24]}>
-        {farBuildings.map(([x, y, width, height, color], index) => (
-          <group key={index} position={[x, y + height / 2, index % 2 ? -0.035 : 0]}>
-            <mesh>
-              <boxGeometry args={[width, height, 0.038]} />
-              <meshStandardMaterial color={color} emissive="#0f172a" emissiveIntensity={0.02} roughness={0.92} />
-            </mesh>
-            {lit ? (
-              <>
-                <mesh position={[-width * 0.18, height * 0.18, 0.024]}>
-                  <boxGeometry args={[0.018, 0.012, 0.01]} />
-                  <meshBasicMaterial
-                    blending={THREE.AdditiveBlending}
-                    color={index % 3 ? world.accent : "#fbbf24"}
-                    depthWrite={false}
-                    transparent
-                    opacity={Math.min(0.7, 0.22 * rarityStrength + (active ? 0.1 : 0.04))}
-                  />
-                </mesh>
-                <mesh position={[width * 0.14, -height * 0.08, 0.024]}>
-                  <boxGeometry args={[0.022, 0.01, 0.01]} />
-                  <meshBasicMaterial
-                    blending={THREE.AdditiveBlending}
-                    color="#bae6fd"
-                    depthWrite={false}
-                    transparent
-                    opacity={active ? 0.38 : 0.22}
-                  />
-                </mesh>
-              </>
-            ) : null}
-          </group>
-        ))}
-      </group>
-      <group name="MiddleCityBlocks" position={[0.02, -0.02, -0.13]}>
-        {midBuildings.map(([x, y, width, height, color], index) => (
-          <group key={index} position={[x, y + height / 2, index % 2 ? 0.018 : -0.012]}>
-            <mesh>
-              <boxGeometry args={[width, height, 0.07]} />
-              <meshStandardMaterial color={color} emissive={world.accent} emissiveIntensity={0.012} roughness={0.88} />
-            </mesh>
-            {Array.from({ length: 3 }, (_, windowIndex) => (
-              <mesh
-                key={windowIndex}
-                position={[
-                  -width * 0.24 + windowIndex * width * 0.22,
-                  -height * 0.18 + (windowIndex % 2) * height * 0.22,
-                  0.04,
-                ]}
-              >
-                <boxGeometry args={[0.018, 0.012, 0.012]} />
-                <meshBasicMaterial
-                  blending={THREE.AdditiveBlending}
-                  color={windowIndex % 2 ? "#fef3c7" : world.accent}
-                  depthWrite={false}
-                  transparent
-                  opacity={lit ? Math.min(0.82, 0.35 * rarityStrength + (active ? 0.12 : 0.04)) : 0.12}
-                />
-              </mesh>
-            ))}
-          </group>
-        ))}
-      </group>
-      <group name="NearStreetLights" position={[0.02, -0.37, -0.04]}>
-        {[-0.42, -0.08, 0.28, 0.54].map((x, index) => (
-          <group key={x} position={[x, index % 2 ? 0.02 : -0.01, index % 2 ? 0.02 : -0.01]}>
-            <mesh position={[0, 0.045, 0]}>
-              <boxGeometry args={[0.012, 0.11, 0.012]} />
-              <meshBasicMaterial color="#020617" transparent opacity={0.8} />
-            </mesh>
-            <mesh position={[0, 0.11, 0.014]}>
-              <sphereGeometry args={[0.025, 12, 8]} />
-              <meshBasicMaterial
-                blending={THREE.AdditiveBlending}
-                color={index % 2 ? world.accent : "#fbbf24"}
-                depthWrite={false}
-                transparent
-                opacity={active ? 0.58 : 0.36}
-              />
-            </mesh>
-          </group>
-        ))}
-      </group>
-      <group name="WetStreetDepth" position={[0, -0.42, -0.02]}>
-        {[-0.22, -0.08, 0.08].map((zOffset, index) => (
-          <mesh key={zOffset} position={[0.02 * index, index * 0.03, zOffset]} rotation={[0, 0, -0.035 + index * 0.03]}>
-            <planeGeometry args={[1.14 - index * 0.18, 0.035]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color={index === 1 ? "#fbbf24" : world.accent}
-              depthWrite={false}
-              transparent
-              opacity={Math.min(0.46, 0.16 * rarityStrength + (active ? 0.08 : 0.03))}
-            />
-          </mesh>
-        ))}
-      </group>
-      <group name="ExteriorPowerLines" position={[0, -0.03, -0.02]}>
-        {[-0.15, 0.0, 0.17].map((wireY, index) => (
-          <mesh key={wireY} position={[0, wireY, index * 0.012]} rotation={[0, 0, -0.035 + index * 0.018]}>
-            <boxGeometry args={[1.2, 0.005, 0.006]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.52} />
-          </mesh>
-        ))}
-      </group>
-      {world.cars ? (
-        <mesh position={[-0.18, -0.35, 0.02]} rotation={[0, 0, -0.02]}>
-          <boxGeometry args={[0.42, 0.012, 0.01]} />
-          <meshBasicMaterial
-            blending={THREE.AdditiveBlending}
-            color="#fb923c"
-            depthWrite={false}
-            transparent
-            opacity={active ? 0.42 : 0.24}
-          />
-        </mesh>
-      ) : null}
-      {world.moon ? (
-        <mesh position={[0.28, 0.24, -0.22]}>
-          <sphereGeometry args={[0.07 + rarityStrength * 0.012, 18, 12]} />
-          <meshBasicMaterial
-            blending={THREE.AdditiveBlending}
-            color={world.accent}
-            depthWrite={false}
-            transparent
-            opacity={Math.min(0.88, active ? 0.48 + rarityStrength * 0.1 : 0.3 + rarityStrength * 0.08)}
-          />
-        </mesh>
-      ) : null}
-      {world.meteor ? (
-        <mesh position={[-0.08, 0.24, -0.18]} rotation={[0, 0, -0.5]}>
-          <boxGeometry args={[0.34, 0.008, 0.008]} />
-          <meshBasicMaterial
-            blending={THREE.AdditiveBlending}
-            color="#bfdbfe"
-            depthWrite={false}
-            transparent
-            opacity={active ? 0.7 : 0.38}
-          />
-        </mesh>
-      ) : null}
-      {world.lightning ? (
-        <mesh position={[0.08, 0.12, -0.18]} rotation={[0, 0, -0.2]}>
-          <boxGeometry args={[0.04, 0.42, 0.01]} />
-          <meshBasicMaterial
-            blending={THREE.AdditiveBlending}
-            color="#ddd6fe"
-            depthWrite={false}
-            transparent
-            opacity={active ? 0.66 : 0.3}
-          />
-        </mesh>
-      ) : null}
-      {world.aurora ? (
-        <group position={[0, 0, -0.2]}>
-          <mesh position={[-0.12, 0.18, 0]} rotation={[0, 0, 0.16]}>
-            <planeGeometry args={[0.74, 0.09]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color="#5eead4"
-              depthWrite={false}
-              transparent
-              opacity={active ? 0.5 : 0.28}
-            />
-          </mesh>
-          <mesh position={[0.18, 0.1, 0.01]} rotation={[0, 0, -0.1]}>
-            <planeGeometry args={[0.58, 0.07]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color="#a78bfa"
-              depthWrite={false}
-              transparent
-              opacity={active ? 0.42 : 0.22}
-            />
-          </mesh>
-        </group>
-      ) : null}
-      {world.fireworks ? (
-        <group position={[0.18, 0.14, -0.16]}>
-          {Array.from({ length: 8 }, (_, index) => (
-            <mesh key={index} rotation={[0, 0, (index / 8) * Math.PI * 2]}>
-              <boxGeometry args={[0.12, 0.006, 0.006]} />
-              <meshBasicMaterial
-                blending={THREE.AdditiveBlending}
-                color={index % 2 ? "#f472b6" : "#facc15"}
-                depthWrite={false}
-                transparent
-                opacity={active ? 0.46 : 0.2}
-              />
-            </mesh>
-          ))}
-        </group>
-      ) : null}
-      {world.signal ? (
-        <group position={[0.33, -0.12, -0.05]}>
-          <mesh>
-            <boxGeometry args={[0.02, 0.32, 0.01]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.76} />
-          </mesh>
-          <mesh position={[0, 0.18, 0.012]}>
-            <boxGeometry args={[0.075, 0.03, 0.01]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color={world.accent}
-              depthWrite={false}
-              transparent
-              opacity={active ? 0.64 : 0.38}
-            />
-          </mesh>
-        </group>
-      ) : null}
-      {world.glitch ? (
-        <group position={[0, 0, -0.06]}>
-          <mesh position={[-0.26, -0.16, 0.02]}>
-            <boxGeometry args={[0.048, 0.24, 0.01]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.5} />
-          </mesh>
-          <mesh position={[0.02, 0.04, 0.03]}>
-            <boxGeometry args={[0.46, 0.01, 0.008]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color={world.accent}
-              depthWrite={false}
-              transparent
-              opacity={active ? 0.2 : 0.1}
-            />
-          </mesh>
-        </group>
-      ) : null}
-      {world.fog > 0 ? (
-        <mesh position={[0, -0.04, 0.035]}>
-          <planeGeometry args={[1.32, 0.9]} />
-          <meshBasicMaterial color="#cbd5e1" depthWrite={false} transparent opacity={world.fog * (active ? 0.34 : 0.22)} />
-        </mesh>
-      ) : null}
-    </group>
-  );
-}
-
-function RainWindow({
-  active,
-  world,
-}: {
-  active: boolean;
-  world: WindowWorld;
-}) {
-  const rainLevel = world.rain === "heavy" ? 1.45 : world.rain === "light" ? 0.62 : world.rain === "none" ? 0 : 1;
-  const rarityStrength = getRarityStrength(world.rarity);
-
-  return (
-    <group name="WindowWeatherAndReflections" position={[0, 0, 0.055]}>
-      <WindowWorldBackdrop active={active} world={world} />
-      {rainLevel > 0 ? (
-        <>
-          <RainLayer
-            count={Math.round(28 * rainLevel)}
-            opacity={(active ? 0.36 : 0.2) * rainLevel}
-            speed={0.055}
-            width={0.005}
-          />
-          <RainLayer
-            count={Math.round(18 * rainLevel)}
-            opacity={(active ? 0.42 : 0.27) * rainLevel}
-            speed={0.1}
-            width={0.009}
-          />
-          <RainLayer
-            count={Math.round(12 * rainLevel)}
-            opacity={(active ? 0.5 : 0.32) * rainLevel}
-            speed={0.16}
-            width={0.012}
-          />
-          <RainLayer
-            color={world.accent}
-            count={Math.round(10 * rainLevel)}
-            opacity={(active ? 0.3 : 0.18) * rainLevel}
-            speed={0.21}
-            width={0.016}
-          />
-        </>
-      ) : null}
-      {world.snow ? <SnowLayer active={active} /> : null}
-      <mesh position={[-0.28, 0.03, 0.046]} rotation={[0, 0, -0.55]}>
-        <planeGeometry args={[0.96, 0.018]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color="#dbeafe"
-          depthWrite={false}
-          transparent
-          opacity={active ? 0.22 : 0.12}
-        />
-      </mesh>
-      <mesh position={[0.26, 0.12, 0.047]} rotation={[0, 0, -0.62]}>
-        <planeGeometry args={[0.7, 0.012]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={Math.min(0.3, 0.11 * rarityStrength + (active ? 0.06 : 0))}
-        />
-      </mesh>
-      <mesh position={[0.02, -0.04, 0.049]} rotation={[0, 0, -0.48]}>
-        <planeGeometry args={[1.12, 0.01]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color="#f8fafc"
-          depthWrite={false}
-          transparent
-          opacity={active ? 0.18 : 0.1}
-        />
-      </mesh>
-      <mesh position={[-0.1, -0.28, 0.05]} rotation={[0, 0, -0.34]}>
-        <planeGeometry args={[0.82, 0.014]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={active ? 0.2 : 0.11}
-        />
-      </mesh>
-      <mesh position={[0.18, 0.13, 0.038]} rotation={[0, 0, -0.28]}>
-        <planeGeometry args={[0.68, 0.035]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={active ? 0.18 : 0.09}
-        />
-      </mesh>
-      <mesh position={[-0.22, -0.18, 0.039]} rotation={[0, 0, -0.2]}>
-        <planeGeometry args={[0.48, 0.024]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.rarity === "legendary" ? world.accent : "#93c5fd"}
-          depthWrite={false}
-          transparent
-          opacity={active ? 0.18 : 0.08}
-        />
-      </mesh>
-      <mesh position={[0, -0.02, 0.03]}>
-        <boxGeometry args={[0.98, 0.8, 0.014]} />
-        <meshBasicMaterial color="#dbeafe" transparent opacity={active ? 0.14 : 0.075} />
-      </mesh>
-    </group>
-  );
-}
-
-function WindowFrame({
-  active,
-  world,
-}: {
-  active: boolean;
-  world: WindowWorld;
-}) {
-  const rarityStrength = getRarityStrength(world.rarity);
-  const frameColor = world.rarity === "legendary" ? "#172d3a" : "#2a1d14";
-  const glow = active ? 0.08 + rarityStrength * 0.018 : 0.035 + rarityStrength * 0.012;
-
-  return (
-    <group name="WindowFrame">
-      <mesh name="WindowOuterFrameBacking" position={[0, 0, -0.038]}>
-        <boxGeometry args={[1.55, 1.32, 0.12]} />
-        <meshStandardMaterial
-          color="#030712"
-          emissive={world.accent}
-          emissiveIntensity={0.025 * rarityStrength}
-          depthWrite={false}
-          roughness={0.88}
-          transparent
-          opacity={0.42}
-        />
-      </mesh>
-      <mesh name="WindowLeftFrame" position={[-0.76, 0, 0.035]}>
-        <boxGeometry args={[0.11, 1.36, 0.19]} />
-        <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
-      </mesh>
-      <mesh name="WindowRightFrame" position={[0.76, 0, 0.035]}>
-        <boxGeometry args={[0.11, 1.36, 0.19]} />
-        <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
-      </mesh>
-      <mesh name="WindowTopFrame" position={[0, 0.65, 0.035]}>
-        <boxGeometry args={[1.62, 0.11, 0.19]} />
-        <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
-      </mesh>
-      <mesh name="WindowSillInner" position={[0, -0.65, 0.052]}>
-        <boxGeometry args={[1.72, 0.13, 0.26]} />
-        <meshStandardMaterial
-          color="#25170f"
-          emissive={world.accent}
-          emissiveIntensity={active ? 0.11 * rarityStrength : 0.05 * rarityStrength}
-          flatShading
-          roughness={0.58}
-        />
-      </mesh>
-      <mesh name="WindowSillOuter" position={[0, -0.78, 0.09]}>
-        <boxGeometry args={[1.86, 0.07, 0.36]} />
-        <meshStandardMaterial
-          color="#120b08"
-          emissive={world.accent}
-          emissiveIntensity={0.035 * rarityStrength}
-          flatShading
-          roughness={0.52}
-        />
-      </mesh>
-      <mesh name="WindowCenterMullion" position={[0, 0, 0.09]}>
-        <boxGeometry args={[0.04, 1.1, 0.09]} />
-        <meshStandardMaterial color="#0f172a" emissive={world.accent} emissiveIntensity={glow * 0.8} flatShading roughness={0.7} />
-      </mesh>
-      <mesh name="WindowCrossbar" position={[0, 0.02, 0.092]}>
-        <boxGeometry args={[1.18, 0.035, 0.09]} />
-        <meshStandardMaterial color="#0f172a" emissive={world.accent} emissiveIntensity={glow * 0.75} flatShading roughness={0.7} />
-      </mesh>
-      <mesh position={[0, -0.88, 0.08]} rotation={[0, 0, 0.03]}>
-        <planeGeometry args={[1.98, 0.24]} />
-        <meshBasicMaterial color="#020617" transparent opacity={0.38} />
-      </mesh>
-      <mesh position={[0.05, -0.62, 0.18]} rotation={[-Math.PI / 2, 0, -0.08]}>
-        <planeGeometry args={[1.58, 0.4]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={Math.min(0.26, 0.07 * rarityStrength + (active ? 0.06 : 0))}
-        />
-      </mesh>
-    </group>
-  );
-}
-
 function GlowPlane({
   color,
   opacity,
@@ -1435,84 +887,6 @@ function DustParticles({ color }: { color: string }) {
   );
 }
 
-function ClockFace({
-  accent,
-  active,
-  bindObject,
-  onInspectObject,
-}: {
-  accent: string;
-  active: boolean;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-}) {
-  const handRef = useRef<THREE.Mesh>(null);
-
-  useFrame(() => {
-    if (handRef.current) {
-      const seconds = new Date().getSeconds();
-      handRef.current.rotation.z = -((seconds / 60) * Math.PI * 2);
-    }
-  });
-
-  return (
-    <group
-      onClick={(event) => {
-        event.stopPropagation();
-        onInspectObject("clock");
-      }}
-      position={[1.1, 1.17, -2.05]}
-      {...bindObject("clock")}
-    >
-      <mesh>
-        <cylinderGeometry args={[0.18, 0.18, 0.025, 32]} />
-        <meshStandardMaterial
-          color="#0f172a"
-          emissive={accent}
-          emissiveIntensity={active ? 0.34 : 0.1}
-          flatShading
-          roughness={0.62}
-        />
-      </mesh>
-      <mesh ref={handRef} position={[0, 0, 0.021]}>
-        <boxGeometry args={[0.012, 0.14, 0.01]} />
-        <meshBasicMaterial color="#e2e8f0" />
-      </mesh>
-    </group>
-  );
-}
-
-function OnAirSign({ accent, active }: { accent: string; active: boolean }) {
-  const signRef = useRef<THREE.MeshStandardMaterial>(null);
-
-  useFrame(({ clock }) => {
-    if (signRef.current) {
-      signRef.current.emissiveIntensity =
-        (active ? 0.36 : 0.18) + Math.max(0, Math.sin(clock.elapsedTime * 2.4)) * 0.34;
-    }
-  });
-
-  return (
-    <group position={[-1.42, 1.2, -2.05]}>
-      <mesh>
-        <boxGeometry args={[0.84, 0.2, 0.045]} />
-        <meshStandardMaterial
-          ref={signRef}
-          color="#230712"
-          emissive="#ef4444"
-          emissiveIntensity={0.24}
-          flatShading
-          roughness={0.48}
-        />
-      </mesh>
-      <mesh position={[0.34, 0, 0.035]}>
-        <sphereGeometry args={[0.035, 14, 10]} />
-        <meshBasicMaterial color={accent} transparent opacity={0.7} />
-      </mesh>
-    </group>
-  );
-}
-
 function SceneHtml({
   children,
   className,
@@ -1572,46 +946,6 @@ function ObjectWhisperLabel({
   );
 }
 
-function BroadcastScreenSurface({
-  episode,
-  isPlaying,
-  onOpenBroadcastFocus,
-}: {
-  episode: Episode;
-  isPlaying: boolean;
-  onOpenBroadcastFocus: () => void;
-}) {
-  return (
-    <Html
-      className="broadcast-tv-screen-anchor"
-      distanceFactor={1.18}
-      position={[-0.16, 0.002, 0.282]}
-      style={{ pointerEvents: "auto" }}
-      transform
-      zIndexRange={[95, 0]}
-    >
-      <button
-        aria-label="テレビ画面を拡大して最新話を見る"
-        className="broadcast-tv-screen"
-        onClick={(event) => {
-          event.stopPropagation();
-          onOpenBroadcastFocus();
-        }}
-        onPointerDown={(event) => {
-          event.stopPropagation();
-          onOpenBroadcastFocus();
-        }}
-        type="button"
-      >
-        <span>最新話</span>
-        <strong>{getEpisodeNumberLabel(episode)}</strong>
-        <p>{episode.title}</p>
-        <small>{isPlaying ? "再生中" : `${episode.duration} / 詳しく見る`}</small>
-      </button>
-    </Html>
-  );
-}
-
 function BroadcastFullscreenOverlay({
   episode,
   onClose,
@@ -1645,6 +979,35 @@ function BroadcastFullscreenOverlay({
         <p>{episode.description}</p>
         <small>{episode.duration} / {episode.themes.slice(0, 3).join(" / ")}</small>
       </div>
+    </div>
+  );
+}
+
+function AuthoredBroadcastScreenLayer({
+  episode,
+  isPlaying,
+  onOpenBroadcastFocus,
+}: {
+  episode: Episode;
+  isPlaying: boolean;
+  onOpenBroadcastFocus: () => void;
+}) {
+  return (
+    <div className="authored-broadcast-screen-layer">
+      <button
+        aria-label="テレビ画面を拡大して最新話を見る"
+        className="broadcast-tv-screen"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenBroadcastFocus();
+        }}
+        type="button"
+      >
+        <span>最新話</span>
+        <strong>{getEpisodeNumberLabel(episode)}</strong>
+        <p>{episode.title}</p>
+        <small>{isPlaying ? "再生中" : `${episode.duration} / 詳しく見る`}</small>
+      </button>
     </div>
   );
 }
@@ -1804,487 +1167,6 @@ function ClockReadout({
   );
 }
 
-function DeskClutter({
-  accent,
-  activeMemo,
-  bindObject,
-  onInspectObject,
-}: {
-  accent: string;
-  activeMemo: boolean;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-}) {
-  const paperColor = "#d7c594";
-
-  return (
-    <group name="DeskClutter">
-      <mesh
-        name="DeskMemo"
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("memo");
-        }}
-        position={[-0.08, -0.225, 0.72]}
-        rotation={[0.035, -0.18, -0.09]}
-        {...bindObject("memo")}
-      >
-        <boxGeometry args={[0.54, 0.012, 0.36]} />
-        <meshStandardMaterial
-          color={paperColor}
-          emissive={accent}
-          emissiveIntensity={activeMemo ? 0.18 : 0.03}
-          metalness={0}
-          roughness={0.92}
-        />
-      </mesh>
-      {[-0.18, 0.02, 0.22].map((x, index) => (
-        <mesh
-          key={index}
-          position={[x, -0.217, 0.725 + index * 0.018]}
-          rotation={[0.035, -0.18, -0.09]}
-        >
-          <boxGeometry args={[0.18, 0.004, 0.012]} />
-          <meshBasicMaterial color="#5b4632" transparent opacity={0.34} />
-        </mesh>
-      ))}
-      <mesh name="DeskPen" position={[0.34, -0.19, 0.62]} rotation={[0.04, 0.08, -0.52]}>
-        <cylinderGeometry args={[0.011, 0.011, 0.46, 10]} />
-        <meshStandardMaterial
-          color="#102033"
-          emissive={accent}
-          emissiveIntensity={0.035}
-          flatShading
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function BookStack({
-  accent,
-  active,
-  bindObject,
-  onInspectObject,
-  position,
-}: {
-  accent: string;
-  active: boolean;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-  position: [number, number, number];
-}) {
-  return (
-    <group
-      name="BookStack"
-      onClick={(event) => {
-        event.stopPropagation();
-        onInspectObject("envelope");
-      }}
-      position={position}
-      {...bindObject("envelope")}
-    >
-      {["#1e293b", "#334155", "#581c87"].map((color, index) => (
-        <mesh key={color} position={[0, index * 0.055, 0]} rotation={[0, 0, index * 0.03]}>
-          <boxGeometry args={[0.42 - index * 0.04, 0.045, 0.26]} />
-          <meshStandardMaterial
-            color={color}
-            emissive={accent}
-            emissiveIntensity={active ? 0.06 : 0}
-            flatShading
-            roughness={0.76}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function LowPolyChair({
-  accent,
-  introActive,
-  subject,
-}: {
-  accent: string;
-  introActive: boolean;
-  subject: ObservationSubject;
-}) {
-  const color = subject.id === "kana" ? "#3a2939" : "#1f2937";
-  const chairRef = useRef<THREE.Group>(null);
-  const introStartedAt = useRef<number | null>(null);
-
-  useEffect(() => {
-    introStartedAt.current = null;
-  }, [introActive]);
-
-  useFrame(({ clock }) => {
-    const chair = chairRef.current;
-
-    if (!chair) {
-      return;
-    }
-
-    const finalPosition = new THREE.Vector3(...windowSideLayout.chairFinalPosition);
-    const startPosition = new THREE.Vector3(...windowSideLayout.chairStartPosition);
-
-    if (!introActive || subject.id !== "tartar") {
-      chair.position.copy(finalPosition);
-      chair.rotation.y = windowSideLayout.chairRotationY;
-      return;
-    }
-
-    if (introStartedAt.current === null) {
-      introStartedAt.current = clock.elapsedTime;
-    }
-
-    const elapsed = clock.elapsedTime - introStartedAt.current;
-    const pullProgress = THREE.MathUtils.smoothstep(elapsed, 0.45, 2.05);
-    const settle = Math.sin(Math.min(1, elapsed / 2.4) * Math.PI) * 0.035;
-
-    chair.position.lerpVectors(startPosition, finalPosition, pullProgress);
-    chair.position.x += settle;
-    chair.rotation.y = THREE.MathUtils.lerp(-0.12, windowSideLayout.chairRotationY, pullProgress);
-  });
-
-  return (
-    <group
-      name="DeskChair"
-      ref={chairRef}
-      position={windowSideLayout.chairFinalPosition}
-      rotation={[0, windowSideLayout.chairRotationY, 0]}
-      scale={windowSideLayout.chairScale}
-    >
-      <mesh position={[0, 0.06, 0]}>
-        <boxGeometry args={[0.58, 0.12, 0.56]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={accent}
-          emissiveIntensity={0.018}
-          flatShading
-          roughness={0.82}
-        />
-      </mesh>
-      <mesh position={[0, 0.48, -0.24]} rotation={[0.18, 0, 0]}>
-        <boxGeometry args={[0.62, 0.82, 0.1]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={accent}
-          emissiveIntensity={0.03}
-          flatShading
-          roughness={0.86}
-        />
-      </mesh>
-      {[-0.36, 0.36].map((x) => (
-        <mesh key={x} position={[x, 0.16, 0.02]}>
-          <boxGeometry args={[0.08, 0.1, 0.46]} />
-          <meshStandardMaterial color="#111827" flatShading roughness={0.84} />
-        </mesh>
-      ))}
-      <mesh position={[0, -0.26, 0]}>
-        <cylinderGeometry args={[0.045, 0.045, 0.52, 8]} />
-        <meshStandardMaterial color="#0b0f19" flatShading roughness={0.82} />
-      </mesh>
-      {Array.from({ length: 5 }, (_, index) => (
-        <group key={index} rotation={[0, (index / 5) * Math.PI * 2, 0]}>
-          <mesh position={[0.22, -0.53, 0]}>
-            <boxGeometry args={[0.36, 0.045, 0.045]} />
-            <meshStandardMaterial color="#0b0f19" flatShading roughness={0.82} />
-          </mesh>
-          <mesh position={[0.42, -0.55, 0]}>
-            <cylinderGeometry args={[0.035, 0.035, 0.035, 8]} />
-            <meshStandardMaterial color="#111827" flatShading roughness={0.72} />
-          </mesh>
-        </group>
-      ))}
-    </group>
-  );
-}
-
-function EntryTartarTrace({
-  accent,
-  active,
-}: {
-  accent: string;
-  active: boolean;
-}) {
-  const groupRef = useRef<THREE.Group>(null);
-  const startedAt = useRef<number | null>(null);
-
-  useEffect(() => {
-    startedAt.current = null;
-  }, [active]);
-
-  useFrame(({ clock }) => {
-    const group = groupRef.current;
-
-    if (!group) {
-      return;
-    }
-
-    if (!active) {
-      group.visible = false;
-      return;
-    }
-
-    if (startedAt.current === null) {
-      startedAt.current = clock.elapsedTime;
-    }
-
-    const elapsed = clock.elapsedTime - startedAt.current;
-    group.visible = elapsed < 4.8;
-
-    const rise = THREE.MathUtils.smoothstep(elapsed, 0.9, 2.0);
-    const leave = THREE.MathUtils.smoothstep(elapsed, 2.05, 4.2);
-    const breathe = Math.sin(clock.elapsedTime * 2.1) * 0.012;
-
-    group.position.set(
-      THREE.MathUtils.lerp(-0.63, 2.15, leave),
-      THREE.MathUtils.lerp(-0.3, -0.02, rise) + breathe,
-      THREE.MathUtils.lerp(0.86, -0.78, leave),
-    );
-    group.rotation.y = THREE.MathUtils.lerp(-0.28, -1.45, leave);
-    group.scale.setScalar(THREE.MathUtils.lerp(0.86, 0.72, leave));
-  });
-
-  return (
-    <group ref={groupRef} position={[-0.63, -0.3, 0.86]} rotation={[0, -0.28, 0]}>
-      <mesh position={[0, 0.42, 0]}>
-        <dodecahedronGeometry args={[0.13, 0]} />
-        <meshStandardMaterial
-          color="#1f2937"
-          emissive={accent}
-          emissiveIntensity={0.08}
-          flatShading
-          roughness={0.78}
-          transparent
-          opacity={0.92}
-        />
-      </mesh>
-      <mesh position={[0, 0.18, 0]}>
-        <boxGeometry args={[0.22, 0.34, 0.12]} />
-        <meshStandardMaterial
-          color="#111827"
-          emissive={accent}
-          emissiveIntensity={0.05}
-          flatShading
-          roughness={0.82}
-          transparent
-          opacity={0.9}
-        />
-      </mesh>
-      {[-0.09, 0.09].map((x) => (
-        <mesh key={x} position={[x, -0.08, 0.01]} rotation={[0.12, 0, x > 0 ? -0.12 : 0.16]}>
-          <boxGeometry args={[0.06, 0.28, 0.06]} />
-          <meshStandardMaterial color="#0f172a" flatShading roughness={0.84} transparent opacity={0.86} />
-        </mesh>
-      ))}
-      {[-0.14, 0.14].map((x) => (
-        <mesh key={x} position={[x, 0.17, 0.02]} rotation={[0, 0, x > 0 ? -0.55 : 0.55]}>
-          <boxGeometry args={[0.055, 0.26, 0.055]} />
-          <meshStandardMaterial color="#172033" flatShading roughness={0.84} transparent opacity={0.82} />
-        </mesh>
-      ))}
-      {[0, 1, 2].map((index) => (
-        <mesh
-          key={index}
-          position={[-0.35 + index * 0.26, -0.54, 0.2 - index * 0.18]}
-          rotation={[-Math.PI / 2, 0, -0.18 + index * 0.11]}
-        >
-          <planeGeometry args={[0.18, 0.04]} />
-          <meshBasicMaterial color={accent} transparent opacity={0.12 - index * 0.025} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function DeskLampShade({ color }: { color: string }) {
-  return (
-    <group name="DeskLampShade" position={[0, 0.34, 0]} rotation={[0, 0, 0.08]}>
-      <mesh>
-        <cylinderGeometry args={[0.15, 0.26, 0.2, 32, 1, true]} />
-        <meshStandardMaterial
-          color="#6b4328"
-          emissive={color}
-          emissiveIntensity={0.12}
-          metalness={0.02}
-          roughness={0.62}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      <mesh position={[0, -0.045, 0]}>
-        <cylinderGeometry args={[0.205, 0.245, 0.035, 32, 1, true]} />
-        <meshStandardMaterial
-          color="#f5c16f"
-          emissive={color}
-          emissiveIntensity={0.28}
-          roughness={0.5}
-          side={THREE.DoubleSide}
-          transparent
-          opacity={0.68}
-        />
-      </mesh>
-      <mesh position={[0, 0.104, 0]}>
-        <torusGeometry args={[0.15, 0.009, 8, 32]} />
-        <meshStandardMaterial color="#3c2a1e" metalness={0.18} roughness={0.5} />
-      </mesh>
-      <mesh position={[0, -0.104, 0]}>
-        <torusGeometry args={[0.26, 0.01, 8, 32]} />
-        <meshStandardMaterial color="#3c2a1e" metalness={0.18} roughness={0.5} />
-      </mesh>
-    </group>
-  );
-}
-
-function LowPolyPlant({ accent }: { accent: string }) {
-  return (
-    <group position={[-1.74, -0.52, -0.44]}>
-      <mesh>
-        <cylinderGeometry args={[0.13, 0.1, 0.18, 6]} />
-        <meshStandardMaterial color="#422006" flatShading roughness={0.78} />
-      </mesh>
-      {Array.from({ length: 5 }, (_, index) => (
-        <mesh
-          key={index}
-          position={[
-            Math.sin(index * 1.4) * 0.08,
-            0.18 + (index % 2) * 0.04,
-            Math.cos(index * 1.4) * 0.05,
-          ]}
-          rotation={[0.25 + index * 0.1, 0, index * 0.9]}
-        >
-          <coneGeometry args={[0.045, 0.24, 4]} />
-          <meshStandardMaterial
-            color={index % 2 ? "#166534" : "#14532d"}
-            emissive={accent}
-            emissiveIntensity={0.02}
-            flatShading
-            roughness={0.9}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function WindowSillObjects({
-  active,
-  world,
-}: {
-  active: boolean;
-  world: WindowWorld;
-}) {
-  const rarityStrength = getRarityStrength(world.rarity);
-
-  return (
-    <group name="WindowSillSmallObjects" position={[0.42, -0.52, 0.16]}>
-      <mesh>
-        <cylinderGeometry args={[0.055, 0.047, 0.08, 6]} />
-        <meshStandardMaterial
-          color="#3b2418"
-          emissive={world.accent}
-          emissiveIntensity={active ? 0.06 * rarityStrength : 0.025 * rarityStrength}
-          flatShading
-          roughness={0.78}
-        />
-      </mesh>
-      {Array.from({ length: 3 }, (_, index) => (
-        <mesh
-          key={index}
-          position={[
-            -0.025 + index * 0.025,
-            0.09 + index * 0.012,
-            Math.cos(index) * 0.012,
-          ]}
-          rotation={[0.22 + index * 0.08, 0, -0.4 + index * 0.42]}
-        >
-          <coneGeometry args={[0.022, 0.13, 4]} />
-          <meshStandardMaterial
-            color={index % 2 ? "#14532d" : "#166534"}
-            emissive={world.accent}
-            emissiveIntensity={active ? 0.05 * rarityStrength : 0.018 * rarityStrength}
-            flatShading
-            roughness={0.88}
-          />
-        </mesh>
-      ))}
-      <mesh position={[-0.22, -0.015, 0.012]} rotation={[0, 0, -0.08]}>
-        <boxGeometry args={[0.2, 0.012, 0.11]} />
-        <meshStandardMaterial
-          color="#d7c594"
-          emissive={world.accent}
-          emissiveIntensity={active ? 0.05 * rarityStrength : 0.02 * rarityStrength}
-          flatShading
-          roughness={0.88}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function WallLifeDetails({
-  accent,
-  world,
-}: {
-  accent: string;
-  world: WindowWorld;
-}) {
-  return (
-    <group name="WallLifeDetails">
-      <group position={[-2.43, 0.72, -1.48]} rotation={[0, Math.PI / 2, 0]}>
-        <mesh>
-          <boxGeometry args={[0.5, 0.34, 0.035]} />
-          <meshStandardMaterial color="#2f241c" flatShading roughness={0.78} />
-        </mesh>
-        <mesh position={[0, 0, 0.022]}>
-          <boxGeometry args={[0.4, 0.24, 0.012]} />
-          <meshBasicMaterial color={world.skyBottom} transparent opacity={0.62} />
-        </mesh>
-      </group>
-      <group position={[-2.43, 0.42, -0.86]} rotation={[0, Math.PI / 2, 0]}>
-        {[
-          [-0.18, 0.09, "#d7c594"],
-          [0.1, 0.02, "#f7d28a"],
-          [-0.02, -0.16, "#cbd5e1"],
-        ].map(([x, y, color], index) => (
-          <mesh key={index} position={[x as number, y as number, 0]}>
-            <boxGeometry args={[0.18, 0.13, 0.012]} />
-            <meshStandardMaterial
-              color={color as string}
-              emissive={accent}
-              emissiveIntensity={0.025}
-              flatShading
-              roughness={0.9}
-            />
-          </mesh>
-        ))}
-      </group>
-      <group position={[-2.43, 0.98, -0.42]} rotation={[0, Math.PI / 2, 0]}>
-        <mesh>
-          <boxGeometry args={[0.76, 0.045, 0.08]} />
-          <meshStandardMaterial color="#3b2619" flatShading roughness={0.72} />
-        </mesh>
-        {[0, 1, 2, 3].map((index) => (
-          <mesh
-            key={index}
-            position={[-0.28 + index * 0.17, 0.08, 0.025]}
-            rotation={[0, 0, index % 2 ? 0.08 : -0.04]}
-          >
-            <boxGeometry args={[0.09, 0.22, 0.07]} />
-            <meshStandardMaterial
-              color={index % 2 ? "#334155" : "#6b3f25"}
-              emissive={accent}
-              emissiveIntensity={0.015}
-              flatShading
-              roughness={0.8}
-            />
-          </mesh>
-        ))}
-      </group>
-    </group>
-  );
-}
-
 class ModelErrorBoundary extends Component<
   { children: ReactNode; fallback: ReactNode },
   { hasError: boolean }
@@ -2304,11 +1186,17 @@ class ModelErrorBoundary extends Component<
   }
 }
 
-function OfficeEquipmentModel({ accent }: { accent: string }) {
-  const gltf = useGLTF(OFFICE_EQUIPMENT_MODEL_URL);
+function AuthoredWindowSideRoomModel({
+  accent,
+  windowAccent,
+}: {
+  accent: string;
+  windowAccent: string;
+}) {
+  const gltf = useGLTF(AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL);
   const scene = useMemo(() => {
     const clonedScene = gltf.scene.clone(true);
-    clonedScene.name = "OfficeEquipmentModel";
+    clonedScene.name = "AuthoredWindowSideRoomModel";
 
     clonedScene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -2322,58 +1210,6 @@ function OfficeEquipmentModel({ accent }: { accent: string }) {
       const materials = Array.isArray(object.material)
         ? object.material
         : [object.material];
-
-      const softenedMaterials = materials.map((material) => material.clone());
-      object.material = Array.isArray(object.material)
-        ? softenedMaterials
-        : softenedMaterials[0];
-
-      softenedMaterials.forEach((material) => {
-        if (material instanceof THREE.MeshStandardMaterial) {
-          material.color.set("#737868");
-          material.roughness = Math.max(material.roughness, 0.66);
-          material.metalness = Math.min(material.metalness, 0.18);
-          material.emissive = new THREE.Color(accent);
-          material.emissiveIntensity = 0.012;
-        }
-      });
-    });
-
-    return clonedScene;
-  }, [accent, gltf.scene]);
-
-  return (
-    <primitive
-      object={scene}
-      position={windowSideLayout.officeEquipmentPosition}
-      rotation={windowSideLayout.officeEquipmentRotation}
-      scale={windowSideLayout.officeEquipmentScale}
-    />
-  );
-}
-
-useGLTF.preload(OFFICE_EQUIPMENT_MODEL_URL);
-useGLTF.preload(TELEVISION_MODEL_URL);
-
-function TelevisionModel() {
-  const gltf = useGLTF(TELEVISION_MODEL_URL);
-  const scene = useMemo(() => {
-    const clonedScene = gltf.scene.clone(true);
-    clonedScene.name = "TelevisionModel";
-
-    clonedScene.traverse((object) => {
-      if (!(object instanceof THREE.Mesh)) {
-        return;
-      }
-
-      object.castShadow = false;
-      object.receiveShadow = false;
-      object.frustumCulled = true;
-
-      const materials = Array.isArray(object.material)
-        ? object.material
-        : [object.material];
-
       const clonedMaterials = materials.map((material) => material.clone());
       object.material = Array.isArray(object.material)
         ? clonedMaterials
@@ -2381,463 +1217,67 @@ function TelevisionModel() {
 
       clonedMaterials.forEach((material) => {
         if (material instanceof THREE.MeshStandardMaterial) {
-          material.roughness = Math.max(material.roughness, 0.72);
-          material.metalness = Math.min(material.metalness, 0.22);
+          const materialName = `${object.name} ${material.name}`.toLowerCase();
+          material.emissive = new THREE.Color(
+            materialName.includes("window") || materialName.includes("glass")
+              ? windowAccent
+              : accent,
+          );
+          material.emissiveIntensity = materialName.includes("window") ? 0.035 : 0.006;
         }
       });
     });
 
     return clonedScene;
-  }, [gltf.scene]);
+  }, [accent, gltf.scene, windowAccent]);
 
   return <primitive object={scene} />;
 }
 
-function CodeGeneratedCrt({
-  actionPulse,
-  active,
-  palette,
-}: {
-  actionPulse: number;
-  active: boolean;
-  palette: SubjectPalette;
-}) {
-  return (
-    <group scale={windowSideLayout.crtFallbackScale}>
-      <mesh>
-        <boxGeometry args={[0.92, 0.62, 0.5]} />
-        <meshStandardMaterial color="#1f2937" flatShading roughness={0.78} />
-      </mesh>
-      <mesh position={[0, 0.02, 0.32]}>
-        <boxGeometry args={[0.68, 0.36, 0.035]} />
-        <meshStandardMaterial
-          color="#06130f"
-          emissive={palette.monitor}
-          emissiveIntensity={0.42 + actionPulse + (active ? 0.26 : 0)}
-          flatShading
-          roughness={0.5}
-        />
-      </mesh>
-      <mesh position={[0.3, -0.18, 0.29]}>
-        <sphereGeometry args={[0.025, 12, 8]} />
-        <meshStandardMaterial
-          color={palette.monitor}
-          emissive={palette.monitor}
-          emissiveIntensity={0.72}
-          flatShading
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function ReceiverLoadingSilhouette({ palette }: { palette: SubjectPalette }) {
-  return (
-    <group scale={windowSideLayout.crtFallbackScale}>
-      <mesh>
-        <boxGeometry args={[0.78, 0.48, 0.42]} />
-        <meshStandardMaterial
-          color="#0f172a"
-          emissive={palette.monitor}
-          emissiveIntensity={0.08}
-          flatShading
-          roughness={0.86}
-        />
-      </mesh>
-      <mesh position={[0, 0.02, 0.24]}>
-        <boxGeometry args={[0.54, 0.28, 0.025]} />
-        <meshBasicMaterial color="#123025" transparent opacity={0.46} />
-      </mesh>
-    </group>
-  );
-}
-
-function BroadcastReceiver({
-  actionPulse,
-  active,
-  bindObject,
-  displayEpisode,
-  isPlaying,
-  onOpenBroadcastFocus,
-  palette,
-}: {
-  actionPulse: number;
-  active: boolean;
-  bindObject: ObjectInteractionBinder;
-  displayEpisode: Episode;
-  isPlaying: boolean;
-  onOpenBroadcastFocus: () => void;
-  palette: SubjectPalette;
-}) {
-  const fallback = (
-    <CodeGeneratedCrt
-      actionPulse={actionPulse}
-      active={active}
-      palette={palette}
-    />
-  );
-
-  return (
-    <group
-      name="BroadcastReceiverTelevision"
-      onClick={(event) => {
-        event.stopPropagation();
-        onOpenBroadcastFocus();
-      }}
-      position={windowSideLayout.crtPosition}
-      rotation={windowSideLayout.crtRotation}
-      scale={windowSideLayout.crtScale}
-      {...bindObject("crt")}
-    >
-      <ModelErrorBoundary fallback={fallback}>
-        <Suspense fallback={<ReceiverLoadingSilhouette palette={palette} />}>
-          <TelevisionModel />
-        </Suspense>
-      </ModelErrorBoundary>
-      <GlowPlane
-        color={palette.monitor}
-        opacity={active ? 0.16 : 0.085}
-        position={[-0.08, 0.0, 0.255]}
-        rotation={[0, 0, 0]}
-        scale={[0.46, 0.34, 1]}
-      />
-      <BroadcastScreenSurface
-        episode={displayEpisode}
-        isPlaying={isPlaying}
-        onOpenBroadcastFocus={onOpenBroadcastFocus}
-      />
-    </group>
-  );
-}
-
-function EquipmentInteractionShell({
-  activeObjectId,
+function AuthoredRoomHotspots({
   bindObject,
   onInspectObject,
 }: {
-  activeObjectId?: RoomObjectId | null;
   bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
-    <group name="OfficeEquipmentInteractionTargets">
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("terminal");
-        }}
-        position={[0.32, -0.04, 0.5]}
-        rotation={[0.03, -0.22, 0]}
-        {...bindObject("terminal")}
-      >
-        <boxGeometry args={[0.76, 0.5, 0.18]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("radio");
-        }}
-        position={[1.22, -0.13, 0.16]}
-        {...bindObject("radio")}
-      >
-        <boxGeometry args={[0.46, 0.28, 0.36]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("envelope");
-        }}
-        position={[-1.48, 1.2, -2.0]}
-        {...bindObject("envelope")}
-      >
-        <boxGeometry args={[0.12, 0.08, 0.06]} />
-        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-      </mesh>
-      {activeObjectId === "terminal" ? (
-        <GlowPlane
-          color="#67e8f9"
-          opacity={0.12}
-          position={[0.32, -0.2, 0.72]}
-          rotation={[-Math.PI / 2, 0, -0.05]}
-          scale={[1.0, 0.48, 1]}
-        />
-      ) : null}
-    </group>
-  );
-}
-
-function OfficeEquipmentLoadingSilhouette({ accent }: { accent: string }) {
-  return (
-    <group>
-      <mesh position={windowSideLayout.officeEquipmentPosition} rotation={windowSideLayout.officeEquipmentRotation}>
-        <boxGeometry args={[0.46, 0.16, 0.28]} />
-        <meshStandardMaterial
-          color="#172033"
-          emissive={accent}
-          emissiveIntensity={0.035}
-          flatShading
-          roughness={0.86}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function TartarEquipmentLayer({
-  accent,
-  activeObjectId,
-  bindObject,
-  onInspectObject,
-}: {
-  accent: string;
-  activeObjectId?: RoomObjectId | null;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-}) {
-  const fallback = (
-    <TartarExtras
-      accent={accent}
-      activeObjectId={activeObjectId}
-      bindObject={bindObject}
-      onInspectObject={onInspectObject}
-    />
-  );
-
-  return (
-    <ModelErrorBoundary fallback={fallback}>
-      <Suspense fallback={<OfficeEquipmentLoadingSilhouette accent={accent} />}>
-        <OfficeEquipmentModel accent={accent} />
-        <EquipmentInteractionShell
-          activeObjectId={activeObjectId}
-          bindObject={bindObject}
-          onInspectObject={onInspectObject}
-        />
-      </Suspense>
-    </ModelErrorBoundary>
-  );
-}
-
-function TartarExtras({
-  accent,
-  activeObjectId,
-  bindObject,
-  onInspectObject,
-}: {
-  accent: string;
-  activeObjectId?: RoomObjectId | null;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-}) {
-  return (
-    <group name="CodeGeneratedOfficeEquipmentFallback">
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("terminal");
-        }}
-        position={[0.32, -0.04, 0.5]}
-        rotation={[0.03, -0.22, 0]}
-        {...bindObject("terminal")}
-      >
-        <boxGeometry args={[0.64, 0.42, 0.06]} />
-        <meshStandardMaterial
-          color="#07111f"
-          emissive={accent}
-          emissiveIntensity={activeObjectId === "terminal" ? 0.42 : 0.16}
-          flatShading
-          roughness={0.56}
-        />
-      </mesh>
-      <mesh position={[0.32, -0.29, 0.46]}>
-        <boxGeometry args={[0.7, 0.04, 0.34]} />
-        <meshStandardMaterial color="#111827" flatShading roughness={0.82} />
-      </mesh>
-      <mesh position={[0.14, -0.24, 0.92]} rotation={[0, -0.05, 0]}>
-        <boxGeometry args={[0.58, 0.035, 0.16]} />
-        <meshStandardMaterial color="#0f172a" emissive={accent} emissiveIntensity={0.04} flatShading roughness={0.72} />
-      </mesh>
-      {Array.from({ length: 8 }, (_, index) => (
-        <mesh key={index} position={[-0.1 + index * 0.055, -0.205, 0.99]}>
-          <boxGeometry args={[0.035, 0.018, 0.035]} />
-          <meshStandardMaterial color="#1f2937" flatShading roughness={0.68} />
+    <group name="AuthoredRoomHotspots">
+      {[
+        ["crt", "AuthoredTelevisionHotspot", windowSideLayout.crtPosition, windowSideLayout.crtRotation, [0.86, 0.58, 0.38]],
+        ["window", "AuthoredWindowHotspot", windowSideLayout.windowPosition, [0, 0, 0], [3.0, 2.28, 0.2]],
+        ["lamp", "AuthoredLampHotspot", windowSideLayout.lampPosition, [0, 0, 0], [0.58, 1.04, 0.58]],
+        ["memo", "AuthoredMemoHotspot", [-0.22, -0.4, 0.62], [0, -0.04, 0], [0.78, 0.08, 0.5]],
+      ].map(([id, name, position, rotation, scale]) => (
+        <mesh
+          key={name as string}
+          name={name as string}
+          onClick={(event) => {
+            event.stopPropagation();
+            onInspectObject(id as RoomObjectId);
+          }}
+          position={position as [number, number, number]}
+          rotation={rotation as [number, number, number]}
+          scale={scale as [number, number, number]}
+          {...bindObject(id as RoomObjectId)}
+        >
+          <boxGeometry args={[1, 1, 1]} />
+          <meshBasicMaterial color="#ffffff" depthWrite={false} opacity={0} transparent />
         </mesh>
       ))}
-      <mesh position={[0.72, -0.205, 0.82]}>
-        <boxGeometry args={[0.12, 0.025, 0.18]} />
-        <meshStandardMaterial color="#111827" emissive={accent} emissiveIntensity={0.025} flatShading roughness={0.72} />
-      </mesh>
-      <mesh position={[-0.78, -0.05, 0.54]} rotation={[0.02, 0.38, -0.01]}>
-        <boxGeometry args={[0.42, 0.28, 0.28]} />
-        <meshStandardMaterial color="#1f2937" emissive={accent} emissiveIntensity={0.08} flatShading roughness={0.74} />
-      </mesh>
-      <mesh position={[-0.78, -0.045, 0.7]} rotation={[0.02, 0.38, -0.01]}>
-        <boxGeometry args={[0.3, 0.18, 0.035]} />
-        <meshStandardMaterial color="#06130f" emissive="#86efac" emissiveIntensity={0.26} flatShading roughness={0.5} />
-      </mesh>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("radio");
-        }}
-        position={[1.28, -0.18, 0.16]}
-        {...bindObject("radio")}
-      >
-        <boxGeometry args={[0.4, 0.2, 0.28]} />
-        <meshStandardMaterial
-          color="#1f2937"
-          emissive="#ef4444"
-          emissiveIntensity={activeObjectId === "radio" ? 0.24 : 0.08}
-          flatShading
-          roughness={0.64}
-        />
-      </mesh>
-      <mesh position={[1.0, -0.18, 0.04]}>
-        <boxGeometry args={[0.3, 0.16, 0.22]} />
-        <meshStandardMaterial color="#111827" emissive="#f97316" emissiveIntensity={0.08} flatShading roughness={0.72} />
-      </mesh>
-      {[0, 1, 2].map((index) => (
-        <mesh key={index} position={[0.88 + index * 0.12, -0.08, 0.18]}>
-          <boxGeometry args={[0.06, 0.012, 0.012]} />
-          <meshBasicMaterial color={index === 1 ? "#f97316" : accent} transparent opacity={0.58} />
-        </mesh>
-      ))}
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("envelope");
-        }}
-        position={[-1.48, 1.2, -2.0]}
-        {...bindObject("envelope")}
-      >
-        <boxGeometry args={[0.09, 0.055, 0.035]} />
-        <meshStandardMaterial
-          color="#ef4444"
-          emissive="#ef4444"
-          emissiveIntensity={activeObjectId === "envelope" ? 0.74 : 0.32}
-          flatShading
-        />
-      </mesh>
-      <BookStack
-        accent={accent}
-        active={activeObjectId === "envelope"}
-        bindObject={bindObject}
-        onInspectObject={onInspectObject}
-        position={[-1.02, -0.18, 0.08]}
-      />
-      <mesh position={[-1.32, -0.23, -0.08]} rotation={[0, 0, 0.18]}>
-        <boxGeometry args={[0.32, 0.012, 0.18]} />
-        <meshStandardMaterial
-          color="#d7c594"
-          emissive={accent}
-          emissiveIntensity={0.035}
-          flatShading
-          roughness={0.9}
-        />
-      </mesh>
     </group>
   );
 }
 
-function KanaExtras({
-  accent,
-  activeObjectId,
-  bindObject,
-  onInspectObject,
-}: {
-  accent: string;
-  activeObjectId?: RoomObjectId | null;
-  bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
-}) {
-  return (
-    <group name="KanaDeskObjects">
-      <group
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("envelope");
-        }}
-        position={[-1.42, 0.02, 0.08]}
-        {...bindObject("envelope")}
-      >
-        <mesh>
-          <boxGeometry args={[0.72, 0.82, 0.16]} />
-          <meshStandardMaterial color="#241817" flatShading roughness={0.78} />
-        </mesh>
-        {Array.from({ length: 7 }, (_, index) => (
-          <mesh
-            key={index}
-            position={[-0.27 + index * 0.09, 0.02, 0.1]}
-            rotation={[0, 0, index % 2 ? 0.04 : -0.03]}
-          >
-            <boxGeometry args={[0.055, 0.54, 0.12]} />
-            <meshStandardMaterial
-              color={index % 2 ? "#7f1d1d" : "#334155"}
-              emissive={accent}
-              emissiveIntensity={activeObjectId === "envelope" ? 0.08 : 0}
-              flatShading
-              roughness={0.7}
-            />
-          </mesh>
-        ))}
-      </group>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("terminal");
-        }}
-        position={[0.68, -0.17, 0.48]}
-        rotation={[0.04, -0.18, 0]}
-        {...bindObject("terminal")}
-      >
-        <boxGeometry args={[0.18, 0.34, 0.04]} />
-        <meshStandardMaterial
-          color="#0f172a"
-          emissive={accent}
-          emissiveIntensity={activeObjectId === "terminal" ? 0.38 : 0.12}
-          flatShading
-          roughness={0.72}
-        />
-      </mesh>
-      <mesh
-        onClick={(event) => {
-          event.stopPropagation();
-          onInspectObject("radio");
-        }}
-        position={[1.18, -0.2, 0.12]}
-        {...bindObject("radio")}
-      >
-        <cylinderGeometry args={[0.15, 0.15, 0.16, 22]} />
-        <meshStandardMaterial
-          color="#1f2937"
-          emissive={accent}
-          emissiveIntensity={activeObjectId === "radio" ? 0.28 : 0.1}
-          flatShading
-          roughness={0.64}
-        />
-      </mesh>
-      <LowPolyPlant accent={accent} />
-      <mesh position={[0.1, -0.19, 0.18]} rotation={[0, 0.1, -0.06]}>
-        <boxGeometry args={[0.36, 0.012, 0.22]} />
-        <meshStandardMaterial
-          color="#f3d1c2"
-          emissive={accent}
-          emissiveIntensity={0.025}
-          flatShading
-          roughness={0.88}
-        />
-      </mesh>
-    </group>
-  );
-}
+useGLTF.preload(OFFICE_EQUIPMENT_MODEL_URL);
+useGLTF.preload(TELEVISION_MODEL_URL);
+useGLTF.preload(AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL);
 
 function RoomObjects({
   action,
   activeObjectId,
   broadcastCandidates,
   broadcastFocusStage,
-  broadcastScreenEpisode,
   hoveredObjectId,
   isPlaying,
   isScreensaver,
@@ -2845,20 +1285,15 @@ function RoomObjects({
   logs,
   onHoverObject,
   onInspectObject,
-  onOpenBroadcastFocus,
   subject,
   timeStateLabel,
 }: RoomScene3DProps & {
   broadcastFocusStage: BroadcastFocusStage;
-  broadcastScreenEpisode: Episode;
   hoveredObjectId?: RoomObjectId | null;
   onHoverObject: (objectId: RoomObjectId | null) => void;
-  onOpenBroadcastFocus: () => void;
 }) {
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
-  const introActive = false;
-  const actionPulse = 0.04 + (action.id.length % 4) * 0.014;
   const roomRef = useRef<THREE.Group>(null);
   const lampLightRef = useRef<THREE.PointLight>(null);
   const lampBulbRef = useRef<THREE.MeshStandardMaterial>(null);
@@ -2914,9 +1349,6 @@ function RoomObjects({
       onHoverObject(objectId);
     },
   });
-  const isObjectLit = (objectId: RoomObjectId) =>
-    activeObjectId === objectId || hoveredObjectId === objectId;
-
   useFrame(({ clock, pointer, size }) => {
     const elapsed = clock.getElapsedTime();
     const isNarrow = size.width < 700;
@@ -2999,195 +1431,15 @@ function RoomObjects({
       />
 
       <group name="WindowSideRoom" ref={roomRef}>
-        <mesh name="Floor" receiveShadow position={[0, -0.9, -0.18]}>
-          <boxGeometry args={[5.8, 0.1, 4.7]} />
-          <meshStandardMaterial
-            color="#141c20"
-            emissive={windowWorld.accent}
-            emissiveIntensity={0.012}
-            metalness={0.04}
-            roughness={0.82}
-          />
-        </mesh>
-        <mesh name="BackWall" receiveShadow position={[0, 0.74, -2.28]}>
-          <boxGeometry args={[5.2, 3.35, 0.1]} />
-          <meshStandardMaterial
-            color={palette.wall}
-            emissive={windowWorld.accent}
-            emissiveIntensity={0.006}
-            roughness={0.96}
-          />
-        </mesh>
-        <mesh name="LeftWall" receiveShadow position={[-2.55, 0.68, -0.18]} rotation={[0, 0.1, 0]}>
-          <boxGeometry args={[0.1, 3.25, 4.35]} />
-          <meshStandardMaterial color="#0b1420" emissive={windowWorld.accent} emissiveIntensity={0.008} roughness={0.94} />
-        </mesh>
-        <mesh name="RightWall" receiveShadow position={[2.56, 0.7, -0.18]} rotation={[0, -0.1, 0]}>
-          <boxGeometry args={[0.08, 3.25, 4.35]} />
-          <meshStandardMaterial color="#111923" emissive={palette.lamp} emissiveIntensity={0.01} roughness={0.92} />
-        </mesh>
-        <WallLifeDetails accent={palette.accent} world={windowWorld} />
-
-        <mesh name="DeskTop" receiveShadow position={windowSideLayout.deskPosition} rotation={[0, -0.035, 0]}>
-          <boxGeometry args={windowSideLayout.deskSize} />
-          <meshStandardMaterial
-            color="#51311e"
-            emissive={palette.lamp}
-            emissiveIntensity={0.035}
-            metalness={0.035}
-            roughness={0.62}
-          />
-        </mesh>
-        <group name="DeskSubtleWoodGrain" position={[0.04, -0.412, -0.02]} rotation={[-Math.PI / 2, 0, -0.035]}>
-          {[-0.36, -0.18, 0.02, 0.2, 0.38].map((y, index) => (
-            <mesh key={y} position={[0.02 * Math.sin(index), y, 0.004]}>
-              <planeGeometry args={[3.35 - index * 0.08, 0.012]} />
-              <meshBasicMaterial color="#8b5a35" transparent opacity={0.12} depthWrite={false} />
-            </mesh>
-          ))}
-          {[-1.15, -0.48, 0.42, 1.12].map((x, index) => (
-            <mesh key={x} position={[x, 0.08 * Math.sin(index * 1.7), 0.005]} rotation={[0, 0, 0.08 * Math.sin(index)]}>
-              <planeGeometry args={[0.34, 0.008]} />
-              <meshBasicMaterial color="#23150d" transparent opacity={0.16} depthWrite={false} />
-            </mesh>
-          ))}
-        </group>
-        <mesh name="DeskLeftLeg" position={[-1.58, -0.76, windowSideLayout.deskLegZ]}>
-          <boxGeometry args={[0.11, 0.78, 0.11]} />
-          <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
-        </mesh>
-        <mesh name="DeskRightLeg" position={[1.58, -0.76, windowSideLayout.deskLegZ + 0.04]}>
-          <boxGeometry args={[0.11, 0.78, 0.11]} />
-          <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
-        </mesh>
-
-        {subject.id === "tartar" ? (
-          <BroadcastReceiver
-            actionPulse={actionPulse}
-            active={isObjectLit("crt") || broadcastFocusStage !== "idle"}
-            bindObject={bindObject}
-            displayEpisode={broadcastScreenEpisode}
-            isPlaying={isPlaying}
-            onOpenBroadcastFocus={onOpenBroadcastFocus}
-            palette={palette}
-          />
-        ) : null}
-
-        <group
-          name="DeskLamp"
-          onClick={(event) => {
-            event.stopPropagation();
-            onInspectObject("lamp");
-          }}
-          position={windowSideLayout.lampPosition}
-          {...bindObject("lamp")}
-        >
-          <mesh name="DeskLampBase" position={[0, -0.29, 0]}>
-            <cylinderGeometry args={[0.19, 0.23, 0.08, 32]} />
-            <meshStandardMaterial
-              color="#3a281d"
-              emissive={palette.lamp}
-              emissiveIntensity={0.025}
-              metalness={0.18}
-              roughness={0.42}
+        <ModelErrorBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <AuthoredWindowSideRoomModel
+              accent={palette.accent}
+              windowAccent={windowWorld.accent}
             />
-          </mesh>
-          <mesh name="DeskLampStem" position={[0, 0, 0]}>
-            <cylinderGeometry args={[0.038, 0.05, 0.62, 32]} />
-            <meshStandardMaterial
-              color="#4a3324"
-              emissive={palette.lamp}
-              emissiveIntensity={0.035}
-              metalness={0.2}
-              roughness={0.46}
-            />
-          </mesh>
-          <mesh name="DeskLampNeck" position={[0.02, 0.25, 0]} rotation={[0, 0, -0.22]}>
-            <cylinderGeometry args={[0.026, 0.032, 0.28, 24]} />
-            <meshStandardMaterial
-              color="#5a3a26"
-              emissive={palette.lamp}
-              emissiveIntensity={0.04}
-              metalness={0.16}
-              roughness={0.44}
-            />
-          </mesh>
-          <DeskLampShade color={palette.lamp} />
-          <mesh name="DeskLampBulb" position={[0, 0.285, 0]}>
-            <sphereGeometry args={[0.095, 18, 12]} />
-            <meshStandardMaterial
-              ref={lampBulbRef}
-              color="#fed7aa"
-              emissive={palette.lamp}
-              emissiveIntensity={isObjectLit("lamp") ? 1.05 : 0.74}
-              roughness={0.2}
-              transparent
-              opacity={0.92}
-            />
-          </mesh>
-          <mesh name="DeskLampWarmPool" position={[0.06, -0.325, 0.18]} rotation={[-Math.PI / 2, 0, -0.2]}>
-            <circleGeometry args={[0.58, 32]} />
-            <meshBasicMaterial
-              blending={THREE.AdditiveBlending}
-              color={palette.lamp}
-              depthWrite={false}
-              transparent
-              opacity={isObjectLit("lamp") ? 0.18 : 0.12}
-            />
-          </mesh>
-        </group>
-
-        <group
-          name="WindowAssembly"
-          onClick={(event) => {
-            event.stopPropagation();
-            onInspectObject("window");
-          }}
-          position={windowSideLayout.windowPosition}
-          scale={windowSideLayout.windowScale}
-          {...bindObject("window")}
-        >
-          <WindowFrame active={isObjectLit("window")} world={windowWorld} />
-          <mesh name="WindowGlassBacking">
-            <boxGeometry args={[1.42, 1.2, 0.06]} />
-            <meshStandardMaterial
-              color="#071225"
-              emissive={windowWorld.accent}
-              emissiveIntensity={isObjectLit("window") ? 0.42 : 0.22}
-              depthWrite={false}
-              roughness={0.6}
-              transparent
-              opacity={0.36}
-            />
-          </mesh>
-          <mesh name="WindowGlassTint" position={[0, 0, 0.034]}>
-            <boxGeometry args={[1.18, 0.94, 0.025]} />
-            <meshBasicMaterial color="#0c1c35" depthWrite={false} transparent opacity={0.1} />
-          </mesh>
-          <RainWindow active={isObjectLit("window")} world={windowWorld} />
-          <WindowSillObjects active={isObjectLit("window")} world={windowWorld} />
-        </group>
-
-        <ClockFace
-          accent={palette.accent}
-          active={isObjectLit("clock")}
-          bindObject={bindObject}
-          onInspectObject={onInspectObject}
-        />
-        <OnAirSign accent={palette.accent} active={activeBroadcast || isPlaying} />
-
-        <LowPolyChair
-          accent={palette.accent}
-          introActive={introActive}
-          subject={subject}
-        />
-        {subject.id === "tartar" ? (
-          <EntryTartarTrace accent={palette.accent} active={introActive} />
-        ) : null}
-
-        <DeskClutter
-          accent={palette.accent}
-          activeMemo={isObjectLit("memo")}
+          </Suspense>
+        </ModelErrorBoundary>
+        <AuthoredRoomHotspots
           bindObject={bindObject}
           onInspectObject={onInspectObject}
         />
@@ -3217,22 +1469,6 @@ function RoomObjects({
           rotation={[0, 0, 0]}
           scale={[3.3, 2.08, 1]}
         />
-
-        {subject.id === "tartar" ? (
-          <TartarEquipmentLayer
-            accent={palette.accent}
-            activeObjectId={hoveredObjectId ?? activeObjectId}
-            bindObject={bindObject}
-            onInspectObject={onInspectObject}
-          />
-        ) : (
-          <KanaExtras
-            accent={palette.accent}
-            activeObjectId={hoveredObjectId ?? activeObjectId}
-            bindObject={bindObject}
-            onInspectObject={onInspectObject}
-          />
-        )}
       </group>
 
       <TerminalReadout
@@ -3334,13 +1570,18 @@ export default function RoomScene3D(props: RoomScene3DProps) {
           {...props}
           activeObjectId={sceneActiveObjectId}
           broadcastFocusStage={broadcastFocusStage}
-          broadcastScreenEpisode={broadcastScreenEpisode}
           hoveredObjectId={hoveredObjectId}
           onHoverObject={setHoveredObjectId}
-          onOpenBroadcastFocus={openBroadcastFocus}
         />
         <SceneExporter />
       </Canvas>
+      {broadcastFocusStage === "idle" ? (
+        <AuthoredBroadcastScreenLayer
+          episode={broadcastScreenEpisode}
+          isPlaying={props.isPlaying}
+          onOpenBroadcastFocus={openBroadcastFocus}
+        />
+      ) : null}
       {props.subject.id === "tartar" ? (
         <BroadcastFullscreenOverlay
           episode={latestBroadcastEpisode}

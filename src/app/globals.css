@@ -1030,6 +1030,23 @@ body {
   text-align: left;
 }
 
+.authored-broadcast-screen-layer {
+  position: fixed;
+  top: clamp(20.5rem, 47.4vh, 22rem);
+  left: clamp(14.8rem, 19.2vw, 16.4rem);
+  z-index: 98;
+  width: clamp(8.8rem, 12vw, 10.2rem);
+  height: clamp(4.8rem, 10.6vh, 5.3rem);
+  pointer-events: auto;
+  transform: rotate(-0.8deg);
+  transform-origin: center;
+}
+
+.authored-broadcast-screen-layer .broadcast-tv-screen {
+  width: 100%;
+  height: 100%;
+}
+
 .broadcast-tv-screen span {
   color: #fde68a;
   font-size: 0.42rem;
@@ -1158,6 +1175,13 @@ body {
 }
 
 @media (max-width: 520px) {
+  .authored-broadcast-screen-layer {
+    top: 28.4rem;
+    left: 1.6rem;
+    width: 6.2rem;
+    height: 3.7rem;
+  }
+
   .broadcast-tv-screen-anchor {
     width: 5.9rem;
     height: 3.55rem;
