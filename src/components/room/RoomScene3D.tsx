@@ -86,7 +86,7 @@ type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHand
 type RoomExportStatus = "idle" | "exporting" | "saved" | "error";
 type BroadcastFocusStage = "idle" | "zooming" | "fullscreen" | "closing";
 
-const AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL = "/models/window-side-room-authored.glb";
+const AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL = "/models/window-side-room-authored.glb?v=editable-exterior-20260614";
 const BROADCAST_FOCUS_ZOOM_MS = 920;
 const BROADCAST_FOCUS_FADE_MS = 420;
 
@@ -981,32 +981,89 @@ function BroadcastFullscreenOverlay({
   );
 }
 
-function AuthoredBroadcastScreenLayer({
+function BroadcastScreenSurface({
   episode,
   isPlaying,
-  onOpenBroadcastFocus,
 }: {
   episode: Episode;
   isPlaying: boolean;
-  onOpenBroadcastFocus: () => void;
 }) {
   return (
-    <div className="authored-broadcast-screen-layer">
-      <button
-        aria-label="テレビ画面を拡大して最新話を見る"
-        className="broadcast-tv-screen"
-        onClick={(event) => {
-          event.stopPropagation();
-          onOpenBroadcastFocus();
-        }}
-        type="button"
-      >
+    <Html
+      className="broadcast-tv-screen-anchor is-in-scene"
+      distanceFactor={1.08}
+      position={[-1.82, 0.52, -0.94]}
+      transform
+      zIndexRange={[80, 0]}
+    >
+      <div aria-hidden="true" className="broadcast-tv-screen">
         <span>最新話</span>
         <strong>{getEpisodeNumberLabel(episode)}</strong>
         <p>{episode.title}</p>
         <small>{isPlaying ? "再生中" : `${episode.duration} / 詳しく見る`}</small>
-      </button>
-    </div>
+      </div>
+    </Html>
+  );
+}
+
+function InSceneInfoBoards({
+  action,
+  episode,
+  latestCandidate,
+  timeStateLabel,
+  windowWorld,
+}: {
+  action: SubjectAction;
+  episode: Episode;
+  latestCandidate?: BroadcastThemeCandidate;
+  timeStateLabel: string;
+  windowWorld: WindowWorld;
+}) {
+  const rainLabel =
+    windowWorld.rain === "heavy"
+      ? "強い雨"
+      : windowWorld.rain === "normal"
+        ? "雨"
+        : windowWorld.rain === "light"
+          ? "細い雨"
+          : "静かな夜";
+
+  return (
+    <>
+      <SceneHtml
+        className="scene-episode-board"
+        position={[-0.46, 0.36, -0.62]}
+        rotation={[0, -0.04, 0]}
+      >
+        <div>
+          <span>EpisodeBoard / 最新話</span>
+          <strong>{getEpisodeNumberLabel(episode)} {episode.title}</strong>
+          <small>{episode.duration} / テレビ画面をクリックで拡大</small>
+        </div>
+      </SceneHtml>
+      <SceneHtml
+        className="scene-info-board"
+        position={[1.36, 0.84, -1.66]}
+        rotation={[0, 0.04, 0]}
+      >
+        <div>
+          <span>InfoBoard / 窓辺</span>
+          <strong>{rainLabel}、街灯、濡れた道路</strong>
+          <small>{timeStateLabel} / theme: {latestCandidate?.theme ?? "窓外の観察"}</small>
+        </div>
+      </SceneHtml>
+      <SceneHtml
+        className="scene-window-note-board"
+        position={[-1.76, 1.02, -1.92]}
+        rotation={[0, -0.08, 0]}
+      >
+        <div>
+          <span>WindowNoteBoard</span>
+          <strong>{action.thought}</strong>
+          <small>{action.broadcastHint}</small>
+        </div>
+      </SceneHtml>
+    </>
   );
 }
 
@@ -1216,6 +1273,21 @@ function AuthoredWindowSideRoomModel({
       clonedMaterials.forEach((material) => {
         if (material instanceof THREE.MeshStandardMaterial) {
           const materialName = `${object.name} ${material.name}`.toLowerCase();
+          if (materialName.includes("exterior")) {
+            if (
+              materialName.includes("window")
+              || materialName.includes("streetlight")
+              || materialName.includes("roadreflection")
+            ) {
+              material.emissiveIntensity = Math.max(material.emissiveIntensity, 0.85);
+            } else if (materialName.includes("sky") || materialName.includes("rain")) {
+              material.emissiveIntensity = Math.max(material.emissiveIntensity, 0.16);
+            } else {
+              material.emissiveIntensity = Math.max(material.emissiveIntensity, 0.08);
+            }
+            return;
+          }
+
           material.emissive = new THREE.Color(
             materialName.includes("window") || materialName.includes("glass")
               ? windowAccent
@@ -1235,23 +1307,30 @@ function AuthoredWindowSideRoomModel({
 function AuthoredRoomHotspots({
   bindObject,
   onInspectObject,
+  onOpenBroadcastFocus,
 }: {
   bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
+  onOpenBroadcastFocus: () => void;
 }) {
   return (
     <group name="AuthoredRoomHotspots">
       {[
-        ["crt", "AuthoredTelevisionHotspot", windowSideLayout.crtPosition, windowSideLayout.crtRotation, [0.86, 0.58, 0.38]],
+        ["crt", "AuthoredTelevisionHotspot", [-1.82, 0.52, -1.02], [0, 0, 0], [1.18, 0.82, 0.24]],
         ["window", "AuthoredWindowHotspot", windowSideLayout.windowPosition, [0, 0, 0], [3.0, 2.28, 0.2]],
-        ["lamp", "AuthoredLampHotspot", windowSideLayout.lampPosition, [0, 0, 0], [0.58, 1.04, 0.58]],
-        ["memo", "AuthoredMemoHotspot", [-0.22, -0.4, 0.62], [0, -0.04, 0], [0.78, 0.08, 0.5]],
+        ["lamp", "AuthoredLampHotspot", [1.16, 0.52, -0.58], [0, 0, 0], [0.62, 0.92, 0.62]],
+        ["memo", "AuthoredMemoHotspot", [-0.16, 0.2, -0.8], [0, -0.04, 0], [0.78, 0.12, 0.5]],
       ].map(([id, name, position, rotation, scale]) => (
         <mesh
           key={name as string}
           name={name as string}
           onClick={(event) => {
             event.stopPropagation();
+            if (id === "crt") {
+              onOpenBroadcastFocus();
+              return;
+            }
+
             onInspectObject(id as RoomObjectId);
           }}
           position={position as [number, number, number]}
@@ -1274,6 +1353,7 @@ function RoomObjects({
   activeObjectId,
   broadcastCandidates,
   broadcastFocusStage,
+  broadcastScreenEpisode,
   hoveredObjectId,
   isPlaying,
   isScreensaver,
@@ -1281,12 +1361,15 @@ function RoomObjects({
   logs,
   onHoverObject,
   onInspectObject,
+  onOpenBroadcastFocus,
   subject,
   timeStateLabel,
 }: RoomScene3DProps & {
   broadcastFocusStage: BroadcastFocusStage;
+  broadcastScreenEpisode: Episode;
   hoveredObjectId?: RoomObjectId | null;
   onHoverObject: (objectId: RoomObjectId | null) => void;
+  onOpenBroadcastFocus: () => void;
 }) {
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
@@ -1438,7 +1521,23 @@ function RoomObjects({
         <AuthoredRoomHotspots
           bindObject={bindObject}
           onInspectObject={onInspectObject}
+          onOpenBroadcastFocus={onOpenBroadcastFocus}
         />
+        {broadcastFocusStage !== "fullscreen" && broadcastFocusStage !== "closing" ? (
+          <>
+            <BroadcastScreenSurface
+              episode={broadcastScreenEpisode}
+              isPlaying={isPlaying}
+            />
+            <InSceneInfoBoards
+              action={action}
+              episode={broadcastScreenEpisode}
+              latestCandidate={latestCandidate}
+              timeStateLabel={timeStateLabel}
+              windowWorld={windowWorld}
+            />
+          </>
+        ) : null}
         <LightBloom
           activeBroadcast={activeBroadcast}
           activeWindow={activeObjectId === "window"}
@@ -1566,18 +1665,13 @@ export default function RoomScene3D(props: RoomScene3DProps) {
           {...props}
           activeObjectId={sceneActiveObjectId}
           broadcastFocusStage={broadcastFocusStage}
+          broadcastScreenEpisode={broadcastScreenEpisode}
           hoveredObjectId={hoveredObjectId}
           onHoverObject={setHoveredObjectId}
+          onOpenBroadcastFocus={openBroadcastFocus}
         />
         <SceneExporter />
       </Canvas>
-      {broadcastFocusStage === "idle" ? (
-        <AuthoredBroadcastScreenLayer
-          episode={broadcastScreenEpisode}
-          isPlaying={props.isPlaying}
-          onOpenBroadcastFocus={openBroadcastFocus}
-        />
-      ) : null}
       {props.subject.id === "tartar" ? (
         <BroadcastFullscreenOverlay
           episode={latestBroadcastEpisode}

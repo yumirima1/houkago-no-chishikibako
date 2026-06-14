@@ -1030,21 +1030,21 @@ body {
   text-align: left;
 }
 
-.authored-broadcast-screen-layer {
-  position: fixed;
-  top: clamp(20.5rem, 47.4vh, 22rem);
-  left: clamp(14.8rem, 19.2vw, 16.4rem);
-  z-index: 98;
-  width: clamp(8.8rem, 12vw, 10.2rem);
-  height: clamp(4.8rem, 10.6vh, 5.3rem);
-  pointer-events: auto;
-  transform: rotate(-0.8deg);
-  transform-origin: center;
+.broadcast-tv-screen-anchor.is-in-scene {
+  width: 4.6rem;
+  height: 2.85rem;
+  pointer-events: none;
 }
 
-.authored-broadcast-screen-layer .broadcast-tv-screen {
+.broadcast-tv-screen-anchor.is-in-scene .broadcast-tv-screen {
   width: 100%;
   height: 100%;
+  gap: 0.12rem;
+  padding: 0.22rem 0.28rem;
+  border-color: rgb(187 247 208 / 0.34);
+  box-shadow:
+    0 0 1.2rem rgb(34 197 94 / 0.18),
+    inset 0 0 1.1rem rgb(134 239 172 / 0.18);
 }
 
 .broadcast-tv-screen span {
@@ -1175,13 +1175,6 @@ body {
 }
 
 @media (max-width: 520px) {
-  .authored-broadcast-screen-layer {
-    top: 28.4rem;
-    left: 1.6rem;
-    width: 6.2rem;
-    height: 3.7rem;
-  }
-
   .broadcast-tv-screen-anchor {
     width: 5.9rem;
     height: 3.55rem;
@@ -1344,6 +1337,43 @@ body {
 
 .scene-window-readout {
   width: 14.2rem;
+}
+
+.room-scene-html.scene-episode-board {
+  width: 10.4rem;
+}
+
+.room-scene-html.scene-info-board {
+  width: 9.8rem;
+}
+
+.room-scene-html.scene-window-note-board {
+  width: 8.4rem;
+}
+
+.room-scene-html.scene-episode-board > div,
+.room-scene-html.scene-info-board > div,
+.room-scene-html.scene-window-note-board > div {
+  border-color: rgba(187, 247, 208, 0.22);
+  background:
+    repeating-linear-gradient(180deg, rgba(134, 239, 172, 0.045) 0 1px, transparent 1px 6px),
+    linear-gradient(132deg, rgba(3, 31, 24, 0.84), rgba(2, 8, 16, 0.74));
+  box-shadow:
+    0 1rem 2.8rem rgba(0, 0, 0, 0.36),
+    inset 0 0 1.5rem rgba(134, 239, 172, 0.065);
+}
+
+.room-scene-html.scene-episode-board span,
+.room-scene-html.scene-info-board span,
+.room-scene-html.scene-window-note-board span {
+  color: rgba(253, 230, 138, 0.86);
+}
+
+.room-scene-html.scene-episode-board strong,
+.room-scene-html.scene-info-board strong,
+.room-scene-html.scene-window-note-board strong {
+  color: rgba(236, 253, 245, 0.96);
+  font-size: 0.68rem;
 }
 
 .room-scene-3d-loading {
