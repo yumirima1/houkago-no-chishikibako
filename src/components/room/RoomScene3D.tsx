@@ -1,10 +1,11 @@
 "use client";
 
 import { Html, useGLTF } from "@react-three/drei";
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
-import { Component, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 import * as THREE from "three";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
 import {
   BroadcastThemeCandidate,
@@ -80,6 +81,8 @@ type ObjectInteractionHandlers = {
 };
 
 type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHandlers;
+
+type RoomExportStatus = "idle" | "exporting" | "saved" | "error";
 
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 const TELEVISION_MODEL_URL = "/models/television.glb";
@@ -625,6 +628,136 @@ function CameraRig({ activeObjectId }: { activeObjectId?: RoomObjectId | null })
   return null;
 }
 
+function removeExportIgnoredObjects(object: THREE.Object3D) {
+  [...object.children].forEach((child) => {
+    if (child.name.startsWith("RoomExportIgnore")) {
+      object.remove(child);
+      return;
+    }
+
+    removeExportIgnoredObjects(child);
+  });
+}
+
+function prepareRoomExportScene(scene: THREE.Scene) {
+  const exportScene = scene.clone(true);
+  exportScene.name = "WindowSideRoom_exported_from_RoomScene3D";
+  removeExportIgnoredObjects(exportScene);
+
+  exportScene.traverse((object) => {
+    if (!object.name) {
+      object.name = `${object.type}_${object.id}`;
+    }
+
+    if (object instanceof THREE.Mesh) {
+      object.castShadow = false;
+      object.receiveShadow = false;
+    }
+  });
+
+  return exportScene;
+}
+
+function SceneExporter() {
+  const { scene } = useThree();
+  const [enabled] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return new URLSearchParams(window.location.search).get("exportRoom") === "1";
+  });
+  const [autoExport] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return new URLSearchParams(window.location.search).get("autoExportRoom") === "1";
+  });
+  const [status, setStatus] = useState<RoomExportStatus>("idle");
+  const [message, setMessage] = useState("ready");
+  const exportedRef = useRef(false);
+
+  const exportRoom = useCallback(async () => {
+    setStatus("exporting");
+    setMessage("exporting GLB...");
+
+    try {
+      const exportScene = prepareRoomExportScene(scene);
+      const exporter = new GLTFExporter();
+      const result = await new Promise<ArrayBuffer>((resolve, reject) => {
+        exporter.parse(
+          exportScene,
+          (gltf) => {
+            if (gltf instanceof ArrayBuffer) {
+              resolve(gltf);
+              return;
+            }
+
+            const json = JSON.stringify(gltf);
+            resolve(new TextEncoder().encode(json).buffer);
+          },
+          (error) => reject(error),
+          {
+            binary: true,
+            includeCustomExtensions: false,
+            onlyVisible: true,
+            trs: false,
+          },
+        );
+      });
+
+      const response = await fetch("/api/export-room", {
+        body: result,
+        headers: {
+          "content-type": "model/gltf-binary",
+        },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Export API returned ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { path?: string; size?: number };
+      setStatus("saved");
+      setMessage(`saved ${payload.path ?? "exported-window-side-room.glb"} (${payload.size ?? result.byteLength} bytes)`);
+    } catch (error) {
+      console.error("Room export failed.", error);
+      setStatus("error");
+      setMessage(error instanceof Error ? error.message : "unknown export error");
+    }
+  }, [scene]);
+
+  useEffect(() => {
+    if (!enabled || !autoExport || exportedRef.current) {
+      return;
+    }
+
+    exportedRef.current = true;
+    const timer = window.setTimeout(() => {
+      void exportRoom();
+    }, 2600);
+
+    return () => window.clearTimeout(timer);
+  }, [autoExport, enabled, exportRoom]);
+
+  if (!enabled) {
+    return null;
+  }
+
+  return (
+    <Html fullscreen prepend transform={false} zIndexRange={[100, 0]}>
+      <div className="room-export-panel">
+        <button disabled={status === "exporting"} onClick={() => void exportRoom()} type="button">
+          {status === "exporting" ? "Exporting..." : "Export room GLB"}
+        </button>
+        <span>{message}</span>
+      </div>
+    </Html>
+  );
+}
+
 function RainLayer({
   count,
   color = "#bfdbfe",
@@ -710,7 +843,7 @@ function WindowWorldBackdrop({
   const accentOpacity = (active ? 0.34 : 0.22) * rarityStrength;
 
   return (
-    <group position={[0, 0, 0.04]}>
+    <group name="WindowOutsideWorld" position={[0, 0, 0.04]}>
       <mesh>
         <planeGeometry args={[1.28, 1.0]} />
         <meshBasicMaterial color={world.skyTop} />
@@ -944,7 +1077,7 @@ function RainWindow({
   const rarityStrength = getRarityStrength(world.rarity);
 
   return (
-    <group position={[0, 0, 0.055]}>
+    <group name="WindowWeatherAndReflections" position={[0, 0, 0.055]}>
       <WindowWorldBackdrop active={active} world={world} />
       {rainLevel > 0 ? (
         <>
@@ -1056,8 +1189,8 @@ function WindowFrame({
   const glow = active ? 0.08 + rarityStrength * 0.018 : 0.035 + rarityStrength * 0.012;
 
   return (
-    <group>
-      <mesh position={[0, 0, -0.038]}>
+    <group name="WindowFrame">
+      <mesh name="WindowOuterFrameBacking" position={[0, 0, -0.038]}>
         <boxGeometry args={[1.55, 1.32, 0.12]} />
         <meshStandardMaterial
           color="#030712"
@@ -1067,19 +1200,19 @@ function WindowFrame({
           roughness={0.88}
         />
       </mesh>
-      <mesh position={[-0.76, 0, 0.035]}>
+      <mesh name="WindowLeftFrame" position={[-0.76, 0, 0.035]}>
         <boxGeometry args={[0.11, 1.36, 0.19]} />
         <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
       </mesh>
-      <mesh position={[0.76, 0, 0.035]}>
+      <mesh name="WindowRightFrame" position={[0.76, 0, 0.035]}>
         <boxGeometry args={[0.11, 1.36, 0.19]} />
         <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
       </mesh>
-      <mesh position={[0, 0.65, 0.035]}>
+      <mesh name="WindowTopFrame" position={[0, 0.65, 0.035]}>
         <boxGeometry args={[1.62, 0.11, 0.19]} />
         <meshStandardMaterial color={frameColor} emissive={world.accent} emissiveIntensity={glow} flatShading roughness={0.74} />
       </mesh>
-      <mesh position={[0, -0.65, 0.052]}>
+      <mesh name="WindowSillInner" position={[0, -0.65, 0.052]}>
         <boxGeometry args={[1.72, 0.13, 0.26]} />
         <meshStandardMaterial
           color="#25170f"
@@ -1089,7 +1222,7 @@ function WindowFrame({
           roughness={0.58}
         />
       </mesh>
-      <mesh position={[0, -0.78, 0.09]}>
+      <mesh name="WindowSillOuter" position={[0, -0.78, 0.09]}>
         <boxGeometry args={[1.86, 0.07, 0.36]} />
         <meshStandardMaterial
           color="#120b08"
@@ -1099,11 +1232,11 @@ function WindowFrame({
           roughness={0.52}
         />
       </mesh>
-      <mesh position={[0, 0, 0.09]}>
+      <mesh name="WindowCenterMullion" position={[0, 0, 0.09]}>
         <boxGeometry args={[0.04, 1.1, 0.09]} />
         <meshStandardMaterial color="#0f172a" emissive={world.accent} emissiveIntensity={glow * 0.8} flatShading roughness={0.7} />
       </mesh>
-      <mesh position={[0, 0.02, 0.092]}>
+      <mesh name="WindowCrossbar" position={[0, 0.02, 0.092]}>
         <boxGeometry args={[1.18, 0.035, 0.09]} />
         <meshStandardMaterial color="#0f172a" emissive={world.accent} emissiveIntensity={glow * 0.75} flatShading roughness={0.7} />
       </mesh>
@@ -1581,8 +1714,9 @@ function DeskClutter({
   const paperColor = "#d7c594";
 
   return (
-    <group>
+    <group name="DeskClutter">
       <mesh
+        name="DeskMemo"
         onClick={(event) => {
           event.stopPropagation();
           onInspectObject("memo");
@@ -1610,7 +1744,7 @@ function DeskClutter({
           <meshBasicMaterial color="#5b4632" transparent opacity={0.34} />
         </mesh>
       ))}
-      <mesh position={[0.34, -0.19, 0.62]} rotation={[0.04, 0.08, -0.52]}>
+      <mesh name="DeskPen" position={[0.34, -0.19, 0.62]} rotation={[0.04, 0.08, -0.52]}>
         <cylinderGeometry args={[0.011, 0.011, 0.46, 10]} />
         <meshStandardMaterial
           color="#102033"
@@ -1638,6 +1772,7 @@ function BookStack({
 }) {
   return (
     <group
+      name="BookStack"
       onClick={(event) => {
         event.stopPropagation();
         onInspectObject("envelope");
@@ -1709,6 +1844,7 @@ function LowPolyChair({
 
   return (
     <group
+      name="DeskChair"
       ref={chairRef}
       position={windowSideLayout.chairFinalPosition}
       rotation={[0, windowSideLayout.chairRotationY, 0]}
@@ -1914,7 +2050,7 @@ function WindowSillObjects({
   const rarityStrength = getRarityStrength(world.rarity);
 
   return (
-    <group position={[0.42, -0.52, 0.16]}>
+    <group name="WindowSillSmallObjects" position={[0.42, -0.52, 0.16]}>
       <mesh>
         <cylinderGeometry args={[0.055, 0.047, 0.08, 6]} />
         <meshStandardMaterial
@@ -1967,7 +2103,7 @@ function WallLifeDetails({
   world: WindowWorld;
 }) {
   return (
-    <group>
+    <group name="WallLifeDetails">
       <group position={[-2.43, 0.72, -1.48]} rotation={[0, Math.PI / 2, 0]}>
         <mesh>
           <boxGeometry args={[0.5, 0.34, 0.035]} />
@@ -2045,6 +2181,7 @@ function OfficeEquipmentModel({ accent }: { accent: string }) {
   const gltf = useGLTF(OFFICE_EQUIPMENT_MODEL_URL);
   const scene = useMemo(() => {
     const clonedScene = gltf.scene.clone(true);
+    clonedScene.name = "OfficeEquipmentModel";
 
     clonedScene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -2095,6 +2232,7 @@ function TelevisionModel() {
   const gltf = useGLTF(TELEVISION_MODEL_URL);
   const scene = useMemo(() => {
     const clonedScene = gltf.scene.clone(true);
+    clonedScene.name = "TelevisionModel";
 
     clonedScene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) {
@@ -2210,6 +2348,7 @@ function BroadcastReceiver({
 
   return (
     <group
+      name="BroadcastReceiverTelevision"
       onClick={(event) => {
         event.stopPropagation();
         onInspectObject("crt");
@@ -2245,7 +2384,7 @@ function EquipmentInteractionShell({
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
-    <group>
+    <group name="OfficeEquipmentInteractionTargets">
       <mesh
         onClick={(event) => {
           event.stopPropagation();
@@ -2356,7 +2495,7 @@ function TartarExtras({
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
-    <group>
+    <group name="CodeGeneratedOfficeEquipmentFallback">
       <mesh
         onClick={(event) => {
           event.stopPropagation();
@@ -2477,7 +2616,7 @@ function KanaExtras({
   onInspectObject: (objectId: RoomObjectId) => void;
 }) {
   return (
-    <group>
+    <group name="KanaDeskObjects">
       <group
         onClick={(event) => {
           event.stopPropagation();
@@ -2717,8 +2856,8 @@ function RoomObjects({
         position={[windowSideLayout.windowPosition[0], 0.98, windowSideLayout.windowPosition[2] + 0.28]}
       />
 
-      <group ref={roomRef}>
-        <mesh receiveShadow position={[0, -0.9, -0.18]}>
+      <group name="WindowSideRoom" ref={roomRef}>
+        <mesh name="Floor" receiveShadow position={[0, -0.9, -0.18]}>
           <boxGeometry args={[5.8, 0.1, 4.7]} />
           <meshStandardMaterial
             color="#101827"
@@ -2729,21 +2868,21 @@ function RoomObjects({
             roughness={0.54}
           />
         </mesh>
-        <mesh receiveShadow position={[0, 0.74, -2.28]}>
+        <mesh name="BackWall" receiveShadow position={[0, 0.74, -2.28]}>
           <boxGeometry args={[5.2, 3.35, 0.1]} />
           <meshStandardMaterial color={palette.wall} flatShading roughness={0.94} />
         </mesh>
-        <mesh receiveShadow position={[-2.55, 0.68, -0.18]} rotation={[0, 0.1, 0]}>
+        <mesh name="LeftWall" receiveShadow position={[-2.55, 0.68, -0.18]} rotation={[0, 0.1, 0]}>
           <boxGeometry args={[0.1, 3.25, 4.35]} />
           <meshStandardMaterial color="#0d1424" flatShading roughness={0.9} />
         </mesh>
-        <mesh receiveShadow position={[2.56, 0.7, -0.18]} rotation={[0, -0.1, 0]}>
+        <mesh name="RightWall" receiveShadow position={[2.56, 0.7, -0.18]} rotation={[0, -0.1, 0]}>
           <boxGeometry args={[0.08, 3.25, 4.35]} />
           <meshStandardMaterial color="#11182a" flatShading roughness={0.92} />
         </mesh>
         <WallLifeDetails accent={palette.accent} world={windowWorld} />
 
-        <mesh receiveShadow position={windowSideLayout.deskPosition} rotation={[0, -0.035, 0]}>
+        <mesh name="DeskTop" receiveShadow position={windowSideLayout.deskPosition} rotation={[0, -0.035, 0]}>
           <boxGeometry args={windowSideLayout.deskSize} />
           <meshStandardMaterial
             color="#4a2e1d"
@@ -2754,11 +2893,11 @@ function RoomObjects({
             roughness={0.48}
           />
         </mesh>
-        <mesh position={[-1.58, -0.76, windowSideLayout.deskLegZ]}>
+        <mesh name="DeskLeftLeg" position={[-1.58, -0.76, windowSideLayout.deskLegZ]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
           <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
         </mesh>
-        <mesh position={[1.58, -0.76, windowSideLayout.deskLegZ + 0.04]}>
+        <mesh name="DeskRightLeg" position={[1.58, -0.76, windowSideLayout.deskLegZ + 0.04]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
           <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
         </mesh>
@@ -2774,6 +2913,7 @@ function RoomObjects({
         ) : null}
 
         <group
+          name="DeskLamp"
           onClick={(event) => {
             event.stopPropagation();
             onInspectObject("lamp");
@@ -2800,6 +2940,7 @@ function RoomObjects({
         </group>
 
         <group
+          name="WindowAssembly"
           onClick={(event) => {
             event.stopPropagation();
             onInspectObject("window");
@@ -2809,7 +2950,7 @@ function RoomObjects({
           {...bindObject("window")}
         >
           <WindowFrame active={isObjectLit("window")} world={windowWorld} />
-          <mesh>
+          <mesh name="WindowGlassBacking">
             <boxGeometry args={[1.42, 1.2, 0.06]} />
             <meshStandardMaterial
               color="#071225"
@@ -2819,7 +2960,7 @@ function RoomObjects({
               roughness={0.6}
             />
           </mesh>
-          <mesh position={[0, 0, 0.034]}>
+          <mesh name="WindowGlassTint" position={[0, 0, 0.034]}>
             <boxGeometry args={[1.18, 0.94, 0.025]} />
             <meshBasicMaterial color="#0c1c35" transparent opacity={0.16} />
           </mesh>
@@ -2955,6 +3096,7 @@ export default function RoomScene3D(props: RoomScene3DProps) {
         hoveredObjectId={hoveredObjectId}
         onHoverObject={setHoveredObjectId}
       />
+      <SceneExporter />
     </Canvas>
   );
 }

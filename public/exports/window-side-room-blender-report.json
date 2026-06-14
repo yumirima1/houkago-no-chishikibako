@@ -1,0 +1,63 @@
+{
+  "blend_path": "public\\exports\\window-side-room.blend",
+  "dimensions": [
+    6.0112,
+    4.7981,
+    4.4407
+  ],
+  "glb_path": "public\\exports\\exported-window-side-room.glb",
+  "matches": {
+    "desk": [
+      "DeskChair",
+      "DeskClutter",
+      "DeskLamp",
+      "DeskLeftLeg",
+      "DeskMemo",
+      "DeskPen",
+      "DeskRightLeg",
+      "DeskTop"
+    ],
+    "chair": [
+      "DeskChair"
+    ],
+    "window": [
+      "WindowAssembly",
+      "WindowCenterMullion",
+      "WindowCrossbar",
+      "WindowFrame",
+      "WindowGlassBacking",
+      "WindowGlassTint",
+      "WindowLeftFrame",
+      "WindowOuterFrameBacking",
+      "WindowOutsideWorld",
+      "WindowRightFrame",
+      "WindowSideRoom",
+      "WindowSillInner",
+      "WindowSillOuter",
+      "WindowSillSmallObjects",
+      "WindowTopFrame",
+      "WindowWeatherAndReflections"
+    ],
+    "television": [
+      "BroadcastReceiverTelevision",
+      "TelevisionModel",
+      "Television_01"
+    ],
+    "office_equipment": [
+      "OfficeEquipmentInteractionTargets",
+      "OfficeEquipmentModel"
+    ],
+    "lamp": [
+      "DeskLamp"
+    ],
+    "memo": [
+      "DeskMemo"
+    ],
+    "pen": [
+      "DeskPen"
+    ]
+  },
+  "mesh_count": 181,
+  "object_count": 230,
+  "preview_path": "C:\\Users\\yumir\\Documents\\Codex\\2026-06-14\\window-side-phase-a592e2ee98be3d9eeb4b392adb94d2bf28e9125b-simplify-desk\\outputs\\window-side-room-blender-preview.png"
+}

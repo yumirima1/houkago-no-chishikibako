@@ -953,6 +953,51 @@ body {
   touch-action: none;
 }
 
+.room-export-page {
+  width: 100vw;
+  height: 100svh;
+  overflow: hidden;
+  background: #08111f;
+}
+
+.room-export-panel {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  max-width: min(34rem, calc(100vw - 2rem));
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgb(148 163 184 / 0.34);
+  border-radius: 0.5rem;
+  background: rgb(2 6 23 / 0.82);
+  color: #e5e7eb;
+  font-size: 0.78rem;
+  pointer-events: auto;
+}
+
+.room-export-panel button {
+  padding: 0.44rem 0.62rem;
+  border: 1px solid rgb(191 219 254 / 0.42);
+  border-radius: 0.38rem;
+  background: rgb(30 41 59 / 0.9);
+  color: #f8fafc;
+  cursor: pointer;
+}
+
+.room-export-panel button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.room-export-panel span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .room-scene-root-3d + .room-spatial-props {
   display: none;
 }
