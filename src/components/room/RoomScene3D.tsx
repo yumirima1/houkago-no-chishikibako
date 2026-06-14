@@ -26,6 +26,7 @@ type RoomScene3DProps = {
   action: SubjectAction;
   activeObjectId?: RoomObjectId | null;
   broadcastCandidates: BroadcastThemeCandidate[];
+  broadcastLatestEpisode?: Episode;
   isPlaying: boolean;
   isScreensaver: boolean;
   latestEpisode: Episode;
@@ -83,9 +84,12 @@ type ObjectInteractionHandlers = {
 type ObjectInteractionBinder = (objectId: RoomObjectId) => ObjectInteractionHandlers;
 
 type RoomExportStatus = "idle" | "exporting" | "saved" | "error";
+type BroadcastFocusStage = "idle" | "zooming" | "fullscreen" | "closing";
 
 const OFFICE_EQUIPMENT_MODEL_URL = "/models/office-equipment.glb";
 const TELEVISION_MODEL_URL = "/models/television.glb";
+const BROADCAST_FOCUS_ZOOM_MS = 920;
+const BROADCAST_FOCUS_FADE_MS = 420;
 
 const windowSideLayout = {
   cameraIdleLookAt: [0.16, 0.68, -2.02] as [number, number, number],
@@ -837,229 +841,276 @@ function WindowWorldBackdrop({
   active: boolean;
   world: WindowWorld;
 }) {
-  const signalOpacity = active ? 0.72 : 0.42;
   const rarityStrength = getRarityStrength(world.rarity);
-  const buildingCount = world.rarity === "common" ? 5 : world.rarity === "uncommon" ? 6 : 8;
-  const accentOpacity = (active ? 0.34 : 0.22) * rarityStrength;
+  const farBuildings = [
+    [-0.56, -0.2, 0.1, 0.34, "#07111f"],
+    [-0.38, -0.16, 0.13, 0.45, "#0a1626"],
+    [-0.18, -0.22, 0.1, 0.28, "#050c18"],
+    [0.05, -0.17, 0.15, 0.44, "#0b1727"],
+    [0.28, -0.2, 0.12, 0.36, "#07111d"],
+    [0.5, -0.15, 0.12, 0.48, "#0d1828"],
+  ] as const;
+  const midBuildings = [
+    [-0.44, -0.25, 0.15, 0.46, "#08101b"],
+    [-0.18, -0.27, 0.16, 0.36, "#0d1320"],
+    [0.12, -0.23, 0.2, 0.52, "#060d18"],
+    [0.42, -0.26, 0.14, 0.4, "#101827"],
+  ] as const;
+  const lit = world.cityLights || world.signal || world.rarity !== "common";
 
   return (
-    <group name="WindowOutsideWorld" position={[0, 0, 0.04]}>
-      <mesh>
-        <planeGeometry args={[1.28, 1.0]} />
-        <meshBasicMaterial color={world.skyTop} />
+    <group name="WindowOutsideWorld" position={[0, 0, -0.12]}>
+      <mesh name="DistantNightSky" position={[0, 0.03, -0.36]}>
+        <planeGeometry args={[1.42, 1.1]} />
+        <meshBasicMaterial color={world.skyTop} depthWrite={false} />
       </mesh>
-      <mesh position={[0, -0.15, 0.002]}>
-        <planeGeometry args={[1.28, 0.66]} />
-        <meshBasicMaterial color={world.skyBottom} transparent opacity={0.9} />
+      <mesh name="LowerCityGlow" position={[0.04, -0.22, -0.34]}>
+        <planeGeometry args={[1.32, 0.58]} />
+        <meshBasicMaterial color={world.skyBottom} depthWrite={false} transparent opacity={0.82} />
       </mesh>
-      <mesh position={[0.08, -0.02, 0.004]}>
-        <planeGeometry args={[1.05, 0.54]} />
+      <mesh name="RainySkyBloom" position={[0.1, -0.03, -0.32]}>
+        <planeGeometry args={[1.1, 0.62]} />
         <meshBasicMaterial
           blending={THREE.AdditiveBlending}
           color={world.accent}
           depthWrite={false}
           transparent
-          opacity={Math.min(0.36, 0.12 * rarityStrength + (active ? 0.08 : 0.04))}
+          opacity={Math.min(0.32, 0.09 * rarityStrength + (active ? 0.08 : 0.04))}
         />
       </mesh>
-      <mesh position={[0, 0.16, 0.006]} rotation={[0, 0, 0.04]}>
-        <planeGeometry args={[0.92, 0.09]} />
-        <meshBasicMaterial color="#1e293b" transparent opacity={0.16 + world.fog * 0.18} />
-      </mesh>
-      <mesh position={[-0.16, 0.03, 0.007]} rotation={[0, 0, -0.08]}>
-        <planeGeometry args={[0.78, 0.07]} />
-        <meshBasicMaterial color="#334155" transparent opacity={0.1 + world.fog * 0.22} />
-      </mesh>
-      <mesh position={[0, -0.28, 0.004]}>
-        <boxGeometry args={[1.18, 0.12, 0.01]} />
-        <meshBasicMaterial color="#020617" transparent opacity={0.62} />
-      </mesh>
-      {Array.from({ length: buildingCount }, (_, index) => {
-        const height = 0.16 + (index % 4) * 0.045;
-        const x = -0.54 + index * (1.08 / Math.max(1, buildingCount - 1));
-        const lit = world.cityLights || world.signal || world.rarity !== "common";
-
-        return (
-          <group key={index} position={[x, -0.25 + height / 2, 0.012]}>
+      <group name="FarCityBlocks" position={[0, 0, -0.24]}>
+        {farBuildings.map(([x, y, width, height, color], index) => (
+          <group key={index} position={[x, y + height / 2, index % 2 ? -0.035 : 0]}>
             <mesh>
-              <boxGeometry args={[0.095, height, 0.01]} />
-              <meshBasicMaterial color={index % 2 ? "#020617" : "#08111f"} transparent opacity={0.76} />
+              <boxGeometry args={[width, height, 0.038]} />
+              <meshStandardMaterial color={color} emissive="#0f172a" emissiveIntensity={0.02} roughness={0.92} />
             </mesh>
             {lit ? (
-              <mesh position={[0.016, height * 0.18, 0.006]}>
-                <boxGeometry args={[0.026, 0.01, 0.006]} />
-                <meshBasicMaterial
-                  blending={THREE.AdditiveBlending}
-                  color={index % 3 ? world.accent : "#fbbf24"}
-                  depthWrite={false}
-                  transparent
-                  opacity={Math.min(0.96, 0.42 * rarityStrength + (active ? 0.18 : 0.06))}
-                />
-              </mesh>
+              <>
+                <mesh position={[-width * 0.18, height * 0.18, 0.024]}>
+                  <boxGeometry args={[0.018, 0.012, 0.01]} />
+                  <meshBasicMaterial
+                    blending={THREE.AdditiveBlending}
+                    color={index % 3 ? world.accent : "#fbbf24"}
+                    depthWrite={false}
+                    transparent
+                    opacity={Math.min(0.7, 0.22 * rarityStrength + (active ? 0.1 : 0.04))}
+                  />
+                </mesh>
+                <mesh position={[width * 0.14, -height * 0.08, 0.024]}>
+                  <boxGeometry args={[0.022, 0.01, 0.01]} />
+                  <meshBasicMaterial
+                    blending={THREE.AdditiveBlending}
+                    color="#bae6fd"
+                    depthWrite={false}
+                    transparent
+                    opacity={active ? 0.38 : 0.22}
+                  />
+                </mesh>
+              </>
             ) : null}
           </group>
-        );
-      })}
-      <group position={[0.03, -0.18, 0.024]}>
-        {[-0.28, 0.02, 0.32].map((x, index) => (
-          <mesh key={x} position={[x, index % 2 ? 0.02 : -0.015, 0]}>
-            <boxGeometry args={[0.12, 0.026, 0.006]} />
+        ))}
+      </group>
+      <group name="MiddleCityBlocks" position={[0.02, -0.02, -0.13]}>
+        {midBuildings.map(([x, y, width, height, color], index) => (
+          <group key={index} position={[x, y + height / 2, index % 2 ? 0.018 : -0.012]}>
+            <mesh>
+              <boxGeometry args={[width, height, 0.07]} />
+              <meshStandardMaterial color={color} emissive={world.accent} emissiveIntensity={0.012} roughness={0.88} />
+            </mesh>
+            {Array.from({ length: 3 }, (_, windowIndex) => (
+              <mesh
+                key={windowIndex}
+                position={[
+                  -width * 0.24 + windowIndex * width * 0.22,
+                  -height * 0.18 + (windowIndex % 2) * height * 0.22,
+                  0.04,
+                ]}
+              >
+                <boxGeometry args={[0.018, 0.012, 0.012]} />
+                <meshBasicMaterial
+                  blending={THREE.AdditiveBlending}
+                  color={windowIndex % 2 ? "#fef3c7" : world.accent}
+                  depthWrite={false}
+                  transparent
+                  opacity={lit ? Math.min(0.82, 0.35 * rarityStrength + (active ? 0.12 : 0.04)) : 0.12}
+                />
+              </mesh>
+            ))}
+          </group>
+        ))}
+      </group>
+      <group name="NearStreetLights" position={[0.02, -0.37, -0.04]}>
+        {[-0.42, -0.08, 0.28, 0.54].map((x, index) => (
+          <group key={x} position={[x, index % 2 ? 0.02 : -0.01, index % 2 ? 0.02 : -0.01]}>
+            <mesh position={[0, 0.045, 0]}>
+              <boxGeometry args={[0.012, 0.11, 0.012]} />
+              <meshBasicMaterial color="#020617" transparent opacity={0.8} />
+            </mesh>
+            <mesh position={[0, 0.11, 0.014]}>
+              <sphereGeometry args={[0.025, 12, 8]} />
+              <meshBasicMaterial
+                blending={THREE.AdditiveBlending}
+                color={index % 2 ? world.accent : "#fbbf24"}
+                depthWrite={false}
+                transparent
+                opacity={active ? 0.58 : 0.36}
+              />
+            </mesh>
+          </group>
+        ))}
+      </group>
+      <group name="WetStreetDepth" position={[0, -0.42, -0.02]}>
+        {[-0.22, -0.08, 0.08].map((zOffset, index) => (
+          <mesh key={zOffset} position={[0.02 * index, index * 0.03, zOffset]} rotation={[0, 0, -0.035 + index * 0.03]}>
+            <planeGeometry args={[1.14 - index * 0.18, 0.035]} />
             <meshBasicMaterial
               blending={THREE.AdditiveBlending}
               color={index === 1 ? "#fbbf24" : world.accent}
               depthWrite={false}
               transparent
-              opacity={Math.min(0.72, 0.28 * rarityStrength + (active ? 0.12 : 0.06))}
+              opacity={Math.min(0.46, 0.16 * rarityStrength + (active ? 0.08 : 0.03))}
             />
           </mesh>
         ))}
       </group>
-      <group position={[0, -0.06, 0.02]}>
-        {[-0.18, 0.02, 0.22].map((wireY, index) => (
-          <mesh key={wireY} position={[0, wireY, 0]} rotation={[0, 0, -0.035 + index * 0.018]}>
-            <boxGeometry args={[1.18, 0.006, 0.004]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.48} />
+      <group name="ExteriorPowerLines" position={[0, -0.03, -0.02]}>
+        {[-0.15, 0.0, 0.17].map((wireY, index) => (
+          <mesh key={wireY} position={[0, wireY, index * 0.012]} rotation={[0, 0, -0.035 + index * 0.018]}>
+            <boxGeometry args={[1.2, 0.005, 0.006]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.52} />
           </mesh>
         ))}
       </group>
       {world.cars ? (
-        <mesh position={[-0.05, -0.31, 0.015]} rotation={[0, 0, -0.03]}>
-          <boxGeometry args={[0.5, 0.015, 0.006]} />
+        <mesh position={[-0.18, -0.35, 0.02]} rotation={[0, 0, -0.02]}>
+          <boxGeometry args={[0.42, 0.012, 0.01]} />
           <meshBasicMaterial
             blending={THREE.AdditiveBlending}
             color="#fb923c"
             depthWrite={false}
             transparent
-            opacity={active ? 0.46 : 0.28}
+            opacity={active ? 0.42 : 0.24}
           />
         </mesh>
       ) : null}
       {world.moon ? (
-        <mesh position={[0.26, 0.22, 0.012]}>
-          <circleGeometry args={[0.08 + rarityStrength * 0.018, 18]} />
+        <mesh position={[0.28, 0.24, -0.22]}>
+          <sphereGeometry args={[0.07 + rarityStrength * 0.012, 18, 12]} />
           <meshBasicMaterial
             blending={THREE.AdditiveBlending}
             color={world.accent}
             depthWrite={false}
             transparent
-            opacity={Math.min(0.92, active ? 0.56 + rarityStrength * 0.12 : 0.34 + rarityStrength * 0.08)}
+            opacity={Math.min(0.88, active ? 0.48 + rarityStrength * 0.1 : 0.3 + rarityStrength * 0.08)}
           />
         </mesh>
       ) : null}
       {world.meteor ? (
-        <mesh position={[-0.1, 0.22, 0.018]} rotation={[0, 0, -0.5]}>
-          <boxGeometry args={[0.38, 0.01, 0.006]} />
+        <mesh position={[-0.08, 0.24, -0.18]} rotation={[0, 0, -0.5]}>
+          <boxGeometry args={[0.34, 0.008, 0.008]} />
           <meshBasicMaterial
             blending={THREE.AdditiveBlending}
             color="#bfdbfe"
             depthWrite={false}
             transparent
-            opacity={active ? 0.78 : 0.42}
+            opacity={active ? 0.7 : 0.38}
           />
         </mesh>
       ) : null}
       {world.lightning ? (
-        <mesh position={[0.08, 0.12, 0.018]} rotation={[0, 0, -0.2]}>
-          <boxGeometry args={[0.045, 0.48, 0.006]} />
+        <mesh position={[0.08, 0.12, -0.18]} rotation={[0, 0, -0.2]}>
+          <boxGeometry args={[0.04, 0.42, 0.01]} />
           <meshBasicMaterial
             blending={THREE.AdditiveBlending}
             color="#ddd6fe"
             depthWrite={false}
             transparent
-            opacity={active ? 0.72 : 0.34}
+            opacity={active ? 0.66 : 0.3}
           />
         </mesh>
       ) : null}
       {world.aurora ? (
-        <group>
-          <mesh position={[-0.12, 0.16, 0.014]} rotation={[0, 0, 0.16]}>
+        <group position={[0, 0, -0.2]}>
+          <mesh position={[-0.12, 0.18, 0]} rotation={[0, 0, 0.16]}>
             <planeGeometry args={[0.74, 0.09]} />
             <meshBasicMaterial
               blending={THREE.AdditiveBlending}
               color="#5eead4"
               depthWrite={false}
               transparent
-              opacity={active ? 0.68 : 0.38}
+              opacity={active ? 0.5 : 0.28}
             />
           </mesh>
-          <mesh position={[0.18, 0.09, 0.015]} rotation={[0, 0, -0.1]}>
+          <mesh position={[0.18, 0.1, 0.01]} rotation={[0, 0, -0.1]}>
             <planeGeometry args={[0.58, 0.07]} />
             <meshBasicMaterial
               blending={THREE.AdditiveBlending}
               color="#a78bfa"
               depthWrite={false}
               transparent
-              opacity={active ? 0.52 : 0.28}
+              opacity={active ? 0.42 : 0.22}
             />
           </mesh>
         </group>
       ) : null}
       {world.fireworks ? (
-        <group position={[0.18, 0.12, 0.018]}>
+        <group position={[0.18, 0.14, -0.16]}>
           {Array.from({ length: 8 }, (_, index) => (
             <mesh key={index} rotation={[0, 0, (index / 8) * Math.PI * 2]}>
-              <boxGeometry args={[0.13, 0.008, 0.006]} />
+              <boxGeometry args={[0.12, 0.006, 0.006]} />
               <meshBasicMaterial
                 blending={THREE.AdditiveBlending}
                 color={index % 2 ? "#f472b6" : "#facc15"}
                 depthWrite={false}
                 transparent
-                opacity={active ? 0.54 : 0.24}
+                opacity={active ? 0.46 : 0.2}
               />
             </mesh>
           ))}
         </group>
       ) : null}
       {world.signal ? (
-        <group position={[0.32, -0.12, 0.016]}>
+        <group position={[0.33, -0.12, -0.05]}>
           <mesh>
-            <boxGeometry args={[0.025, 0.34, 0.006]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.75} />
+            <boxGeometry args={[0.02, 0.32, 0.01]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.76} />
           </mesh>
-          <mesh position={[0, 0.18, 0.008]}>
-            <boxGeometry args={[0.08, 0.035, 0.006]} />
+          <mesh position={[0, 0.18, 0.012]}>
+            <boxGeometry args={[0.075, 0.03, 0.01]} />
             <meshBasicMaterial
               blending={THREE.AdditiveBlending}
               color={world.accent}
               depthWrite={false}
               transparent
-              opacity={signalOpacity}
+              opacity={active ? 0.64 : 0.38}
             />
           </mesh>
         </group>
       ) : null}
-      <mesh position={[0, -0.38, 0.018]} rotation={[0, 0, -0.08]}>
-        <planeGeometry args={[1.04, 0.035]} />
-        <meshBasicMaterial
-          blending={THREE.AdditiveBlending}
-          color={world.accent}
-          depthWrite={false}
-          transparent
-          opacity={Math.min(0.48, accentOpacity * 0.42)}
-        />
-      </mesh>
       {world.glitch ? (
-        <group>
-          <mesh position={[-0.26, -0.16, 0.017]}>
-            <boxGeometry args={[0.048, 0.24, 0.008]} />
-            <meshBasicMaterial color="#020617" transparent opacity={0.58} />
+        <group position={[0, 0, -0.06]}>
+          <mesh position={[-0.26, -0.16, 0.02]}>
+            <boxGeometry args={[0.048, 0.24, 0.01]} />
+            <meshBasicMaterial color="#020617" transparent opacity={0.5} />
           </mesh>
-          <mesh position={[0.02, 0.04, 0.018]}>
-            <boxGeometry args={[0.46, 0.012, 0.006]} />
+          <mesh position={[0.02, 0.04, 0.03]}>
+            <boxGeometry args={[0.46, 0.01, 0.008]} />
             <meshBasicMaterial
               blending={THREE.AdditiveBlending}
               color={world.accent}
               depthWrite={false}
               transparent
-              opacity={active ? 0.22 : 0.11}
+              opacity={active ? 0.2 : 0.1}
             />
           </mesh>
         </group>
       ) : null}
       {world.fog > 0 ? (
-        <mesh position={[0, 0, 0.022]}>
-          <planeGeometry args={[1.28, 1.0]} />
-          <meshBasicMaterial color="#cbd5e1" transparent opacity={world.fog * (active ? 0.46 : 0.32)} />
+        <mesh position={[0, -0.04, 0.035]}>
+          <planeGeometry args={[1.32, 0.9]} />
+          <meshBasicMaterial color="#cbd5e1" depthWrite={false} transparent opacity={world.fog * (active ? 0.34 : 0.22)} />
         </mesh>
       ) : null}
     </group>
@@ -1196,8 +1247,10 @@ function WindowFrame({
           color="#030712"
           emissive={world.accent}
           emissiveIntensity={0.025 * rarityStrength}
-          flatShading
+          depthWrite={false}
           roughness={0.88}
+          transparent
+          opacity={0.42}
         />
       </mesh>
       <mesh name="WindowLeftFrame" position={[-0.76, 0, 0.035]}>
@@ -1519,29 +1572,80 @@ function ObjectWhisperLabel({
   );
 }
 
-function CrtReadout({
-  active,
+function BroadcastScreenSurface({
   episode,
   isPlaying,
+  onOpenBroadcastFocus,
 }: {
-  active: boolean;
   episode: Episode;
   isPlaying: boolean;
+  onOpenBroadcastFocus: () => void;
 }) {
   return (
-    <SceneHtml
-      className={active ? "is-active scene-crt-readout" : "scene-crt-readout"}
-      position={[-1.34, 0.06, 0.56]}
-      rotation={[0.05, 0.46, -0.02]}
+    <Html
+      className="broadcast-tv-screen-anchor"
+      distanceFactor={1.18}
+      position={[-0.16, 0.002, 0.282]}
+      style={{ pointerEvents: "auto" }}
+      transform
+      zIndexRange={[95, 0]}
     >
-      <div>
-        <span>{isPlaying ? "ON AIR" : "NOW READY"}</span>
+      <button
+        aria-label="テレビ画面を拡大して最新話を見る"
+        className="broadcast-tv-screen"
+        onClick={(event) => {
+          event.stopPropagation();
+          onOpenBroadcastFocus();
+        }}
+        onPointerDown={(event) => {
+          event.stopPropagation();
+          onOpenBroadcastFocus();
+        }}
+        type="button"
+      >
+        <span>最新話</span>
+        <strong>{getEpisodeNumberLabel(episode)}</strong>
+        <p>{episode.title}</p>
+        <small>{isPlaying ? "再生中" : `${episode.duration} / 詳しく見る`}</small>
+      </button>
+    </Html>
+  );
+}
+
+function BroadcastFullscreenOverlay({
+  episode,
+  onClose,
+  stage,
+}: {
+  episode: Episode;
+  onClose: () => void;
+  stage: BroadcastFocusStage;
+}) {
+  if (stage !== "fullscreen" && stage !== "closing") {
+    return null;
+  }
+
+  return (
+    <div
+      className={`broadcast-fullscreen ${stage === "closing" ? "is-closing" : "is-open"}`}
+    >
+      <button
+        aria-label="全画面表示を閉じる"
+        className="broadcast-fullscreen-close"
+        onClick={onClose}
+        type="button"
+      >
+        ×
+      </button>
+      <div className="broadcast-fullscreen-screen">
+          <span>最新話</span>
         <strong>
           {getEpisodeNumberLabel(episode)} {episode.title}
         </strong>
-        <small>CRTに触れると放送室が開く</small>
+        <p>{episode.description}</p>
+        <small>{episode.duration} / {episode.themes.slice(0, 3).join(" / ")}</small>
       </div>
-    </SceneHtml>
+    </div>
   );
 }
 
@@ -1730,8 +1834,8 @@ function DeskClutter({
           color={paperColor}
           emissive={accent}
           emissiveIntensity={activeMemo ? 0.18 : 0.03}
-          flatShading
-          roughness={0.86}
+          metalness={0}
+          roughness={0.92}
         />
       </mesh>
       {[-0.18, 0.02, 0.22].map((x, index) => (
@@ -1996,16 +2100,39 @@ function EntryTartarTrace({
 
 function DeskLampShade({ color }: { color: string }) {
   return (
-    <mesh position={[0, 0.34, 0]} rotation={[0, 0, 0.08]}>
-      <coneGeometry args={[0.22, 0.18, 5]} />
-      <meshStandardMaterial
-        color="#5b3b22"
-        emissive={color}
-        emissiveIntensity={0.18}
-        flatShading
-        roughness={0.54}
-      />
-    </mesh>
+    <group name="DeskLampShade" position={[0, 0.34, 0]} rotation={[0, 0, 0.08]}>
+      <mesh>
+        <cylinderGeometry args={[0.15, 0.26, 0.2, 32, 1, true]} />
+        <meshStandardMaterial
+          color="#6b4328"
+          emissive={color}
+          emissiveIntensity={0.12}
+          metalness={0.02}
+          roughness={0.62}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh position={[0, -0.045, 0]}>
+        <cylinderGeometry args={[0.205, 0.245, 0.035, 32, 1, true]} />
+        <meshStandardMaterial
+          color="#f5c16f"
+          emissive={color}
+          emissiveIntensity={0.28}
+          roughness={0.5}
+          side={THREE.DoubleSide}
+          transparent
+          opacity={0.68}
+        />
+      </mesh>
+      <mesh position={[0, 0.104, 0]}>
+        <torusGeometry args={[0.15, 0.009, 8, 32]} />
+        <meshStandardMaterial color="#3c2a1e" metalness={0.18} roughness={0.5} />
+      </mesh>
+      <mesh position={[0, -0.104, 0]}>
+        <torusGeometry args={[0.26, 0.01, 8, 32]} />
+        <meshStandardMaterial color="#3c2a1e" metalness={0.18} roughness={0.5} />
+      </mesh>
+    </group>
   );
 }
 
@@ -2329,13 +2456,17 @@ function BroadcastReceiver({
   actionPulse,
   active,
   bindObject,
-  onInspectObject,
+  displayEpisode,
+  isPlaying,
+  onOpenBroadcastFocus,
   palette,
 }: {
   actionPulse: number;
   active: boolean;
   bindObject: ObjectInteractionBinder;
-  onInspectObject: (objectId: RoomObjectId) => void;
+  displayEpisode: Episode;
+  isPlaying: boolean;
+  onOpenBroadcastFocus: () => void;
   palette: SubjectPalette;
 }) {
   const fallback = (
@@ -2351,7 +2482,7 @@ function BroadcastReceiver({
       name="BroadcastReceiverTelevision"
       onClick={(event) => {
         event.stopPropagation();
-        onInspectObject("crt");
+        onOpenBroadcastFocus();
       }}
       position={windowSideLayout.crtPosition}
       rotation={windowSideLayout.crtRotation}
@@ -2369,6 +2500,11 @@ function BroadcastReceiver({
         position={[-0.08, 0.0, 0.255]}
         rotation={[0, 0, 0]}
         scale={[0.46, 0.34, 1]}
+      />
+      <BroadcastScreenSurface
+        episode={displayEpisode}
+        isPlaying={isPlaying}
+        onOpenBroadcastFocus={onOpenBroadcastFocus}
       />
     </group>
   );
@@ -2700,6 +2836,8 @@ function RoomObjects({
   action,
   activeObjectId,
   broadcastCandidates,
+  broadcastFocusStage,
+  broadcastScreenEpisode,
   hoveredObjectId,
   isPlaying,
   isScreensaver,
@@ -2707,11 +2845,15 @@ function RoomObjects({
   logs,
   onHoverObject,
   onInspectObject,
+  onOpenBroadcastFocus,
   subject,
   timeStateLabel,
 }: RoomScene3DProps & {
+  broadcastFocusStage: BroadcastFocusStage;
+  broadcastScreenEpisode: Episode;
   hoveredObjectId?: RoomObjectId | null;
   onHoverObject: (objectId: RoomObjectId | null) => void;
+  onOpenBroadcastFocus: () => void;
 }) {
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
@@ -2756,7 +2898,7 @@ function RoomObjects({
     [latestLog, subject.id, timeStateLabel, windowThemeCandidate, windowWorld],
   );
   const activeBroadcast =
-    activeObjectId === "crt" || activeObjectId === "radio";
+    activeObjectId === "crt" || activeObjectId === "radio" || broadcastFocusStage !== "idle";
   const whisperObjectId = hoveredObjectId ?? activeObjectId;
   const objectLabels = useMemo(
     () => new Map(subject.roomObjects.map((object) => [object.id, object.label])),
@@ -2820,19 +2962,19 @@ function RoomObjects({
         ref={lampLightRef}
         color={palette.lamp}
         decay={2}
-        distance={3.65}
-        intensity={palette.lampIntensity + 0.32}
-        position={[windowSideLayout.lampPosition[0], 0.5, windowSideLayout.lampPosition[2]]}
+        distance={3.2}
+        intensity={palette.lampIntensity + 0.5}
+        position={[windowSideLayout.lampPosition[0] + 0.02, 0.18, windowSideLayout.lampPosition[2] + 0.06]}
       />
       <spotLight
-        angle={0.72}
+        angle={0.58}
         color={palette.lamp}
         decay={2}
-        distance={3}
-        intensity={activeObjectId === "lamp" ? 0.58 : 0.38}
-        penumbra={0.88}
-        position={[windowSideLayout.lampPosition[0] - 0.02, 0.82, windowSideLayout.lampPosition[2]]}
-        target-position={[0.2, -0.32, 0.36]}
+        distance={2.8}
+        intensity={activeObjectId === "lamp" ? 0.74 : 0.52}
+        penumbra={0.94}
+        position={[windowSideLayout.lampPosition[0] - 0.02, 0.33, windowSideLayout.lampPosition[2] + 0.02]}
+        target-position={[0.18, -0.42, 0.28]}
       />
       <pointLight
         color={palette.monitor}
@@ -2860,39 +3002,56 @@ function RoomObjects({
         <mesh name="Floor" receiveShadow position={[0, -0.9, -0.18]}>
           <boxGeometry args={[5.8, 0.1, 4.7]} />
           <meshStandardMaterial
-            color="#101827"
+            color="#141c20"
             emissive={windowWorld.accent}
-            emissiveIntensity={0.018}
-            flatShading
-            metalness={0.08}
-            roughness={0.54}
+            emissiveIntensity={0.012}
+            metalness={0.04}
+            roughness={0.82}
           />
         </mesh>
         <mesh name="BackWall" receiveShadow position={[0, 0.74, -2.28]}>
           <boxGeometry args={[5.2, 3.35, 0.1]} />
-          <meshStandardMaterial color={palette.wall} flatShading roughness={0.94} />
+          <meshStandardMaterial
+            color={palette.wall}
+            emissive={windowWorld.accent}
+            emissiveIntensity={0.006}
+            roughness={0.96}
+          />
         </mesh>
         <mesh name="LeftWall" receiveShadow position={[-2.55, 0.68, -0.18]} rotation={[0, 0.1, 0]}>
           <boxGeometry args={[0.1, 3.25, 4.35]} />
-          <meshStandardMaterial color="#0d1424" flatShading roughness={0.9} />
+          <meshStandardMaterial color="#0b1420" emissive={windowWorld.accent} emissiveIntensity={0.008} roughness={0.94} />
         </mesh>
         <mesh name="RightWall" receiveShadow position={[2.56, 0.7, -0.18]} rotation={[0, -0.1, 0]}>
           <boxGeometry args={[0.08, 3.25, 4.35]} />
-          <meshStandardMaterial color="#11182a" flatShading roughness={0.92} />
+          <meshStandardMaterial color="#111923" emissive={palette.lamp} emissiveIntensity={0.01} roughness={0.92} />
         </mesh>
         <WallLifeDetails accent={palette.accent} world={windowWorld} />
 
         <mesh name="DeskTop" receiveShadow position={windowSideLayout.deskPosition} rotation={[0, -0.035, 0]}>
           <boxGeometry args={windowSideLayout.deskSize} />
           <meshStandardMaterial
-            color="#4a2e1d"
+            color="#51311e"
             emissive={palette.lamp}
-            emissiveIntensity={0.045}
-            flatShading
-            metalness={0.06}
-            roughness={0.48}
+            emissiveIntensity={0.035}
+            metalness={0.035}
+            roughness={0.62}
           />
         </mesh>
+        <group name="DeskSubtleWoodGrain" position={[0.04, -0.412, -0.02]} rotation={[-Math.PI / 2, 0, -0.035]}>
+          {[-0.36, -0.18, 0.02, 0.2, 0.38].map((y, index) => (
+            <mesh key={y} position={[0.02 * Math.sin(index), y, 0.004]}>
+              <planeGeometry args={[3.35 - index * 0.08, 0.012]} />
+              <meshBasicMaterial color="#8b5a35" transparent opacity={0.12} depthWrite={false} />
+            </mesh>
+          ))}
+          {[-1.15, -0.48, 0.42, 1.12].map((x, index) => (
+            <mesh key={x} position={[x, 0.08 * Math.sin(index * 1.7), 0.005]} rotation={[0, 0, 0.08 * Math.sin(index)]}>
+              <planeGeometry args={[0.34, 0.008]} />
+              <meshBasicMaterial color="#23150d" transparent opacity={0.16} depthWrite={false} />
+            </mesh>
+          ))}
+        </group>
         <mesh name="DeskLeftLeg" position={[-1.58, -0.76, windowSideLayout.deskLegZ]}>
           <boxGeometry args={[0.11, 0.78, 0.11]} />
           <meshStandardMaterial color="#24160d" flatShading roughness={0.82} />
@@ -2905,9 +3064,11 @@ function RoomObjects({
         {subject.id === "tartar" ? (
           <BroadcastReceiver
             actionPulse={actionPulse}
-            active={isObjectLit("crt")}
+            active={isObjectLit("crt") || broadcastFocusStage !== "idle"}
             bindObject={bindObject}
-            onInspectObject={onInspectObject}
+            displayEpisode={broadcastScreenEpisode}
+            isPlaying={isPlaying}
+            onOpenBroadcastFocus={onOpenBroadcastFocus}
             palette={palette}
           />
         ) : null}
@@ -2921,20 +3082,57 @@ function RoomObjects({
           position={windowSideLayout.lampPosition}
           {...bindObject("lamp")}
         >
-          <mesh>
-            <cylinderGeometry args={[0.07, 0.12, 0.62, 18]} />
-            <meshStandardMaterial color="#4b3324" flatShading roughness={0.66} />
+          <mesh name="DeskLampBase" position={[0, -0.29, 0]}>
+            <cylinderGeometry args={[0.19, 0.23, 0.08, 32]} />
+            <meshStandardMaterial
+              color="#3a281d"
+              emissive={palette.lamp}
+              emissiveIntensity={0.025}
+              metalness={0.18}
+              roughness={0.42}
+            />
+          </mesh>
+          <mesh name="DeskLampStem" position={[0, 0, 0]}>
+            <cylinderGeometry args={[0.038, 0.05, 0.62, 32]} />
+            <meshStandardMaterial
+              color="#4a3324"
+              emissive={palette.lamp}
+              emissiveIntensity={0.035}
+              metalness={0.2}
+              roughness={0.46}
+            />
+          </mesh>
+          <mesh name="DeskLampNeck" position={[0.02, 0.25, 0]} rotation={[0, 0, -0.22]}>
+            <cylinderGeometry args={[0.026, 0.032, 0.28, 24]} />
+            <meshStandardMaterial
+              color="#5a3a26"
+              emissive={palette.lamp}
+              emissiveIntensity={0.04}
+              metalness={0.16}
+              roughness={0.44}
+            />
           </mesh>
           <DeskLampShade color={palette.lamp} />
-          <mesh position={[0, 0.38, 0]}>
-            <dodecahedronGeometry args={[0.14, 0]} />
+          <mesh name="DeskLampBulb" position={[0, 0.285, 0]}>
+            <sphereGeometry args={[0.095, 18, 12]} />
             <meshStandardMaterial
               ref={lampBulbRef}
               color="#fed7aa"
               emissive={palette.lamp}
-              emissiveIntensity={isObjectLit("lamp") ? 0.72 : 0.52}
-              flatShading
-              roughness={0.34}
+              emissiveIntensity={isObjectLit("lamp") ? 1.05 : 0.74}
+              roughness={0.2}
+              transparent
+              opacity={0.92}
+            />
+          </mesh>
+          <mesh name="DeskLampWarmPool" position={[0.06, -0.325, 0.18]} rotation={[-Math.PI / 2, 0, -0.2]}>
+            <circleGeometry args={[0.58, 32]} />
+            <meshBasicMaterial
+              blending={THREE.AdditiveBlending}
+              color={palette.lamp}
+              depthWrite={false}
+              transparent
+              opacity={isObjectLit("lamp") ? 0.18 : 0.12}
             />
           </mesh>
         </group>
@@ -2956,13 +3154,15 @@ function RoomObjects({
               color="#071225"
               emissive={windowWorld.accent}
               emissiveIntensity={isObjectLit("window") ? 0.42 : 0.22}
-              flatShading
+              depthWrite={false}
               roughness={0.6}
+              transparent
+              opacity={0.36}
             />
           </mesh>
           <mesh name="WindowGlassTint" position={[0, 0, 0.034]}>
             <boxGeometry args={[1.18, 0.94, 0.025]} />
-            <meshBasicMaterial color="#0c1c35" transparent opacity={0.16} />
+            <meshBasicMaterial color="#0c1c35" depthWrite={false} transparent opacity={0.1} />
           </mesh>
           <RainWindow active={isObjectLit("window")} world={windowWorld} />
           <WindowSillObjects active={isObjectLit("window")} world={windowWorld} />
@@ -3035,13 +3235,6 @@ function RoomObjects({
         )}
       </group>
 
-      {subject.id === "tartar" ? (
-        <CrtReadout
-          active={activeObjectId === "crt"}
-          episode={latestEpisode}
-          isPlaying={isPlaying}
-        />
-      ) : null}
       <TerminalReadout
         active={activeObjectId === "terminal"}
         candidate={latestCandidate}
@@ -3076,27 +3269,85 @@ function RoomObjects({
 
 export default function RoomScene3D(props: RoomScene3DProps) {
   const [hoveredObjectId, setHoveredObjectId] = useState<RoomObjectId | null>(null);
+  const [broadcastFocusStage, setBroadcastFocusStage] =
+    useState<BroadcastFocusStage>("idle");
+  const [hasDismissedBroadcastFocus, setHasDismissedBroadcastFocus] = useState(false);
+  const latestBroadcastEpisode = props.broadcastLatestEpisode ?? props.latestEpisode;
+  const broadcastScreenEpisode = latestBroadcastEpisode;
+  const sceneActiveObjectId =
+    broadcastFocusStage !== "idle"
+      ? "crt"
+      : hasDismissedBroadcastFocus
+        ? null
+        : props.activeObjectId;
+
+  const openBroadcastFocus = useCallback(() => {
+    setHasDismissedBroadcastFocus(false);
+    setBroadcastFocusStage("zooming");
+  }, []);
+
+  const closeBroadcastFocus = useCallback(() => {
+    setBroadcastFocusStage("closing");
+    setHasDismissedBroadcastFocus(true);
+  }, []);
+
+  useEffect(() => {
+    if (broadcastFocusStage !== "zooming") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setBroadcastFocusStage("fullscreen");
+    }, BROADCAST_FOCUS_ZOOM_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [broadcastFocusStage]);
+
+  useEffect(() => {
+    if (broadcastFocusStage !== "closing") {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setBroadcastFocusStage("idle");
+    }, BROADCAST_FOCUS_FADE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [broadcastFocusStage]);
 
   return (
-    <Canvas
-      camera={{ fov: 50, position: cameraTargets.idle.position }}
-      className="room-scene-3d-canvas"
-      dpr={[1, 1.25]}
-      gl={{
-        alpha: true,
-        antialias: false,
-        powerPreference: "low-power",
-        preserveDrawingBuffer: true,
-      }}
-      shadows={false}
-    >
-      <CameraRig activeObjectId={props.activeObjectId} />
-      <RoomObjects
-        {...props}
-        hoveredObjectId={hoveredObjectId}
-        onHoverObject={setHoveredObjectId}
-      />
-      <SceneExporter />
-    </Canvas>
+    <>
+      <Canvas
+        camera={{ fov: 50, position: cameraTargets.idle.position }}
+        className="room-scene-3d-canvas"
+        dpr={[1, 1.25]}
+        gl={{
+          alpha: true,
+          antialias: false,
+          powerPreference: "low-power",
+          preserveDrawingBuffer: true,
+        }}
+        shadows={false}
+      >
+        <CameraRig activeObjectId={sceneActiveObjectId} />
+        <RoomObjects
+          {...props}
+          activeObjectId={sceneActiveObjectId}
+          broadcastFocusStage={broadcastFocusStage}
+          broadcastScreenEpisode={broadcastScreenEpisode}
+          hoveredObjectId={hoveredObjectId}
+          onHoverObject={setHoveredObjectId}
+          onOpenBroadcastFocus={openBroadcastFocus}
+        />
+        <SceneExporter />
+      </Canvas>
+      {props.subject.id === "tartar" ? (
+        <BroadcastFullscreenOverlay
+          episode={latestBroadcastEpisode}
+          onClose={closeBroadcastFocus}
+          stage={broadcastFocusStage}
+        />
+      ) : null}
+    </>
   );
 }

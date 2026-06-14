@@ -22,6 +22,7 @@ type RoomSceneRootProps = {
   action: SubjectAction;
   activeObjectId?: RoomObjectId | null;
   broadcastCandidates: BroadcastThemeCandidate[];
+  broadcastLatestEpisode?: Episode;
   isPlaying: boolean;
   isScreensaver: boolean;
   latestEpisode: Episode;
@@ -68,6 +69,7 @@ export function RoomSceneRoot({
   action,
   activeObjectId,
   broadcastCandidates,
+  broadcastLatestEpisode,
   isPlaying,
   isScreensaver,
   latestEpisode,
@@ -111,6 +113,7 @@ export function RoomSceneRoot({
         action={action}
         activeObjectId={activeObjectId}
         broadcastCandidates={broadcastCandidates}
+        broadcastLatestEpisode={broadcastLatestEpisode}
         isPlaying={isPlaying}
         isScreensaver={isScreensaver}
         latestEpisode={latestEpisode}

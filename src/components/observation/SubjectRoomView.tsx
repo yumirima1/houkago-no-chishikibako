@@ -43,6 +43,7 @@ type SubjectRoomViewProps = {
   action: SubjectAction;
   activeObjectId: RoomObjectId | null;
   broadcastCandidates: BroadcastThemeCandidate[];
+  broadcastLatestEpisode?: Episode;
   isPlaying: boolean;
   latestEpisode: Episode;
   logs: ObservationLog[];
@@ -114,6 +115,7 @@ export function SubjectRoomView({
   action,
   activeObjectId,
   broadcastCandidates,
+  broadcastLatestEpisode,
   isPlaying,
   latestEpisode,
   logs,
@@ -178,6 +180,7 @@ export function SubjectRoomView({
         action={action}
         activeObjectId={activeObjectId}
         broadcastCandidates={broadcastCandidates}
+        broadcastLatestEpisode={broadcastLatestEpisode}
         isPlaying={isPlaying}
         isScreensaver={isScreensaver}
         latestEpisode={latestEpisode}

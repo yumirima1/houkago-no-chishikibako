@@ -614,6 +614,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             action={currentSubjectAction}
             activeObjectId={activeObjectId}
             broadcastCandidates={broadcastCandidates}
+            broadcastLatestEpisode={latestEpisode}
             isPlaying={isVoicePlaying}
             latestEpisode={selectedEpisode}
             logs={logs}
