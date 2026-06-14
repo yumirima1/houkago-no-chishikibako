@@ -2,6 +2,7 @@
   id: "episode-024",
   title: "人はなぜ部屋に性格が出るのか",
   description: "机、配線、置きっぱなしのカップ、本棚を見ながら、部屋に性格がにじむ理由を考える。",
+  audioUrl: "/audio/episode-024.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
@@ -12,5 +13,5 @@
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "reviewing",
+  productionStatus: "published",
 }

@@ -33,7 +33,7 @@ const manualEpisodes: Episode[] = [];
 
 const manualEpisodeIds = new Set(manualEpisodes.map((episode) => episode.id));
 const FIRST_PUBLIC_REGULAR_EPISODE_NUMBER = 5;
-const LATEST_PUBLIC_EPISODE_NUMBER = 17;
+const LATEST_PUBLIC_EPISODE_NUMBER = 37;
 const MIN_PUBLIC_AUDIO_SECONDS = 40;
 
 export const episodes: Episode[] = [
@@ -138,7 +138,7 @@ export function hasPlayableAudio(episode: Episode) {
 export function isUserVisibleEpisode(episode: Episode) {
   const episodeNumber = getEpisodeNumber(episode);
 
-  if (!hasPlayableAudio(episode)) {
+  if (episode.productionStatus !== "published") {
     return false;
   }
 

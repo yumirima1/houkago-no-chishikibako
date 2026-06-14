@@ -2,6 +2,7 @@
   id: "episode-022",
   title: "人はなぜ積読をしてしまうのか",
   description: "買った本、読めない本、未来の知的な自分への期待を、机の端の本から考える。",
+  audioUrl: "/audio/episode-022.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
@@ -12,5 +13,5 @@
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "reviewing",
+  productionStatus: "published",
 }

@@ -2,6 +2,7 @@
   id: "episode-021",
   title: "便利になるほど時間が足りなくなるのはなぜか",
   description: "時短、通知、選択肢、予定の詰め込みを手がかりに、便利さと忙しさの関係を話す。",
+  audioUrl: "/audio/episode-021.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
@@ -12,5 +13,5 @@
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "reviewing",
+  productionStatus: "published",
 }

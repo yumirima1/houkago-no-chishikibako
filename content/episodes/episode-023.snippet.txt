@@ -2,6 +2,7 @@
   id: "episode-023",
   title: "推しとは何を推しているのか",
   description: "作品、人、関係性、応援する気持ちの正体を、遠くの街灯のような距離感で話す。",
+  audioUrl: "/audio/episode-023.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
@@ -12,5 +13,5 @@
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "reviewing",
+  productionStatus: "published",
 }

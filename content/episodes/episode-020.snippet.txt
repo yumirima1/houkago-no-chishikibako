@@ -2,6 +2,7 @@
   id: "episode-020",
   title: "地図アプリがあるのになぜ迷うのか",
   description: "地図、現在地、方向感覚、目的地までの不安を通して、便利な案内でも迷う理由を考える。",
+  audioUrl: "/audio/episode-020.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
@@ -12,5 +13,5 @@
   "science": "理系担当",
   "humanities": "文系担当"
 },
-  productionStatus: "reviewing",
+  productionStatus: "published",
 }

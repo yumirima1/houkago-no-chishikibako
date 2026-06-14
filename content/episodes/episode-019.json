@@ -22,7 +22,7 @@
     "science": "理系担当",
     "humanities": "文系担当"
   },
-  "productionStatus": "reviewing",
+  "productionStatus": "published",
   "source": {
     "reviewedScriptPath": "content/reviewed/episode-019.json",
     "durationTargetMinutes": 21,
@@ -30,6 +30,7 @@
       "rikei": "rikei",
       "bunkei": "bunkei"
     },
-    "status": "audio-pending"
-  }
+    "status": "published"
+  },
+  "audioUrl": "/audio/episode-019.mp3"
 }

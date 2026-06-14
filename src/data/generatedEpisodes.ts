@@ -262,6 +262,7 @@ export const generatedEpisodes: Episode[] = [
     id: "episode-018",
     title: "人はなぜ「あとでやる」を信じるのか",
     description: "先延ばし、時間の見積もり、未来の自分への期待を、机の上に残ったメモから考える。",
+    audioUrl: "/audio/episode-018.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -272,12 +273,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-019",
     title: "思い出は保存なのか再生成なのか",
     description: "写真、日記、会話の記憶を手がかりに、思い出は保存なのか、そのたび作り直されるのかを話す。",
+    audioUrl: "/audio/episode-019.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -288,12 +290,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-020",
     title: "地図アプリがあるのになぜ迷うのか",
     description: "地図、現在地、方向感覚、目的地までの不安を通して、便利な案内でも迷う理由を考える。",
+    audioUrl: "/audio/episode-020.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -304,12 +307,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-021",
     title: "便利になるほど時間が足りなくなるのはなぜか",
     description: "時短、通知、選択肢、予定の詰め込みを手がかりに、便利さと忙しさの関係を話す。",
+    audioUrl: "/audio/episode-021.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -320,12 +324,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-022",
     title: "人はなぜ積読をしてしまうのか",
     description: "買った本、読めない本、未来の知的な自分への期待を、机の端の本から考える。",
+    audioUrl: "/audio/episode-022.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -336,12 +341,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-023",
     title: "推しとは何を推しているのか",
     description: "作品、人、関係性、応援する気持ちの正体を、遠くの街灯のような距離感で話す。",
+    audioUrl: "/audio/episode-023.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -352,12 +358,13 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-024",
     title: "人はなぜ部屋に性格が出るのか",
     description: "机、配線、置きっぱなしのカップ、本棚を見ながら、部屋に性格がにじむ理由を考える。",
+    audioUrl: "/audio/episode-024.mp3",
     type: "regular",
     durationType: "normal",
     publishedAt: "2026-06-06",
@@ -368,7 +375,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-025",
@@ -384,7 +391,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-026",
@@ -400,7 +407,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-027",
@@ -416,7 +423,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-028",
@@ -432,7 +439,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-029",
@@ -448,7 +455,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-030",
@@ -464,7 +471,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-031",
@@ -480,7 +487,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-032",
@@ -496,7 +503,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-033",
@@ -512,7 +519,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-034",
@@ -528,7 +535,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-035",
@@ -544,7 +551,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-036",
@@ -560,7 +567,7 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
   {
     id: "episode-037",
@@ -576,6 +583,6 @@ export const generatedEpisodes: Episode[] = [
     "science": "理系担当",
     "humanities": "文系担当"
   },
-    productionStatus: "reviewing",
+    productionStatus: "published",
   },
 ];
