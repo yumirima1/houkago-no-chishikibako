@@ -99,11 +99,11 @@ const windowSideLayout = {
   deskPosition: [0.04, -0.49, -0.02] as [number, number, number],
   deskSize: [3.72, 0.14, 0.96] as [number, number, number],
   lampPosition: [1.18, -0.16, 0.02] as [number, number, number],
-  officeEquipmentPosition: [0.82, -0.24, -0.1] as [number, number, number],
-  officeEquipmentRotation: [0.02, -0.4, 0] as [number, number, number],
-  officeEquipmentScale: [0.55, 0.55, 0.55] as [number, number, number],
+  officeEquipmentPosition: [1.02, -0.255, -0.02] as [number, number, number],
+  officeEquipmentRotation: [0.02, -0.36, 0] as [number, number, number],
+  officeEquipmentScale: [0.36, 0.36, 0.36] as [number, number, number],
   windowPosition: [0.18, 0.86, -2.16] as [number, number, number],
-  windowScale: [2.76, 2.44, 1] as [number, number, number],
+  windowScale: [2.95, 2.56, 1] as [number, number, number],
 };
 
 const cameraTargets: Record<RoomObjectId | "idle", CameraTarget> = {
@@ -949,27 +949,27 @@ function RainWindow({
       {rainLevel > 0 ? (
         <>
           <RainLayer
-            count={Math.round(22 * rainLevel)}
-            opacity={(active ? 0.3 : 0.16) * rainLevel}
+            count={Math.round(28 * rainLevel)}
+            opacity={(active ? 0.36 : 0.2) * rainLevel}
             speed={0.055}
             width={0.005}
           />
           <RainLayer
-            count={Math.round(14 * rainLevel)}
-            opacity={(active ? 0.36 : 0.22) * rainLevel}
+            count={Math.round(18 * rainLevel)}
+            opacity={(active ? 0.42 : 0.27) * rainLevel}
             speed={0.1}
             width={0.009}
           />
           <RainLayer
-            count={Math.round(9 * rainLevel)}
-            opacity={(active ? 0.43 : 0.27) * rainLevel}
+            count={Math.round(12 * rainLevel)}
+            opacity={(active ? 0.5 : 0.32) * rainLevel}
             speed={0.16}
             width={0.012}
           />
           <RainLayer
             color={world.accent}
-            count={Math.round(8 * rainLevel)}
-            opacity={(active ? 0.24 : 0.14) * rainLevel}
+            count={Math.round(10 * rainLevel)}
+            opacity={(active ? 0.3 : 0.18) * rainLevel}
             speed={0.21}
             width={0.016}
           />
@@ -983,7 +983,7 @@ function RainWindow({
           color="#dbeafe"
           depthWrite={false}
           transparent
-          opacity={active ? 0.16 : 0.08}
+          opacity={active ? 0.22 : 0.12}
         />
       </mesh>
       <mesh position={[0.26, 0.12, 0.047]} rotation={[0, 0, -0.62]}>
@@ -993,7 +993,27 @@ function RainWindow({
           color={world.accent}
           depthWrite={false}
           transparent
-          opacity={Math.min(0.24, 0.08 * rarityStrength + (active ? 0.05 : 0))}
+          opacity={Math.min(0.3, 0.11 * rarityStrength + (active ? 0.06 : 0))}
+        />
+      </mesh>
+      <mesh position={[0.02, -0.04, 0.049]} rotation={[0, 0, -0.48]}>
+        <planeGeometry args={[1.12, 0.01]} />
+        <meshBasicMaterial
+          blending={THREE.AdditiveBlending}
+          color="#f8fafc"
+          depthWrite={false}
+          transparent
+          opacity={active ? 0.18 : 0.1}
+        />
+      </mesh>
+      <mesh position={[-0.1, -0.28, 0.05]} rotation={[0, 0, -0.34]}>
+        <planeGeometry args={[0.82, 0.014]} />
+        <meshBasicMaterial
+          blending={THREE.AdditiveBlending}
+          color={world.accent}
+          depthWrite={false}
+          transparent
+          opacity={active ? 0.2 : 0.11}
         />
       </mesh>
       <mesh position={[0.18, 0.13, 0.038]} rotation={[0, 0, -0.28]}>
@@ -1018,7 +1038,7 @@ function RainWindow({
       </mesh>
       <mesh position={[0, -0.02, 0.03]}>
         <boxGeometry args={[0.98, 0.8, 0.014]} />
-        <meshBasicMaterial color="#dbeafe" transparent opacity={active ? 0.1 : 0.055} />
+        <meshBasicMaterial color="#dbeafe" transparent opacity={active ? 0.14 : 0.075} />
       </mesh>
     </group>
   );
@@ -1182,17 +1202,17 @@ function LightBloom({
       ) : null}
       <GlowPlane
         color={palette.windowGlow}
-        opacity={activeWindow ? 0.18 : 0.09}
-        position={[1.3, -0.8, -1.36]}
+        opacity={activeWindow ? 0.24 : 0.13}
+        position={[1.1, -0.79, -1.3]}
         rotation={[-Math.PI / 2, 0, -0.35]}
-        scale={[3.0, 1.35, 1]}
+        scale={[3.45, 1.55, 1]}
       />
       <GlowPlane
         color="#3b82f6"
-        opacity={activeWindow ? 0.12 : 0.065}
-        position={[1.42, 0.42, -2.12]}
+        opacity={activeWindow ? 0.16 : 0.09}
+        position={[1.25, 0.46, -2.12]}
         rotation={[0, -0.08, 0]}
-        scale={[1.9, 1.35, 1]}
+        scale={[2.25, 1.52, 1]}
       />
     </group>
   );
@@ -1552,15 +1572,13 @@ function DeskClutter({
   activeMemo,
   bindObject,
   onInspectObject,
-  subject,
 }: {
   accent: string;
   activeMemo: boolean;
   bindObject: ObjectInteractionBinder;
   onInspectObject: (objectId: RoomObjectId) => void;
-  subject: ObservationSubject;
 }) {
-  const paperColor = subject.id === "kana" ? "#f6d8b8" : "#d7c594";
+  const paperColor = "#d7c594";
 
   return (
     <group>
@@ -1569,58 +1587,38 @@ function DeskClutter({
           event.stopPropagation();
           onInspectObject("memo");
         }}
-        position={[-0.28, -0.23, 0.74]}
-        rotation={[0.04, -0.28, -0.14]}
+        position={[-0.08, -0.225, 0.72]}
+        rotation={[0.035, -0.18, -0.09]}
         {...bindObject("memo")}
       >
-        <boxGeometry args={[0.52, 0.012, 0.34]} />
+        <boxGeometry args={[0.54, 0.012, 0.36]} />
         <meshStandardMaterial
           color={paperColor}
           emissive={accent}
-          emissiveIntensity={activeMemo ? 0.2 : 0.035}
+          emissiveIntensity={activeMemo ? 0.18 : 0.03}
           flatShading
           roughness={0.86}
         />
       </mesh>
-      {[
-        [0.08, -0.215, 0.86, 0.18, "#fef3c7"],
-        [-0.62, -0.205, 0.36, -0.08, "#ead7b1"],
-        [0.48, -0.21, 0.9, -0.24, "#f7d28a"],
-      ].map(([x, y, z, rotation, color], index) => (
+      {[-0.18, 0.02, 0.22].map((x, index) => (
         <mesh
           key={index}
-          position={[x as number, y as number, z as number]}
-          rotation={[0, 0.1, rotation as number]}
+          position={[x, -0.217, 0.725 + index * 0.018]}
+          rotation={[0.035, -0.18, -0.09]}
         >
-          <boxGeometry args={[index === 1 ? 0.34 : 0.24, 0.009, index === 1 ? 0.22 : 0.14]} />
-          <meshStandardMaterial color={color as string} flatShading roughness={0.9} />
+          <boxGeometry args={[0.18, 0.004, 0.012]} />
+          <meshBasicMaterial color="#5b4632" transparent opacity={0.34} />
         </mesh>
       ))}
-      <mesh position={[0.18, -0.19, 0.58]} rotation={[0, 0, -0.38]}>
-        <cylinderGeometry args={[0.012, 0.012, 0.42, 10]} />
+      <mesh position={[0.34, -0.19, 0.62]} rotation={[0.04, 0.08, -0.52]}>
+        <cylinderGeometry args={[0.011, 0.011, 0.46, 10]} />
         <meshStandardMaterial
-          color="#0f172a"
+          color="#102033"
           emissive={accent}
-          emissiveIntensity={0.04}
+          emissiveIntensity={0.035}
           flatShading
         />
       </mesh>
-      <mesh position={[1.02, -0.17, 0.46]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.085, 0.085, 0.16, 22]} />
-        <meshStandardMaterial color="#1f2937" flatShading roughness={0.7} />
-      </mesh>
-      <mesh position={[1.04, -0.06, 0.46]}>
-        <torusGeometry args={[0.07, 0.008, 6, 18]} />
-        <meshStandardMaterial color="#334155" flatShading roughness={0.78} />
-      </mesh>
-      {subject.id === "tartar"
-        ? [-0.58, -0.48, -0.38, -0.28].map((x, index) => (
-            <mesh key={index} position={[x, -0.12 - index * 0.02, 0.86]}>
-              <torusGeometry args={[0.2, 0.005, 6, 28, Math.PI]} />
-              <meshBasicMaterial color={accent} transparent opacity={0.28} />
-            </mesh>
-          ))
-        : null}
     </group>
   );
 }
@@ -2341,13 +2339,6 @@ function TartarEquipmentLayer({
           bindObject={bindObject}
           onInspectObject={onInspectObject}
         />
-        <BookStack
-          accent={accent}
-          active={activeObjectId === "envelope"}
-          bindObject={bindObject}
-          onInspectObject={onInspectObject}
-          position={[-1.02, -0.18, 0.08]}
-        />
       </Suspense>
     </ModelErrorBoundary>
   );
@@ -2858,7 +2849,6 @@ function RoomObjects({
           activeMemo={isObjectLit("memo")}
           bindObject={bindObject}
           onInspectObject={onInspectObject}
-          subject={subject}
         />
         <LightBloom
           activeBroadcast={activeBroadcast}
