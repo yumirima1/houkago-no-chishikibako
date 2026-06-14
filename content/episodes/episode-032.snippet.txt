@@ -2,6 +2,7 @@
   id: "episode-032",
   title: "なぜ待ち時間は長く感じるのか",
   description: "読み込み、電車、返信待ち、時計を手がかりに、待ち時間が伸びる感覚を考える。",
+  audioUrl: "/audio/episode-032.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

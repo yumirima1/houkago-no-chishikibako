@@ -30,6 +30,7 @@
       "rikei": "rikei",
       "bunkei": "bunkei"
     },
-    "status": "published-audio-pending"
-  }
+    "status": "published"
+  },
+  "audioUrl": "/audio/episode-025.mp3"
 }

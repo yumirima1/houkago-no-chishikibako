@@ -2,6 +2,7 @@
   id: "episode-025",
   title: "未来の自分は本当に自分なのか",
   description: "予定、貯金、勉強、あとでやる約束を通して、未来の自分との距離を話す。",
+  audioUrl: "/audio/episode-025.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

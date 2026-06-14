@@ -2,6 +2,7 @@
   id: "episode-026",
   title: "通知がないと不安になるのはなぜか",
   description: "鳴らないスマホ、未読、待つ時間を手がかりに、通知がない時の不安を考える。",
+  audioUrl: "/audio/episode-026.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

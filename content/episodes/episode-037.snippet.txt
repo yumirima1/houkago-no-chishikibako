@@ -2,6 +2,7 @@
   id: "episode-037",
   title: "AIと話した記憶は思い出になるのか",
   description: "相手が人ではない会話、残った言葉、夜に相談した記憶を手がかりに、AIとの会話が思い出になるかを考える。",
+  audioUrl: "/audio/episode-037.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

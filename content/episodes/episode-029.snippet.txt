@@ -2,6 +2,7 @@
   id: "episode-029",
   title: "失敗談はなぜ面白いのか",
   description: "転んだ話、作り間違い、言い間違いを通して、失敗談が人を近づける理由を話す。",
+  audioUrl: "/audio/episode-029.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

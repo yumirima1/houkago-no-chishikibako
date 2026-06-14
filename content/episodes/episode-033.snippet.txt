@@ -2,6 +2,7 @@
   id: "episode-033",
   title: "人はなぜ収集をやめられないのか",
   description: "本、ステッカー、古いケーブル、保存した画像を通して、集めることの安心を話す。",
+  audioUrl: "/audio/episode-033.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

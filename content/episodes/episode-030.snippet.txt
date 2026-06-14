@@ -2,6 +2,7 @@
   id: "episode-030",
   title: "人はなぜ秘密を持つのか",
   description: "日記、未送信の下書き、言わないでおく優しさを手がかりに、秘密の役割を考える。",
+  audioUrl: "/audio/episode-030.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

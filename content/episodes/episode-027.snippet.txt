@@ -2,6 +2,7 @@
   id: "episode-027",
   title: "人はなぜ昔のネットを語りたがるのか",
   description: "個人サイト、掲示板、検索前の寄り道を手がかりに、昔のネットを語る気持ちを話す。",
+  audioUrl: "/audio/episode-027.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",

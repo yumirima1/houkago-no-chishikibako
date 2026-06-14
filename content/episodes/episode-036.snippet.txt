@@ -2,6 +2,7 @@
   id: "episode-036",
   title: "人はなぜ昔の自分を黒歴史にするのか",
   description: "昔の文章、古い名前、過去の投稿ではなく過去の感覚を手がかりに、黒歴史化の理由を考える。",
+  audioUrl: "/audio/episode-036.mp3",
   type: "regular",
   durationType: "normal",
   publishedAt: "2026-06-06",
