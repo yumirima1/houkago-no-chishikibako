@@ -310,6 +310,94 @@ function ObservationBoxPanel() {
   );
 }
 
+function MobileKnowledgeBoxPanel({
+  allTags,
+  currentTime,
+  duration,
+  episode,
+  episodes,
+  isPlaying,
+  onSelectEpisode,
+  onTogglePlayback,
+  onToggleTag,
+  progress,
+  selectedEpisodeNumberLabel,
+  selectedTags,
+}: {
+  allTags: string[];
+  currentTime: number;
+  duration: number;
+  episode: Episode;
+  episodes: Episode[];
+  isPlaying: boolean;
+  onSelectEpisode: (episodeId: string) => void;
+  onTogglePlayback: () => void;
+  onToggleTag: (tag: string) => void;
+  progress: number;
+  selectedEpisodeNumberLabel: string;
+  selectedTags: string[];
+}) {
+  const canPlay = hasPlayableAudio(episode);
+
+  return (
+    <section className="mobile-knowledge-box" aria-label="知識箱">
+      <div className="mobile-knowledge-player">
+        <span className={isPlaying ? "is-live" : ""}>
+          {isPlaying ? "ON AIR" : "知識箱"}
+        </span>
+        <h1>
+          {selectedEpisodeNumberLabel} {episode.title}
+        </h1>
+        <p>{episode.description}</p>
+
+        {canPlay ? (
+          <div className="room-audio-controls">
+            <button
+              className={isPlaying ? "is-playing" : undefined}
+              onClick={onTogglePlayback}
+              type="button"
+            >
+              {isPlaying ? "一時停止" : "再生"}
+            </button>
+            <span>{isPlaying ? "再生中" : "待機中"} / #037まで公開中</span>
+          </div>
+        ) : (
+          <p>この回は準備中です。</p>
+        )}
+
+        <div className="room-progress">
+          <span>{formatTime(currentTime)}</span>
+          <i>
+            <b style={{ width: `${progress}%` }} />
+          </i>
+          <span>{duration ? formatTime(duration) : episode.duration}</span>
+        </div>
+      </div>
+
+      <div className="mobile-knowledge-scroll">
+        <div className="room-tag-strip">
+          {allTags.slice(0, 14).map((tag) => (
+            <button
+              className={selectedTags.includes(tag) ? "is-active" : undefined}
+              key={tag}
+              onClick={() => onToggleTag(tag)}
+              type="button"
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+
+        <EpisodeList
+          episodes={episodes}
+          onSelectEpisode={onSelectEpisode}
+          selectedEpisodeId={episode.id}
+        />
+      </div>
+    </section>
+  );
+}
+
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMobileViewport = useIsMobileViewport();
@@ -674,6 +762,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   ]);
 
   useEffect(() => {
+    if (isMobileViewport && mobileBoxMode === "knowledge") {
+      return;
+    }
+
     if (roomMode !== "room" && roomMode !== "listening") {
       return;
     }
@@ -685,7 +777,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }, AUTO_HIDE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [lastInteractionAt, roomMode]);
+  }, [isMobileViewport, lastInteractionAt, mobileBoxMode, roomMode]);
 
   useEffect(() => {
     if (!shouldAutoPlayNext) {
@@ -725,6 +817,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const isBackground = roomMode === "background";
   const isMobileObservationBox =
     isMobileViewport && mobileBoxMode === "observation";
+  const isMobileKnowledgeBox = isMobileViewport && mobileBoxMode === "knowledge";
   const selectedEpisodeHasAudio = hasPlayableAudio(selectedEpisode);
 
   return (
@@ -744,6 +837,21 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
       {isMobileObservationBox ? (
         <ObservationBoxPanel />
+      ) : isMobileKnowledgeBox ? (
+        <MobileKnowledgeBoxPanel
+          allTags={allTags}
+          currentTime={currentTime}
+          duration={duration}
+          episode={selectedEpisode}
+          episodes={filteredEpisodes}
+          isPlaying={isVoicePlaying}
+          onSelectEpisode={playEpisode}
+          onTogglePlayback={toggleSelectedEpisodePlayback}
+          onToggleTag={toggleTag}
+          progress={progress}
+          selectedEpisodeNumberLabel={selectedEpisodeNumberLabel}
+          selectedTags={selectedTags}
+        />
       ) : isBackground ? (
         <BackgroundModeOverlay
           ambienceEnabled={ambience.enabled}

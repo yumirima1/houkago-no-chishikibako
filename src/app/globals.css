@@ -3486,6 +3486,81 @@ audio {
   line-height: 1.7;
 }
 
+.mobile-knowledge-box {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  padding:
+    calc(max(0.75rem, env(safe-area-inset-top)) + 3.2rem)
+    max(0.85rem, env(safe-area-inset-right))
+    max(0.85rem, env(safe-area-inset-bottom))
+    max(0.85rem, env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.12), transparent 34%),
+    linear-gradient(180deg, #07111f 0%, #050812 54%, #020617 100%);
+}
+
+.mobile-knowledge-player {
+  display: grid;
+  gap: 0.72rem;
+  border: 1px solid rgba(134, 239, 172, 0.16);
+  border-radius: 0.58rem;
+  padding: 0.95rem;
+  background:
+    repeating-linear-gradient(180deg, rgba(2, 6, 23, 0.15) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, rgba(6, 22, 22, 0.82), rgba(2, 6, 23, 0.74));
+  box-shadow:
+    0 1rem 2.4rem rgba(0, 0, 0, 0.32),
+    inset 0 0 1.5rem rgba(34, 197, 94, 0.04);
+}
+
+.mobile-knowledge-player > span {
+  color: rgba(148, 163, 184, 0.76);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+}
+
+.mobile-knowledge-player > span.is-live {
+  color: rgba(252, 165, 165, 0.92);
+  text-shadow: 0 0 0.72rem rgba(248, 113, 113, 0.48);
+}
+
+.mobile-knowledge-player h1 {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.96);
+  font-size: clamp(1.18rem, 6vw, 1.72rem);
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0;
+}
+
+.mobile-knowledge-player p {
+  margin: 0;
+  color: rgba(203, 213, 225, 0.78);
+  font-size: 0.88rem;
+  line-height: 1.68;
+}
+
+.mobile-knowledge-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid rgba(226, 232, 240, 0.1);
+  border-radius: 0.58rem;
+  padding: 0.8rem;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(2, 6, 23, 0.64)),
+    rgba(2, 6, 23, 0.58);
+  scrollbar-width: thin;
+}
+
+.mobile-knowledge-scroll [aria-labelledby="episode-list-title"] {
+  margin-top: 0.85rem;
+}
+
 .room-scene-root-3d::after,
 .subject-room-scene::after {
   display: none;
