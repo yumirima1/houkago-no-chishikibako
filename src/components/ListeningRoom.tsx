@@ -46,6 +46,9 @@ type ListeningRoomProps = {
 };
 
 type RoomPanel = "broadcast" | "terminal" | "memo" | "mood" | "clock" | null;
+type MobileBoxMode = "observation" | "knowledge";
+
+const MOBILE_BOX_STORAGE_KEY = "houkago.mobileBoxMode";
 
 type RoomNavigationMenuProps = {
   isOpen: boolean;
@@ -93,6 +96,16 @@ function getInitialRoomMode(): RoomMode {
   return "room";
 }
 
+function getInitialMobileBoxMode(): MobileBoxMode {
+  if (typeof window === "undefined") {
+    return "knowledge";
+  }
+
+  return window.localStorage.getItem(MOBILE_BOX_STORAGE_KEY) === "observation"
+    ? "observation"
+    : "knowledge";
+}
+
 function getRequestedSubject(): SubjectId {
   if (typeof window === "undefined") {
     return "tartar";
@@ -133,6 +146,22 @@ function formatTime(seconds: number) {
   const remainingSeconds = Math.floor(seconds % 60);
 
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+}
+
+function useIsMobileViewport() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const update = () => setIsMobile(mediaQuery.matches);
+
+    update();
+    mediaQuery.addEventListener("change", update);
+
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
 }
 
 function getTimeStateLabel() {
@@ -242,8 +271,48 @@ function RoomNavigationMenu({
   );
 }
 
+function MobileBoxSwitcher({
+  mode,
+  onModeChange,
+}: {
+  mode: MobileBoxMode;
+  onModeChange: (mode: MobileBoxMode) => void;
+}) {
+  return (
+    <div className="mobile-box-switcher" aria-label="箱を切り替える">
+      <button
+        className={mode === "observation" ? "is-active" : undefined}
+        onClick={() => onModeChange("observation")}
+        type="button"
+      >
+        観察箱
+      </button>
+      <button
+        className={mode === "knowledge" ? "is-active" : undefined}
+        onClick={() => onModeChange("knowledge")}
+        type="button"
+      >
+        知識箱
+      </button>
+    </div>
+  );
+}
+
+function ObservationBoxPanel() {
+  return (
+    <section className="observation-box-panel" aria-label="観察箱">
+      <div>
+        <span>観察箱</span>
+        <h1>準備中</h1>
+        <p>ここに観察ログ・部屋・対象切り替えを統合予定</p>
+      </div>
+    </section>
+  );
+}
+
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isMobileViewport = useIsMobileViewport();
   const {
     logs,
     recordObservation,
@@ -272,6 +341,9 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
   const [lastInteractionAt, setLastInteractionAt] = useState(() => Date.now());
+  const [mobileBoxMode, setMobileBoxMode] = useState<MobileBoxMode>(() =>
+    getInitialMobileBoxMode(),
+  );
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const bgm = useAmbientAudio({ isVoicePlaying });
@@ -399,6 +471,14 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     setSelectedEpisodeId(episodeId);
   }, []);
 
+  const playSelectedAudio = useCallback(() => {
+    const playback = audioRef.current?.play();
+
+    if (playback) {
+      void playback.catch(() => setIsVoicePlaying(false));
+    }
+  }, []);
+
   const playEpisode = useCallback(
     (episodeId: string) => {
       const targetEpisode = episodes.find((episode) => episode.id === episodeId);
@@ -410,7 +490,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       }
 
       if (episodeId === selectedEpisode.id) {
-        void audioRef.current?.play();
+        playSelectedAudio();
         enterListeningRoom();
         return;
       }
@@ -419,7 +499,13 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       setShouldAutoPlayNext(true);
       enterListeningRoom();
     },
-    [enterListeningRoom, episodes, selectEpisode, selectedEpisode.id],
+    [
+      enterListeningRoom,
+      episodes,
+      playSelectedAudio,
+      selectEpisode,
+      selectedEpisode.id,
+    ],
   );
 
   const toggleSelectedEpisodePlayback = useCallback(() => {
@@ -430,12 +516,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
 
     if (audio.paused) {
-      void audio.play();
+      playSelectedAudio();
       return;
     }
 
     audio.pause();
-  }, [selectedEpisode]);
+  }, [playSelectedAudio, selectedEpisode]);
 
   const handleEpisodeEnded = useCallback(() => {
     const currentIndex = episodes.findIndex(
@@ -520,11 +606,72 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     );
   }, []);
 
+  const changeMobileBoxMode = useCallback(
+    (nextMode: MobileBoxMode) => {
+      setMobileBoxMode(nextMode);
+      window.localStorage.setItem(MOBILE_BOX_STORAGE_KEY, nextMode);
+      setLastInteractionAt(Date.now());
+
+      if (nextMode === "knowledge") {
+        if (!selectedSubjectId) {
+          selectSubject(effectiveSubjectId);
+        }
+
+        setActiveObjectId(broadcastEntryObjectId);
+        setActivePanel("broadcast");
+        setRoomMode("listening");
+        return;
+      }
+
+      setActiveObjectId(null);
+      setActivePanel(null);
+      setRoomMode("room");
+    },
+    [
+      broadcastEntryObjectId,
+      effectiveSubjectId,
+      selectSubject,
+      selectedSubjectId,
+    ],
+  );
+
   useEffect(() => {
     if (!selectedSubjectId && roomMode !== "background") {
       selectSubject(effectiveSubjectId);
     }
   }, [effectiveSubjectId, roomMode, selectSubject, selectedSubjectId]);
+
+  useEffect(() => {
+    if (!isMobileViewport) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (mobileBoxMode === "knowledge") {
+        if (!selectedSubjectId) {
+          selectSubject(effectiveSubjectId);
+        }
+
+        setActiveObjectId(broadcastEntryObjectId);
+        setActivePanel("broadcast");
+        setRoomMode("listening");
+        return;
+      }
+
+      setActiveObjectId(null);
+      setActivePanel(null);
+      setRoomMode("room");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    broadcastEntryObjectId,
+    effectiveSubjectId,
+    isMobileViewport,
+    mobileBoxMode,
+    selectSubject,
+    selectedSubjectId,
+  ]);
 
   useEffect(() => {
     if (roomMode !== "room" && roomMode !== "listening") {
@@ -546,12 +693,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     }
 
     const timer = window.setTimeout(() => {
-      void audioRef.current?.play();
+      playSelectedAudio();
       setShouldAutoPlayNext(false);
     }, 80);
 
     return () => window.clearTimeout(timer);
-  }, [selectedEpisode.id, shouldAutoPlayNext]);
+  }, [playSelectedAudio, selectedEpisode.id, shouldAutoPlayNext]);
 
   useEffect(() => {
     if (roomMode !== "screensaver") {
@@ -576,6 +723,9 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     ? Math.min(100, Math.max(0, (currentTime / displayDuration) * 100))
     : 0;
   const isBackground = roomMode === "background";
+  const isMobileObservationBox =
+    isMobileViewport && mobileBoxMode === "observation";
+  const selectedEpisodeHasAudio = hasPlayableAudio(selectedEpisode);
 
   return (
     <main className="night-observation-shell min-h-screen text-slate-100">
@@ -587,7 +737,14 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         onOpenChange={setIsMenuOpen}
       />
 
-      {isBackground ? (
+      <MobileBoxSwitcher
+        mode={mobileBoxMode}
+        onModeChange={changeMobileBoxMode}
+      />
+
+      {isMobileObservationBox ? (
+        <ObservationBoxPanel />
+      ) : isBackground ? (
         <BackgroundModeOverlay
           ambienceEnabled={ambience.enabled}
           ambienceIsAvailable={ambience.isAvailable}
@@ -626,6 +783,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
             onInspectObject={handleInspectObject}
             onRecordDialogue={handleRecordDialogue}
             relationshipAtmosphere={relationshipAtmosphere}
+            sceneQuality={isMobileViewport ? "low" : "high"}
             subject={selectedSubject}
             timeStateLabel={getTimeStateLabel()}
           />
@@ -672,28 +830,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
                     {selectedEpisodeNumberLabel} {selectedEpisode.title}
                   </strong>
                   <p>{selectedEpisode.description}</p>
-                  {hasPlayableAudio(selectedEpisode) ? (
-                    <audio
-                      key={selectedEpisode.id}
-                      ref={audioRef}
-                      controls
-                      onEnded={() => {
-                        setIsVoicePlaying(false);
-                        handleEpisodeEnded();
-                      }}
-                      onLoadedMetadata={(event) =>
-                        setDuration(event.currentTarget.duration)
-                      }
-                      onPause={() => setIsVoicePlaying(false)}
-                      onPlay={() => setIsVoicePlaying(true)}
-                      onTimeUpdate={(event) =>
-                        setCurrentTime(event.currentTarget.currentTime)
-                      }
-                      preload="metadata"
-                      src={selectedEpisode.audioUrl}
-                    >
-                      お使いのブラウザは音声再生に対応していません。
-                    </audio>
+                  {selectedEpisodeHasAudio ? (
+                    <div className="room-audio-controls">
+                      <button
+                        className={isVoicePlaying ? "is-playing" : undefined}
+                        onClick={toggleSelectedEpisodePlayback}
+                        type="button"
+                      >
+                        {isVoicePlaying ? "一時停止" : "再生"}
+                      </button>
+                      <span>
+                        {isVoicePlaying ? "再生中" : "待機中"} / 音声は常駐再生
+                      </span>
+                    </div>
                   ) : (
                     <p>この回は準備中です。</p>
                   )}
@@ -822,27 +971,26 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
               </div>
             ) : null}
           </section>
-
-          <div className="room-audio-pocket" aria-hidden={activePanel === "broadcast"}>
-            {activePanel !== "broadcast" && hasPlayableAudio(selectedEpisode) ? (
-              <audio
-                key={selectedEpisode.id}
-                ref={audioRef}
-                onEnded={() => {
-                  setIsVoicePlaying(false);
-                  handleEpisodeEnded();
-                }}
-                onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
-                onPause={() => setIsVoicePlaying(false)}
-                onPlay={() => setIsVoicePlaying(true)}
-                onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
-                preload="metadata"
-                src={selectedEpisode.audioUrl}
-              />
-            ) : null}
-          </div>
         </>
       )}
+
+      <div className="room-audio-pocket" aria-hidden="true">
+        <audio
+          ref={audioRef}
+          onEnded={() => {
+            setIsVoicePlaying(false);
+            handleEpisodeEnded();
+          }}
+          onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+          onPause={() => setIsVoicePlaying(false)}
+          onPlay={() => setIsVoicePlaying(true)}
+          onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+          preload="metadata"
+          src={selectedEpisodeHasAudio ? selectedEpisode.audioUrl : undefined}
+        >
+          お使いのブラウザは音声再生に対応していません。
+        </audio>
+      </div>
     </main>
   );
 }

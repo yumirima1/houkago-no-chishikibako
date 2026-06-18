@@ -52,6 +52,7 @@ type SubjectRoomViewProps = {
   onInspectObject: (objectId: RoomObjectId) => void;
   onRecordDialogue: () => void;
   relationshipAtmosphere: RelationshipAtmosphere;
+  sceneQuality?: "low" | "high";
   subject: ObservationSubject;
   timeStateLabel: string;
 };
@@ -124,6 +125,7 @@ export function SubjectRoomView({
   onInspectObject,
   onRecordDialogue,
   relationshipAtmosphere,
+  sceneQuality = "high",
   subject,
   timeStateLabel,
 }: SubjectRoomViewProps) {
@@ -186,6 +188,7 @@ export function SubjectRoomView({
         latestEpisode={latestEpisode}
         logs={logs}
         onInspectObject={handleInspectObject}
+        quality={sceneQuality}
         subject={subject}
         timeStateLabel={timeStateLabel}
       />

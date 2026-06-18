@@ -28,6 +28,7 @@ type RoomSceneRootProps = {
   latestEpisode: Episode;
   logs: ObservationLog[];
   onInspectObject: (objectId: RoomObjectId) => void;
+  quality?: "low" | "high";
   subject: ObservationSubject;
   timeStateLabel: string;
 };
@@ -75,6 +76,7 @@ export function RoomSceneRoot({
   latestEpisode,
   logs,
   onInspectObject,
+  quality = "high",
   subject,
   timeStateLabel,
 }: RoomSceneRootProps) {
@@ -119,6 +121,7 @@ export function RoomSceneRoot({
         latestEpisode={latestEpisode}
         logs={logs}
         onInspectObject={onInspectObject}
+        quality={quality}
         subject={subject}
         timeStateLabel={timeStateLabel}
       />

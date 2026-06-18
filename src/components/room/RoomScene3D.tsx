@@ -32,6 +32,7 @@ type RoomScene3DProps = {
   latestEpisode: Episode;
   logs: ObservationLog[];
   onInspectObject: (objectId: RoomObjectId) => void;
+  quality?: "low" | "high";
   subject: ObservationSubject;
   timeStateLabel: string;
 };
@@ -558,6 +559,43 @@ function getRarityStrength(rarity: WindowRarity) {
   return 1;
 }
 
+function shouldHideInLowQuality(objectName: string) {
+  const normalizedName = objectName.toLowerCase();
+  const rainDropMatch = normalizedName.match(/exteriorrainlayer_drop_(\d+)/);
+  const buildingMatch = normalizedName.match(/exteriorbuilding_(\d+)/);
+  const streetLightMatch = normalizedName.match(/exteriorstreetlight_(\d+)/);
+  const roadReflectionMatch = normalizedName.match(/exteriorroadreflection_(\d+)/);
+
+  if (
+    normalizedName.includes("downloadedchair")
+    || normalizedName.includes("officeequipment")
+    || normalizedName.includes("windowsillsmallobjects")
+    || normalizedName.includes("infoboard")
+    || normalizedName.includes("windownoteboard")
+    || normalizedName.includes("episodeboard")
+  ) {
+    return true;
+  }
+
+  if (rainDropMatch && Number(rainDropMatch[1]) > 18) {
+    return true;
+  }
+
+  if (buildingMatch && Number(buildingMatch[1]) > 4) {
+    return true;
+  }
+
+  if (streetLightMatch && Number(streetLightMatch[1]) > 2) {
+    return true;
+  }
+
+  if (roadReflectionMatch && Number(roadReflectionMatch[1]) > 2) {
+    return true;
+  }
+
+  return false;
+}
+
 function getPalette(subject: ObservationSubject): SubjectPalette {
   const phase = getTimePhase();
   const isMorning = phase === "morning";
@@ -854,19 +892,30 @@ function LightBloom({
   );
 }
 
-function DustParticles({ color }: { color: string }) {
+function DustParticles({
+  color,
+  quality,
+}: {
+  color: string;
+  quality: "low" | "high";
+}) {
   const particleRef = useRef<THREE.Group>(null);
+  const particleCount = quality === "low" ? 10 : 34;
   const particles = useMemo(
     () =>
-      Array.from({ length: 34 }, (_, index) => ({
+      Array.from({ length: particleCount }, (_, index) => ({
         x: -1.9 + (index % 7) * 0.62,
         y: -0.32 + Math.floor(index / 7) * 0.34,
         z: -0.96 + (index % 5) * 0.34,
       })),
-    [],
+    [particleCount],
   );
 
   useFrame(({ clock }) => {
+    if (quality === "low") {
+      return;
+    }
+
     if (particleRef.current) {
       particleRef.current.rotation.y = Math.sin(clock.elapsedTime * 0.07) * 0.075;
       particleRef.current.position.y = Math.sin(clock.elapsedTime * 0.18) * 0.018;
@@ -1243,9 +1292,11 @@ class ModelErrorBoundary extends Component<
 
 function AuthoredWindowSideRoomModel({
   accent,
+  quality,
   windowAccent,
 }: {
   accent: string;
+  quality: "low" | "high";
   windowAccent: string;
 }) {
   const gltf = useGLTF(AUTHORED_WINDOW_SIDE_ROOM_MODEL_URL);
@@ -1254,6 +1305,10 @@ function AuthoredWindowSideRoomModel({
     clonedScene.name = "AuthoredWindowSideRoomModel";
 
     clonedScene.traverse((object) => {
+      if (quality === "low" && shouldHideInLowQuality(object.name)) {
+        object.visible = false;
+      }
+
       if (!(object instanceof THREE.Mesh)) {
         return;
       }
@@ -1299,7 +1354,7 @@ function AuthoredWindowSideRoomModel({
     });
 
     return clonedScene;
-  }, [accent, gltf.scene, windowAccent]);
+  }, [accent, gltf.scene, quality, windowAccent]);
 
   return <primitive object={scene} />;
 }
@@ -1362,6 +1417,7 @@ function RoomObjects({
   onHoverObject,
   onInspectObject,
   onOpenBroadcastFocus,
+  quality = "high",
   subject,
   timeStateLabel,
 }: RoomScene3DProps & {
@@ -1371,6 +1427,7 @@ function RoomObjects({
   onHoverObject: (objectId: RoomObjectId | null) => void;
   onOpenBroadcastFocus: () => void;
 }) {
+  const isLowQuality = quality === "low";
   const palette = getPalette(subject);
   const windowWorld = useMemo(() => getWindowWorld(subject), [subject]);
   const roomRef = useRef<THREE.Group>(null);
@@ -1429,6 +1486,10 @@ function RoomObjects({
     },
   });
   useFrame(({ clock, pointer, size }) => {
+    if (isLowQuality) {
+      return;
+    }
+
     const elapsed = clock.getElapsedTime();
     const isNarrow = size.width < 700;
 
@@ -1462,11 +1523,11 @@ function RoomObjects({
       <hemisphereLight
         color={windowWorld.accent}
         groundColor="#172033"
-        intensity={0.24}
+        intensity={isLowQuality ? 0.12 : 0.24}
       />
       <directionalLight
         color={windowWorld.accent}
-        intensity={activeObjectId === "window" ? 0.74 : 0.46}
+        intensity={activeObjectId === "window" ? 0.62 : 0.38}
         position={[0.6, 2.2, -0.8]}
       />
       <pointLight
@@ -1477,43 +1538,55 @@ function RoomObjects({
         intensity={palette.lampIntensity + 0.5}
         position={[windowSideLayout.lampPosition[0] + 0.02, 0.18, windowSideLayout.lampPosition[2] + 0.06]}
       />
-      <spotLight
-        angle={0.58}
-        color={palette.lamp}
-        decay={2}
-        distance={2.8}
-        intensity={activeObjectId === "lamp" ? 0.74 : 0.52}
-        penumbra={0.94}
-        position={[windowSideLayout.lampPosition[0] - 0.02, 0.33, windowSideLayout.lampPosition[2] + 0.02]}
-        target-position={[0.18, -0.42, 0.28]}
-      />
+      {!isLowQuality ? (
+        <spotLight
+          angle={0.58}
+          color={palette.lamp}
+          decay={2}
+          distance={2.8}
+          intensity={activeObjectId === "lamp" ? 0.74 : 0.52}
+          penumbra={0.94}
+          position={[windowSideLayout.lampPosition[0] - 0.02, 0.33, windowSideLayout.lampPosition[2] + 0.02]}
+          target-position={[0.18, -0.42, 0.28]}
+        />
+      ) : null}
       <pointLight
         color={palette.monitor}
         decay={1.7}
         distance={2.85}
-        intensity={0.78 + (activeBroadcast ? 0.34 : 0)}
+        intensity={(isLowQuality ? 0.56 : 0.78) + (activeBroadcast ? 0.28 : 0)}
         position={[windowSideLayout.crtPosition[0], 0.04, windowSideLayout.crtPosition[2] + 0.28]}
       />
-      <pointLight
-        color={palette.monitor}
-        decay={2.1}
-        distance={1.75}
-        intensity={subject.id === "tartar" ? 0.28 : 0.1}
-        position={[0.24, -0.14, 0.72]}
-      />
-      <pointLight
-        color={windowWorld.accent}
-        decay={2}
-        distance={5.8}
-        intensity={activeObjectId === "window" ? 0.9 : 0.58}
-        position={[windowSideLayout.windowPosition[0], 0.98, windowSideLayout.windowPosition[2] + 0.28]}
-      />
+      {!isLowQuality ? (
+        <>
+          <pointLight
+            color={palette.monitor}
+            decay={2.1}
+            distance={1.75}
+            intensity={subject.id === "tartar" ? 0.28 : 0.1}
+            position={[0.24, -0.14, 0.72]}
+          />
+          <pointLight
+            color={windowWorld.accent}
+            decay={2}
+            distance={5.8}
+            intensity={activeObjectId === "window" ? 0.9 : 0.58}
+            position={[windowSideLayout.windowPosition[0], 0.98, windowSideLayout.windowPosition[2] + 0.28]}
+          />
+        </>
+      ) : null}
 
-      <group name="WindowSideRoom" ref={roomRef}>
+      <group
+        name="WindowSideRoom"
+        position={isLowQuality ? [0, 0.34, 0] : [0, 0, 0]}
+        ref={roomRef}
+        scale={isLowQuality ? 0.92 : 1}
+      >
         <ModelErrorBoundary fallback={null}>
           <Suspense fallback={null}>
             <AuthoredWindowSideRoomModel
               accent={palette.accent}
+              quality={quality}
               windowAccent={windowWorld.accent}
             />
           </Suspense>
@@ -1529,21 +1602,25 @@ function RoomObjects({
               episode={broadcastScreenEpisode}
               isPlaying={isPlaying}
             />
-            <InSceneInfoBoards
-              action={action}
-              episode={broadcastScreenEpisode}
-              latestCandidate={latestCandidate}
-              timeStateLabel={timeStateLabel}
-              windowWorld={windowWorld}
-            />
+            {!isLowQuality ? (
+              <InSceneInfoBoards
+                action={action}
+                episode={broadcastScreenEpisode}
+                latestCandidate={latestCandidate}
+                timeStateLabel={timeStateLabel}
+                windowWorld={windowWorld}
+              />
+            ) : null}
           </>
         ) : null}
-        <LightBloom
-          activeBroadcast={activeBroadcast}
-          activeWindow={activeObjectId === "window"}
-          palette={palette}
-          subject={subject}
-        />
+        {!isLowQuality ? (
+          <LightBloom
+            activeBroadcast={activeBroadcast}
+            activeWindow={activeObjectId === "window"}
+            palette={palette}
+            subject={subject}
+          />
+        ) : null}
         <GlowPlane
           color={windowWorld.accent}
           opacity={Math.min(
@@ -1566,34 +1643,41 @@ function RoomObjects({
         />
       </group>
 
-      <TerminalReadout
-        active={activeObjectId === "terminal"}
-        candidate={latestCandidate}
-        latestLog={latestLog}
-      />
-      <MemoReadout
-        active={activeObjectId === "memo" || activeObjectId === "envelope"}
-        action={action}
-        candidate={latestCandidate}
-      />
+      {!isLowQuality ? (
+        <>
+          <TerminalReadout
+            active={activeObjectId === "terminal"}
+            candidate={latestCandidate}
+            latestLog={latestLog}
+          />
+          <MemoReadout
+            active={activeObjectId === "memo" || activeObjectId === "envelope"}
+            action={action}
+            candidate={latestCandidate}
+          />
+        </>
+      ) : null}
       <WindowReadout
-        active={activeObjectId === "window"}
+        active={!isLowQuality && activeObjectId === "window"}
         episodeSeed={windowEpisodeSeed}
         themeCandidate={windowThemeCandidate}
         timeStateLabel={timeStateLabel}
         world={windowWorld}
       />
       <RadioReadout
-        active={activeObjectId === "radio"}
+        active={!isLowQuality && activeObjectId === "radio"}
         episode={latestEpisode}
         isPlaying={isPlaying}
       />
-      <ClockReadout active={activeObjectId === "clock"} timeStateLabel={timeStateLabel} />
+      <ClockReadout
+        active={!isLowQuality && activeObjectId === "clock"}
+        timeStateLabel={timeStateLabel}
+      />
       <ObjectWhisperLabel
-        label={whisperObjectId ? objectLabels.get(whisperObjectId) : undefined}
+        label={!isLowQuality && whisperObjectId ? objectLabels.get(whisperObjectId) : undefined}
         objectId={whisperObjectId}
       />
-      <DustParticles color={palette.accent} />
+      <DustParticles color={palette.accent} quality={quality} />
     </>
   );
 }
@@ -1603,6 +1687,7 @@ export default function RoomScene3D(props: RoomScene3DProps) {
   const [broadcastFocusStage, setBroadcastFocusStage] =
     useState<BroadcastFocusStage>("idle");
   const [hasDismissedBroadcastFocus, setHasDismissedBroadcastFocus] = useState(false);
+  const quality = props.quality ?? "high";
   const latestBroadcastEpisode = props.broadcastLatestEpisode ?? props.latestEpisode;
   const broadcastScreenEpisode = latestBroadcastEpisode;
   const sceneActiveObjectId =
@@ -1651,12 +1736,13 @@ export default function RoomScene3D(props: RoomScene3DProps) {
       <Canvas
         camera={{ fov: 50, position: cameraTargets.idle.position }}
         className="room-scene-3d-canvas"
-        dpr={[1, 1.25]}
+        dpr={quality === "low" ? [1, 1.25] : [1, 1.25]}
+        frameloop={quality === "low" ? "demand" : "always"}
         gl={{
           alpha: true,
           antialias: false,
-          powerPreference: "low-power",
-          preserveDrawingBuffer: true,
+          powerPreference: quality === "low" ? "low-power" : "high-performance",
+          preserveDrawingBuffer: quality === "high",
         }}
         shadows={false}
       >

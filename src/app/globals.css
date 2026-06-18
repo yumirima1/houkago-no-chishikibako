@@ -3435,6 +3435,57 @@ audio {
   -webkit-line-clamp: 2;
 }
 
+.mobile-box-switcher {
+  display: none;
+}
+
+.observation-box-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(125, 211, 252, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.88), rgba(2, 6, 23, 0.98));
+}
+
+.observation-box-panel > div {
+  display: grid;
+  gap: 0.75rem;
+  width: min(22rem, calc(100vw - 2rem));
+  border: 1px solid rgba(226, 232, 240, 0.14);
+  border-radius: 0.55rem;
+  padding: 1rem;
+  background:
+    linear-gradient(180deg, rgba(8, 18, 32, 0.82), rgba(2, 6, 23, 0.74)),
+    rgba(2, 6, 23, 0.72);
+  box-shadow:
+    0 1.6rem 4rem rgba(0, 0, 0, 0.4),
+    inset 0 0 1.6rem rgba(125, 211, 252, 0.04);
+}
+
+.observation-box-panel span {
+  color: rgba(125, 211, 252, 0.76);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+}
+
+.observation-box-panel h1 {
+  margin: 0;
+  color: rgba(248, 250, 252, 0.94);
+  font-size: 1.35rem;
+  letter-spacing: 0;
+}
+
+.observation-box-panel p {
+  margin: 0;
+  color: rgba(203, 213, 225, 0.76);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 .room-scene-root-3d::after,
 .subject-room-scene::after {
   display: none;
@@ -3884,6 +3935,37 @@ audio {
   width: 100%;
 }
 
+.room-audio-controls {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.room-audio-controls button {
+  min-height: 2.45rem;
+  border: 1px solid rgba(134, 239, 172, 0.22);
+  border-radius: 0.42rem;
+  padding: 0 1rem;
+  color: rgba(236, 253, 245, 0.92);
+  background: rgba(22, 101, 52, 0.28);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.room-audio-controls button.is-playing {
+  border-color: rgba(252, 165, 165, 0.3);
+  color: rgba(254, 226, 226, 0.94);
+  background: rgba(127, 29, 29, 0.34);
+}
+
+.room-audio-controls span {
+  min-width: 0;
+  color: rgba(148, 163, 184, 0.78);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
 .room-progress {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -4122,8 +4204,48 @@ audio {
 }
 
 @media (max-width: 640px) {
+  .mobile-box-switcher {
+    position: fixed;
+    z-index: 12;
+    top: max(0.75rem, env(safe-area-inset-top));
+    left: 50%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.2rem;
+    width: min(17rem, calc(100vw - 5.5rem));
+    min-height: 2.35rem;
+    border: 1px solid rgba(226, 232, 240, 0.14);
+    border-radius: 999px;
+    padding: 0.2rem;
+    background:
+      linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.74)),
+      rgba(2, 6, 23, 0.72);
+    box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.26);
+    backdrop-filter: blur(16px);
+    transform: translateX(-50%);
+  }
+
+  .mobile-box-switcher button {
+    min-width: 0;
+    min-height: 1.85rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 0.55rem;
+    color: rgba(203, 213, 225, 0.72);
+    background: transparent;
+    font-size: 0.78rem;
+    font-weight: 650;
+  }
+
+  .mobile-box-switcher button.is-active {
+    color: rgba(248, 250, 252, 0.96);
+    background: rgba(14, 165, 233, 0.22);
+    box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.18);
+  }
+
   .night-observation-shell .subject-room-header {
     width: calc(100vw - 5rem);
+    padding-top: 3.15rem;
   }
 
   .night-observation-shell .subject-room-header h1 {
@@ -4201,6 +4323,14 @@ audio {
 
   .room-object-panel-broadcast {
     max-height: 46svh;
+  }
+
+  .room-audio-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .room-audio-controls button {
+    width: 100%;
   }
 
   .room-scene-html {
