@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
-import { BackgroundModeOverlay } from "@/components/BackgroundModeOverlay";
 import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
@@ -22,10 +21,6 @@ import {
 } from "@/components/observation/subjectEngine";
 import { useObservationState } from "@/components/observation/useObservationState";
 import {
-  BackgroundMode,
-  backgroundModeProfiles,
-} from "@/components/RainyNightBackground";
-import {
   Episode,
   getEpisodeNumberLabel,
   getEpisodeTags,
@@ -38,9 +33,6 @@ import { useBroadcastAmbience } from "@/hooks/useBroadcastAmbience";
 
 const AUTO_HIDE_MS = 45_000;
 
-const backgroundModes: { id: BackgroundMode; label: string }[] =
-  backgroundModeProfiles;
-
 type ListeningRoomProps = {
   episodes: Episode[];
 };
@@ -52,27 +44,10 @@ const MOBILE_BOX_STORAGE_KEY = "houkago.mobileBoxMode";
 
 type RoomNavigationMenuProps = {
   isOpen: boolean;
-  onEnterBackground: () => void;
   onEnterListening: () => void;
   onEnterSubject: (subjectId: SubjectId) => void;
   onOpenChange: (isOpen: boolean) => void;
 };
-
-function isBackgroundMode(value: string | null): value is BackgroundMode {
-  return backgroundModes.some((mode) => mode.id === value);
-}
-
-function getInitialBackgroundMode() {
-  if (typeof window === "undefined") {
-    return "room";
-  }
-
-  const requestedMode = new URLSearchParams(window.location.search).get(
-    "background",
-  );
-
-  return isBackgroundMode(requestedMode) ? requestedMode : "room";
-}
 
 function getInitialRoomMode(): RoomMode {
   if (typeof window === "undefined") {
@@ -83,10 +58,6 @@ function getInitialRoomMode(): RoomMode {
 
   if (params.get("mode") === "listening") {
     return "listening";
-  }
-
-  if (params.get("mode") === "background" || params.get("ambient") === "1") {
-    return "background";
   }
 
   if (params.get("mode") === "screensaver") {
@@ -190,7 +161,6 @@ function getTimeStateLabel() {
 
 function RoomNavigationMenu({
   isOpen,
-  onEnterBackground,
   onEnterListening,
   onEnterSubject,
   onOpenChange,
@@ -262,9 +232,6 @@ function RoomNavigationMenu({
           >
             かなの部屋
           </button>
-          <button onClick={() => handleSelect(onEnterBackground)} type="button">
-            背景モード
-          </button>
         </div>
       ) : null}
     </nav>
@@ -281,6 +248,7 @@ function MobileBoxSwitcher({
   return (
     <div className="mobile-box-switcher" aria-label="箱を切り替える">
       <button
+        aria-pressed={mode === "observation"}
         className={mode === "observation" ? "is-active" : undefined}
         onClick={() => onModeChange("observation")}
         type="button"
@@ -288,6 +256,7 @@ function MobileBoxSwitcher({
         観察箱
       </button>
       <button
+        aria-pressed={mode === "knowledge"}
         className={mode === "knowledge" ? "is-active" : undefined}
         onClick={() => onModeChange("knowledge")}
         type="button"
@@ -311,7 +280,6 @@ function ObservationBoxPanel() {
 }
 
 function MobileKnowledgeBoxPanel({
-  allTags,
   currentTime,
   duration,
   episode,
@@ -319,12 +287,9 @@ function MobileKnowledgeBoxPanel({
   isPlaying,
   onSelectEpisode,
   onTogglePlayback,
-  onToggleTag,
   progress,
   selectedEpisodeNumberLabel,
-  selectedTags,
 }: {
-  allTags: string[];
   currentTime: number;
   duration: number;
   episode: Episode;
@@ -332,10 +297,8 @@ function MobileKnowledgeBoxPanel({
   isPlaying: boolean;
   onSelectEpisode: (episodeId: string) => void;
   onTogglePlayback: () => void;
-  onToggleTag: (tag: string) => void;
   progress: number;
   selectedEpisodeNumberLabel: string;
-  selectedTags: string[];
 }) {
   const canPlay = hasPlayableAudio(episode);
 
@@ -348,7 +311,6 @@ function MobileKnowledgeBoxPanel({
         <h1>
           {selectedEpisodeNumberLabel} {episode.title}
         </h1>
-        <p>{episode.description}</p>
 
         {canPlay ? (
           <div className="room-audio-controls">
@@ -375,19 +337,6 @@ function MobileKnowledgeBoxPanel({
       </div>
 
       <div className="mobile-knowledge-scroll">
-        <div className="room-tag-strip">
-          {allTags.slice(0, 14).map((tag) => (
-            <button
-              className={selectedTags.includes(tag) ? "is-active" : undefined}
-              key={tag}
-              onClick={() => onToggleTag(tag)}
-              type="button"
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-
         <EpisodeList
           episodes={episodes}
           onSelectEpisode={onSelectEpisode}
@@ -410,9 +359,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   } = useObservationState();
   const [fallbackSubjectId] = useState<SubjectId>(() => getRequestedSubject());
   const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
-  const [backgroundMode, setBackgroundMode] = useState<BackgroundMode>(() =>
-    getInitialBackgroundMode(),
-  );
   const [activeObjectId, setActiveObjectId] = useState<RoomObjectId | null>(
     () =>
       roomMode === "listening"
@@ -541,17 +487,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     selectedSubjectId,
   ]);
 
-  const enterBackgroundMode = useCallback(() => {
-    blurActiveElement();
-    if (!selectedSubjectId) {
-      selectSubject(effectiveSubjectId);
-    }
-    setActiveObjectId("window");
-    setActivePanel(null);
-    setRoomMode("background");
-    setLastInteractionAt(Date.now());
-  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
-
   const selectEpisode = useCallback((episodeId: string) => {
     setIsVoicePlaying(false);
     setCurrentTime(0);
@@ -657,16 +592,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       }
 
       if (objectId === "window") {
-        setBackgroundMode("window");
         setActivePanel("clock");
         setRoomMode("room");
         return;
       }
 
       if (objectId === "lamp") {
-        setBackgroundMode((currentMode) =>
-          currentMode === "desk" ? "room" : "desk",
-        );
         setActivePanel("mood");
         setRoomMode("room");
         return;
@@ -724,10 +655,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   );
 
   useEffect(() => {
-    if (!selectedSubjectId && roomMode !== "background") {
+    if (!selectedSubjectId) {
       selectSubject(effectiveSubjectId);
     }
-  }, [effectiveSubjectId, roomMode, selectSubject, selectedSubjectId]);
+  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -814,7 +745,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const progress = displayDuration
     ? Math.min(100, Math.max(0, (currentTime / displayDuration) * 100))
     : 0;
-  const isBackground = roomMode === "background";
   const isMobileObservationBox =
     isMobileViewport && mobileBoxMode === "observation";
   const isMobileKnowledgeBox = isMobileViewport && mobileBoxMode === "knowledge";
@@ -824,7 +754,6 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     <main className="night-observation-shell min-h-screen text-slate-100">
       <RoomNavigationMenu
         isOpen={isMenuOpen}
-        onEnterBackground={enterBackgroundMode}
         onEnterListening={enterListeningRoom}
         onEnterSubject={enterSubjectRoom}
         onOpenChange={setIsMenuOpen}
@@ -839,39 +768,15 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
         <ObservationBoxPanel />
       ) : isMobileKnowledgeBox ? (
         <MobileKnowledgeBoxPanel
-          allTags={allTags}
           currentTime={currentTime}
           duration={duration}
           episode={selectedEpisode}
-          episodes={filteredEpisodes}
+          episodes={listEpisodes}
           isPlaying={isVoicePlaying}
           onSelectEpisode={playEpisode}
           onTogglePlayback={toggleSelectedEpisodePlayback}
-          onToggleTag={toggleTag}
           progress={progress}
           selectedEpisodeNumberLabel={selectedEpisodeNumberLabel}
-          selectedTags={selectedTags}
-        />
-      ) : isBackground ? (
-        <BackgroundModeOverlay
-          ambienceEnabled={ambience.enabled}
-          ambienceIsAvailable={ambience.isAvailable}
-          ambienceVolumes={ambience.volumes}
-          backgroundMode={backgroundMode}
-          canPlay={hasPlayableAudio(selectedEpisode)}
-          currentTime={currentTime}
-          duration={duration}
-          episode={selectedEpisode}
-          isPlaying={isVoicePlaying}
-          onAmbienceEnabledChange={ambience.setEnabled}
-          onAmbienceVolumeChange={ambience.setVolume}
-          onShowInterface={() => {
-            setRoomMode("room");
-            setActiveObjectId("window");
-            setActivePanel("clock");
-            setLastInteractionAt(Date.now());
-          }}
-          onTogglePlayback={toggleSelectedEpisodePlayback}
         />
       ) : (
         <>

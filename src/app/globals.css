@@ -2233,252 +2233,6 @@ body {
   animation: room-camera-breathe 16s ease-in-out infinite;
 }
 
-.background-mode-overlay {
-  --ambient-accent: rgba(125, 211, 252, 0.88);
-  --ambient-accent-soft: rgba(125, 211, 252, 0.16);
-  --ambient-text: rgba(241, 245, 249, 0.92);
-  --ambient-muted: rgba(203, 213, 225, 0.58);
-  position: fixed;
-  inset: 0;
-  z-index: 20;
-  overflow: hidden;
-  color: var(--ambient-text);
-  text-shadow: 0 0 18px rgba(15, 23, 42, 0.9);
-  transition: opacity 1400ms ease;
-}
-
-.background-mode-overlay-room {
-  --ambient-accent: rgba(147, 197, 253, 0.9);
-  --ambient-accent-soft: rgba(147, 197, 253, 0.16);
-}
-
-.background-mode-overlay-desk {
-  --ambient-accent: rgba(252, 211, 77, 0.86);
-  --ambient-accent-soft: rgba(252, 211, 77, 0.14);
-}
-
-.background-mode-overlay-window {
-  --ambient-accent: rgba(125, 211, 252, 0.9);
-  --ambient-accent-soft: rgba(125, 211, 252, 0.18);
-}
-
-.background-mode-overlay.is-dimmed .ambient-stage,
-.background-mode-overlay.is-dimmed .ambient-controls,
-.background-mode-overlay.is-dimmed .ambient-nav,
-.background-mode-overlay.is-dimmed .ambient-sound-panel {
-  opacity: 0.08;
-}
-
-.background-mode-overlay.is-dimmed .ambient-controls,
-.background-mode-overlay.is-dimmed .ambient-nav,
-.background-mode-overlay.is-dimmed .ambient-sound-panel {
-  pointer-events: none;
-}
-
-.background-mode-overlay.is-dimmed .ambient-show-ui {
-  opacity: 0.45;
-}
-
-.ambient-show-ui {
-  position: absolute;
-  z-index: 12;
-  top: clamp(1rem, 3vw, 1.75rem);
-  right: clamp(1rem, 3vw, 2rem);
-  min-height: 2.75rem;
-  border: 1px solid rgba(226, 232, 240, 0.12);
-  border-radius: 999px;
-  padding: 0 1rem;
-  color: rgba(241, 245, 249, 0.84);
-  background: rgba(2, 6, 23, 0.12);
-  box-shadow: 0 0 26px var(--ambient-accent-soft);
-  backdrop-filter: blur(10px);
-}
-
-.ambient-nav {
-  position: absolute;
-  z-index: 12;
-  left: clamp(1rem, 3vw, 2rem);
-  top: clamp(1rem, 3vw, 1.75rem);
-  display: grid;
-  gap: 0.6rem;
-  max-width: 12rem;
-  transition: opacity 500ms ease;
-}
-
-.ambient-nav button,
-.ambient-nav span {
-  width: fit-content;
-  border: 1px solid rgba(226, 232, 240, 0.1);
-  border-radius: 999px;
-  padding: 0.52rem 0.8rem;
-  color: rgba(226, 232, 240, 0.68);
-  background: rgba(2, 6, 23, 0.08);
-  box-shadow: 0 0 20px rgba(15, 23, 42, 0.22);
-  backdrop-filter: blur(8px);
-  font-size: 0.82rem;
-}
-
-.ambient-mode-toggle {
-  display: none;
-}
-
-.ambient-mode-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.ambient-mode-buttons button.is-active {
-  border-color: color-mix(in srgb, var(--ambient-accent) 46%, transparent);
-  color: rgba(248, 250, 252, 0.92);
-  background: var(--ambient-accent-soft);
-}
-
-.ambient-stage {
-  position: absolute;
-  z-index: 10;
-  inset: clamp(3.8rem, 9vh, 5.5rem) 1rem auto;
-  display: grid;
-  justify-items: center;
-  gap: clamp(0.9rem, 2.4vh, 1.7rem);
-  pointer-events: none;
-  transition: opacity 1400ms ease;
-}
-
-.ambient-clock {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: min(48vw, 14rem);
-  aspect-ratio: 1;
-  opacity: 0.42;
-}
-
-.ambient-clock-ring {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  border: 1px solid color-mix(in srgb, var(--ambient-accent) 30%, transparent);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(248, 250, 252, 0.02), transparent 58%),
-    radial-gradient(circle, color-mix(in srgb, var(--ambient-accent-soft) 46%, transparent), transparent 66%);
-  box-shadow:
-    0 0 18px color-mix(in srgb, var(--ambient-accent-soft) 46%, transparent),
-    inset 0 0 24px rgba(226, 232, 240, 0.018);
-}
-
-.ambient-clock-ring::before,
-.ambient-clock-ring::after {
-  position: absolute;
-  content: "";
-  border-radius: 999px;
-}
-
-.ambient-clock-ring::before {
-  inset: 8%;
-  border: 1px solid rgba(226, 232, 240, 0.055);
-}
-
-.ambient-clock-ring::after {
-  inset: 18%;
-  border: 1px dashed color-mix(in srgb, var(--ambient-accent) 10%, transparent);
-  animation: ambient-ring-breathe 8s ease-in-out infinite;
-}
-
-.clock-mark {
-  position: absolute;
-  width: 0.36rem;
-  height: 0.36rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ambient-accent) 42%, transparent);
-  box-shadow: 0 0 16px var(--ambient-accent-soft);
-}
-
-.clock-mark-12 {
-  top: 8.5%;
-}
-
-.clock-mark-3 {
-  right: 8.5%;
-}
-
-.clock-mark-6 {
-  bottom: 8.5%;
-}
-
-.clock-mark-9 {
-  left: 8.5%;
-}
-
-.ambient-clock-label {
-  position: absolute;
-  top: 30%;
-  margin: 0;
-  color: var(--ambient-muted);
-  font-size: clamp(0.64rem, 1.9vw, 0.78rem);
-  letter-spacing: 0.32em;
-}
-
-.ambient-clock-time {
-  color: rgba(248, 250, 252, 0.66);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: clamp(1.75rem, 6.4vw, 3.45rem);
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: 0;
-  tab-size: 4;
-}
-
-.ambient-episode {
-  width: min(82vw, 42rem);
-  text-align: center;
-  opacity: 0.9;
-}
-
-.ambient-episode-number,
-.ambient-episode-meta {
-  margin: 0;
-  color: var(--ambient-muted);
-  font-size: clamp(0.72rem, 2vw, 0.82rem);
-}
-
-.ambient-episode h2 {
-  margin: 0.6rem auto 0;
-  width: 100%;
-  max-width: 40rem;
-  color: rgba(248, 250, 252, 0.86);
-  font-size: clamp(1.18rem, 3.8vw, 2.15rem);
-  font-weight: 600;
-  line-height: 1.18;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.ambient-episode-meta {
-  margin-top: 0.75rem;
-}
-
-.ambient-tags {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.45rem;
-  margin-top: 0.9rem;
-}
-
-.ambient-tags span {
-  border: 1px solid color-mix(in srgb, var(--ambient-accent) 20%, transparent);
-  border-radius: 999px;
-  padding: 0.36rem 0.65rem;
-  color: rgba(226, 232, 240, 0.72);
-  background: rgba(2, 6, 23, 0.08);
-  backdrop-filter: blur(6px);
-  font-size: 0.78rem;
-}
-
 .ambient-sound-panel {
   position: absolute;
   right: clamp(1rem, 3vw, 2.1rem);
@@ -2620,161 +2374,6 @@ body {
   border-radius: 999px;
   background: rgba(226, 232, 240, 0.72);
   box-shadow: 0 0 0.8rem var(--ambient-accent-soft);
-}
-
-.ambient-controls {
-  position: absolute;
-  z-index: 11;
-  inset-inline: clamp(1rem, 4vw, 4rem);
-  bottom: clamp(1.2rem, 5vh, 3rem);
-  display: grid;
-  gap: clamp(1rem, 2.6vh, 1.35rem);
-  transition: opacity 1400ms ease;
-  opacity: 0.72;
-}
-
-.ambient-control-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: clamp(0.48rem, 2vw, 1rem);
-}
-
-.ambient-round-control,
-.ambient-play-control {
-  border: 1px solid color-mix(in srgb, var(--ambient-accent) 26%, transparent);
-  color: rgba(248, 250, 252, 0.92);
-  background:
-    radial-gradient(circle at 50% 24%, rgba(248, 250, 252, 0.08), transparent 58%),
-    rgba(2, 6, 23, 0.12);
-  box-shadow:
-    0 0 30px var(--ambient-accent-soft),
-    inset 0 0 24px rgba(226, 232, 240, 0.035);
-  backdrop-filter: blur(10px);
-}
-
-.ambient-round-control {
-  width: clamp(3rem, 11vw, 4rem);
-  height: clamp(3rem, 11vw, 4rem);
-  border-radius: 999px;
-  font-size: 0.84rem;
-}
-
-.ambient-small-control {
-  width: clamp(2.75rem, 10vw, 3.55rem);
-  height: clamp(2.75rem, 10vw, 3.55rem);
-  color: rgba(226, 232, 240, 0.76);
-}
-
-.ambient-play-control {
-  min-width: clamp(5.9rem, 24vw, 8rem);
-  min-height: clamp(4rem, 14vw, 5.2rem);
-  border-radius: 999px;
-  font-size: clamp(0.95rem, 3vw, 1.1rem);
-  font-weight: 650;
-}
-
-.ambient-round-control:disabled {
-  opacity: 0.3;
-}
-
-.ambient-play-control:disabled {
-  opacity: 0.48;
-}
-
-.ambient-progress-shell {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: clamp(0.7rem, 2vw, 1rem);
-  justify-self: center;
-  width: min(76vw, 42rem);
-}
-
-.ambient-progress-time {
-  color: rgba(226, 232, 240, 0.5);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 0.78rem;
-}
-
-.ambient-progress {
-  position: relative;
-  display: block;
-  height: 1.5rem;
-}
-
-.ambient-progress::before {
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  content: "";
-  background: rgba(226, 232, 240, 0.13);
-  box-shadow: 0 0 20px rgba(226, 232, 240, 0.05);
-}
-
-.ambient-progress-fill {
-  position: absolute;
-  top: calc(50% - 1px);
-  left: 0;
-  height: 2px;
-  background: var(--ambient-accent);
-  box-shadow: 0 0 18px var(--ambient-accent);
-  pointer-events: none;
-}
-
-.ambient-progress-fill::after {
-  position: absolute;
-  top: 50%;
-  right: -0.22rem;
-  width: 0.44rem;
-  height: 0.44rem;
-  border-radius: 999px;
-  background: rgba(248, 250, 252, 0.78);
-  box-shadow: 0 0 14px var(--ambient-accent);
-  content: "";
-  transform: translateY(-50%);
-}
-
-.ambient-progress input {
-  appearance: none;
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  background: transparent;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.ambient-progress input::-webkit-slider-thumb {
-  appearance: none;
-  width: 1rem;
-  height: 1rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-}
-
-.ambient-progress input::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-}
-
-@keyframes ambient-ring-breathe {
-  0%,
-  100% {
-    opacity: 0.28;
-    transform: scale(1);
-  }
-
-  50% {
-    opacity: 0.52;
-    transform: scale(1.025);
-  }
 }
 
 @keyframes observe-pulse {
@@ -2996,91 +2595,6 @@ body {
     display: none;
   }
 
-  .ambient-show-ui {
-    top: 0.65rem;
-    right: 0.65rem;
-    min-height: 2.45rem;
-    padding: 0 0.7rem;
-    font-size: 0.74rem;
-  }
-
-  .ambient-nav {
-    top: 0.65rem;
-    right: auto;
-    bottom: auto;
-    left: 0.65rem;
-    display: grid;
-    max-width: min(9.8rem, calc(100vw - 6.5rem));
-    gap: 0.32rem;
-  }
-
-  .ambient-nav button,
-  .ambient-nav span {
-    padding: 0.42rem 0.58rem;
-    font-size: 0.7rem;
-  }
-
-  .ambient-nav-secondary {
-    display: none;
-  }
-
-  .ambient-mode-toggle {
-    display: inline-flex;
-  }
-
-  .ambient-mode-buttons {
-    display: none;
-  }
-
-  .ambient-nav.is-open .ambient-mode-buttons {
-    display: flex;
-  }
-
-  .ambient-mode-buttons {
-    flex-wrap: wrap;
-    gap: 0.28rem;
-  }
-
-  .ambient-stage {
-    top: 3.25rem;
-    gap: 0.72rem;
-  }
-
-  .ambient-clock {
-    width: min(54vw, 11.5rem);
-  }
-
-  .ambient-clock-label {
-    top: 28%;
-    font-size: 0.58rem;
-  }
-
-  .ambient-clock-time {
-    font-size: clamp(1.5rem, 8vw, 2.55rem);
-  }
-
-  .ambient-episode {
-    width: min(76vw, 24rem);
-  }
-
-  .ambient-episode h2 {
-    display: -webkit-box;
-    overflow: hidden;
-    max-width: 100%;
-    font-size: clamp(0.86rem, 3.8vw, 1.04rem);
-    line-height: 1.22;
-    white-space: normal;
-    overflow-wrap: anywhere;
-    word-break: break-all;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
-  }
-
-  .ambient-tags {
-    max-height: 2.3rem;
-    overflow: hidden;
-  }
-
   .ambient-sound-panel {
     right: 0.75rem;
     bottom: 5.35rem;
@@ -3123,33 +2637,6 @@ body {
     font-size: 0.68rem;
   }
 
-  .ambient-controls {
-    inset-inline: 0.9rem;
-    bottom: 0.8rem;
-    gap: 0.55rem;
-  }
-
-  .ambient-control-row {
-    gap: 0.35rem;
-  }
-
-  .ambient-round-control {
-    width: 2.58rem;
-    height: 2.58rem;
-    font-size: 0.72rem;
-  }
-
-  .ambient-small-control {
-    width: 2.45rem;
-    height: 2.45rem;
-  }
-
-  .ambient-play-control {
-    min-width: 4.95rem;
-    min-height: 3.15rem;
-    font-size: 0.86rem;
-  }
-
   .broadcast-crt-monitor {
     top: 5.15rem;
     left: 0.72rem;
@@ -3170,16 +2657,6 @@ body {
     -webkit-line-clamp: 1;
   }
 
-  .ambient-progress-shell {
-    grid-template-columns: 1fr;
-    gap: 0.35rem;
-    width: min(82vw, 26rem);
-  }
-
-  .ambient-progress-time:last-child {
-    justify-self: end;
-    margin-top: -1.4rem;
-  }
 }
 
 @keyframes rain-shift {
@@ -3492,12 +2969,12 @@ audio {
   z-index: 2;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 0.8rem;
+  gap: 0.48rem;
   padding:
-    calc(max(0.75rem, env(safe-area-inset-top)) + 3.2rem)
-    max(0.85rem, env(safe-area-inset-right))
-    max(0.85rem, env(safe-area-inset-bottom))
-    max(0.85rem, env(safe-area-inset-left));
+    calc(max(0.55rem, env(safe-area-inset-top)) + 2.72rem)
+    max(0.58rem, env(safe-area-inset-right))
+    max(0.58rem, env(safe-area-inset-bottom))
+    max(0.58rem, env(safe-area-inset-left));
   background:
     radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.12), transparent 34%),
     linear-gradient(180deg, #07111f 0%, #050812 54%, #020617 100%);
@@ -3505,10 +2982,10 @@ audio {
 
 .mobile-knowledge-player {
   display: grid;
-  gap: 0.72rem;
+  gap: 0.4rem;
   border: 1px solid rgba(134, 239, 172, 0.16);
-  border-radius: 0.58rem;
-  padding: 0.95rem;
+  border-radius: 0.5rem;
+  padding: 0.62rem;
   background:
     repeating-linear-gradient(180deg, rgba(2, 6, 23, 0.15) 0 1px, transparent 1px 4px),
     linear-gradient(180deg, rgba(6, 22, 22, 0.82), rgba(2, 6, 23, 0.74));
@@ -3520,8 +2997,8 @@ audio {
 .mobile-knowledge-player > span {
   color: rgba(148, 163, 184, 0.76);
   font-family: var(--font-geist-mono), monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
+  font-size: 0.62rem;
+  letter-spacing: 0.13em;
 }
 
 .mobile-knowledge-player > span.is-live {
@@ -3532,25 +3009,18 @@ audio {
 .mobile-knowledge-player h1 {
   margin: 0;
   color: rgba(248, 250, 252, 0.96);
-  font-size: clamp(1.18rem, 6vw, 1.72rem);
+  font-size: clamp(0.98rem, 4.8vw, 1.24rem);
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.24;
   letter-spacing: 0;
-}
-
-.mobile-knowledge-player p {
-  margin: 0;
-  color: rgba(203, 213, 225, 0.78);
-  font-size: 0.88rem;
-  line-height: 1.68;
 }
 
 .mobile-knowledge-scroll {
   min-height: 0;
   overflow-y: auto;
   border: 1px solid rgba(226, 232, 240, 0.1);
-  border-radius: 0.58rem;
-  padding: 0.8rem;
+  border-radius: 0.5rem;
+  padding: 0.46rem;
   background:
     linear-gradient(180deg, rgba(15, 23, 42, 0.66), rgba(2, 6, 23, 0.64)),
     rgba(2, 6, 23, 0.58);
@@ -3558,7 +3028,103 @@ audio {
 }
 
 .mobile-knowledge-scroll [aria-labelledby="episode-list-title"] {
-  margin-top: 0.85rem;
+  margin-top: 0;
+}
+
+.mobile-knowledge-scroll [aria-labelledby="episode-list-title"] > div:first-child {
+  margin-bottom: 0.38rem;
+  gap: 0.5rem;
+}
+
+.mobile-knowledge-scroll #episode-list-title {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+.mobile-knowledge-scroll [aria-labelledby="episode-list-title"] > div:first-child span {
+  font-size: 0.72rem;
+}
+
+.mobile-knowledge-scroll [aria-labelledby="episode-list-title"] > .grid {
+  gap: 0.42rem;
+}
+
+.mobile-knowledge-scroll article.rounded-lg {
+  border-radius: 0.42rem;
+  padding: 0.55rem 0.62rem;
+}
+
+.mobile-knowledge-scroll article > div:first-child {
+  gap: 0.35rem;
+}
+
+.mobile-knowledge-scroll article > div:first-child > div:first-child {
+  min-width: 0;
+}
+
+.mobile-knowledge-scroll article > div:first-child > div:first-child > p {
+  overflow: hidden;
+  font-size: 0.66rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-knowledge-scroll article > div:first-child > div:first-child > div,
+.mobile-knowledge-scroll article > div:first-child > div:last-child,
+.mobile-knowledge-scroll article > div:last-child p {
+  display: none;
+}
+
+.mobile-knowledge-scroll article h3 {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.2rem;
+  font-size: 0.88rem;
+  line-height: 1.34;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.mobile-knowledge-scroll article > p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.3rem;
+  color: rgba(203, 213, 225, 0.78);
+  font-size: 0.74rem;
+  line-height: 1.42;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.mobile-knowledge-scroll article > div:last-child {
+  margin-top: 0.42rem;
+}
+
+.mobile-knowledge-scroll article button {
+  min-height: 1.9rem;
+  border-radius: 0.38rem;
+  padding: 0 0.76rem;
+  font-size: 0.76rem;
+}
+
+.mobile-knowledge-player .room-audio-controls {
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.45rem;
+}
+
+.mobile-knowledge-player .room-audio-controls button {
+  min-height: 2rem;
+  width: auto;
+  padding: 0 0.85rem;
+}
+
+.mobile-knowledge-player .room-audio-controls span {
+  font-size: 0.68rem;
+}
+
+.mobile-knowledge-player .room-progress {
+  font-size: 0.66rem;
 }
 
 .room-scene-root-3d::after,
@@ -4179,23 +3745,6 @@ audio {
   font-size: 0.98rem;
 }
 
-.background-mode-overlay .ambient-stage {
-  top: clamp(4rem, 10vh, 6rem);
-}
-
-.background-mode-overlay .ambient-episode h2 {
-  width: min(60vw, 30rem);
-  max-width: min(60vw, 30rem);
-  margin-inline: auto;
-  overflow-wrap: anywhere;
-  word-break: break-all;
-  white-space: normal;
-}
-
-.background-mode-overlay .ambient-episode h2 span {
-  display: block;
-}
-
 .night-observation-shell .room-first-hint {
   width: min(13.5rem, 72vw);
   border-radius: 0.38rem;
@@ -4279,19 +3828,23 @@ audio {
 }
 
 @media (max-width: 640px) {
+  .room-navigation-menu {
+    display: none;
+  }
+
   .mobile-box-switcher {
     position: fixed;
     z-index: 12;
-    top: max(0.75rem, env(safe-area-inset-top));
+    top: max(0.55rem, env(safe-area-inset-top));
     left: 50%;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.2rem;
-    width: min(17rem, calc(100vw - 5.5rem));
-    min-height: 2.35rem;
+    width: min(16rem, calc(100vw - 1.8rem));
+    min-height: 2.15rem;
     border: 1px solid rgba(226, 232, 240, 0.14);
     border-radius: 999px;
-    padding: 0.2rem;
+    padding: 0.16rem;
     background:
       linear-gradient(180deg, rgba(15, 23, 42, 0.84), rgba(2, 6, 23, 0.74)),
       rgba(2, 6, 23, 0.72);
@@ -4302,13 +3855,13 @@ audio {
 
   .mobile-box-switcher button {
     min-width: 0;
-    min-height: 1.85rem;
+    min-height: 1.72rem;
     border: 0;
     border-radius: 999px;
     padding: 0 0.55rem;
     color: rgba(203, 213, 225, 0.72);
     background: transparent;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     font-weight: 650;
   }
 
@@ -4408,6 +3961,14 @@ audio {
     width: 100%;
   }
 
+  .mobile-knowledge-player .room-audio-controls {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .mobile-knowledge-player .room-audio-controls button {
+    width: auto;
+  }
+
   .room-scene-html {
     width: 9.4rem;
   }
@@ -4426,14 +3987,6 @@ audio {
 
   .room-scene-html small {
     font-size: 0.52rem;
-  }
-
-  .ambient-episode h2 {
-    width: min(72vw, 22rem);
-    margin-inline: auto;
-    overflow-wrap: anywhere !important;
-    word-break: break-all !important;
-    white-space: normal !important;
   }
 
   .room-broadcast-now strong {
