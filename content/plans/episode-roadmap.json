@@ -1,6 +1,6 @@
 {
   "schemaVersion": "0.1.0",
-  "programName": "放課後の知識箱",
+  "programName": "考察箱",
   "planningGoal": "AIが読み上げる知識サイトではなく、毎週日曜の深夜に帰ってきたくなる放送局として育てる。",
   "regularEpisodeDefaults": {
     "type": "regular",
@@ -322,7 +322,7 @@
     },
     {
       "id": "roadmap-special-010",
-      "title": "放課後の知識箱・年末深夜会議、今年わかったこととまだ箱に入っている問い",
+      "title": "考察箱・年末深夜会議、今年わかったこととまだ箱に入っている問い",
       "summary": "その年のテーマ、未回収の問い、リスナーに残したいフレーズを振り返る番組文化の定着回。",
       "estimatedDurationMinutes": 60,
       "tags": ["番組回", "振り返り", "知識ラジオ"]

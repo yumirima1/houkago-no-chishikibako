@@ -24,7 +24,7 @@ export const roomPresets: Record<BoxRoomPresetId, BoxRoomPreset> = {
     accentColor: "#7dd3fc",
     id: "knowledge",
     monitorGlow: "#86efac",
-    name: "放課後の知識箱",
+    name: "考察箱",
     statusLabel: "ON AIR",
     subtitle: "NOW PLAYING",
   },

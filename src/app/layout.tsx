@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "放課後の知識箱",
+  title: "考察箱",
   description: "作業中や寝る前に聞ける、雨と夜の知的ラジオ。",
 };
 

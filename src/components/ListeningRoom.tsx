@@ -261,7 +261,7 @@ function MobileBoxSwitcher({
         onClick={() => onModeChange("knowledge")}
         type="button"
       >
-        知識箱
+        考察箱
       </button>
     </div>
   );
@@ -303,10 +303,10 @@ function MobileKnowledgeBoxPanel({
   const canPlay = hasPlayableAudio(episode);
 
   return (
-    <section className="mobile-knowledge-box" aria-label="知識箱">
+    <section className="mobile-knowledge-box" aria-label="考察箱">
       <div className="mobile-knowledge-player">
         <span className={isPlaying ? "is-live" : ""}>
-          {isPlaying ? "ON AIR" : "知識箱"}
+          {isPlaying ? "ON AIR" : "考察箱"}
         </span>
         <h1>
           {selectedEpisodeNumberLabel} {episode.title}

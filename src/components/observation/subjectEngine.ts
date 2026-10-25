@@ -36,7 +36,7 @@ export const observationSubjects: Record<SubjectId, ObservationSubject> = {
         label: "スマホ",
       },
       {
-        description: "放課後の知識箱が小さな音量で流れる。",
+        description: "考察箱が小さな音量で流れる。",
         id: "radio",
         label: "小さなラジオ",
       },
@@ -68,7 +68,7 @@ export const observationSubjects: Record<SubjectId, ObservationSubject> = {
     name: "タルタル",
     roomObjects: [
       {
-        description: "放課後の知識箱のNOW PLAYING。通知と時計が同じ画面にいる。",
+        description: "考察箱のNOW PLAYING。通知と時計が同じ画面にいる。",
         id: "crt",
         label: "CRT",
       },
@@ -368,7 +368,7 @@ const objectReactions: Record<SubjectId, Record<RoomObjectId, SubjectAction>> = 
       broadcastSeed: "暗い画面は、なぜ考えを自分のものに戻すのか",
       id: "tartar-crt-object",
       label: "CRTを見る",
-      logText: "タルタルのCRTに、放課後の知識箱の文字が残っていた",
+      logText: "タルタルのCRTに、考察箱の文字が残っていた",
       mood: "画面の明るさと考えの距離を調整している",
       reaction: "この暗さがちょうどいい。明るいと説明資料みたいになるから。",
       themeCandidate: "暗い画面と考える距離",

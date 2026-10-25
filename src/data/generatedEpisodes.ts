@@ -5,8 +5,8 @@ import type { Episode } from "./episodes";
 export const generatedEpisodes: Episode[] = [
   {
     id: "episode-000",
-    title: "はじめまして、放課後の知識箱です",
-    description: "放課後の知識箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
+    title: "はじめまして、考察箱です",
+    description: "考察箱がどんな場所なのか、理系担当と文系担当が短く自己紹介します。",
     audioUrl: "/audio/episode-000.mp3",
     type: "anniversary",
     durationType: "normal",

@@ -67,7 +67,7 @@ function formatMonitorTime(date: Date | null) {
 
 function BroadcastCrtMonitor({
   isOnAir = false,
-  nowPlayingLabel = "放課後の知識箱",
+  nowPlayingLabel = "考察箱",
 }: {
   isOnAir?: boolean;
   nowPlayingLabel?: string;
