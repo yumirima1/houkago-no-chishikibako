@@ -26,7 +26,10 @@ async function files(directory,prefix=''){
 }
 for(const category of ['furniture','city'])for(const name of await files(path.join(root,'public/assets/observer-room',category))){
   const rel=`assets/observer-room/${category}/${name}`,bytes=await read(rel,true),original=await readFile(path.join(root,'public',rel));
-  assert.equal(createHash('sha256').update(bytes).digest('hex'),createHash('sha256').update(original).digest('hex'),rel);
+  // Git checks text out as CRLF on Windows and LF on the Linux Pages runner.
+  // Binary GLBs/textures still require byte-for-byte identity.
+  const comparable=buffer=>name.endsWith('.txt')?buffer.toString('utf8').replaceAll('\r\n','\n'):buffer;
+  assert.equal(createHash('sha256').update(comparable(bytes)).digest('hex'),createHash('sha256').update(comparable(original)).digest('hex'),rel);
   if(name.endsWith('.glb')){
     assert.equal(bytes.readUInt32LE(0),0x46546c67);assert.equal(bytes.readUInt32LE(4),2);assert.equal(bytes.readUInt32LE(8),bytes.length);
     const json=JSON.parse(bytes.subarray(20,20+bytes.readUInt32LE(12)).toString('utf8'));
