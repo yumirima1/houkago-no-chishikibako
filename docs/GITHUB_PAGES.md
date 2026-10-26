@@ -37,8 +37,9 @@ and `chore/rename-kousatsu` branch are preserved. Pages must use GitHub Actions
 (`build_type: workflow`). The `github-pages` environment must allow the deployment
 branch. No secrets or paid deployment service is needed.
 
-CI uses Node 24, the committed npm lockfile, typecheck, ESLint, the full existing
+CI uses Node 24, the committed npm lockfile, generated Next route types, typecheck, ESLint, the full existing
 test suite, the static build and artifact validation before uploading/deploying.
+It prepares `tmp/` before the existing autonomous fixtures create their isolated databases.
 `pages: write` and `id-token: write` apply only to the deploy job.
 
 ## Verification and rollback
