@@ -1,0 +1,56 @@
+name: Deploy Observer Room to GitHub Pages
+
+on:
+  push:
+    branches: [main, fix/github-pages-observer-room]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # The room does not use legacy audio/model archives or private runtime data.
+          sparse-checkout: |
+            /*
+            !/public/audio/
+            !/public/backgrounds/
+            !/public/exports/
+            !/public/jingles/
+            !/public/models/
+            !/screenshots/
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:kousatsu
+      - run: npm run build:pages
+      - run: node scripts/verify-pages-artifact.mjs
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: out
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

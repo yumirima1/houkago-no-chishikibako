@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ResearchNote } from "@/lib/kousatsu/runtime-types";
 import type { ObserverDesktopSnapshot } from "./desktopTypes";
 import styles from "./observer-room.module.css";
+import { isPagesSite } from "@/lib/site-url";
 
 type App = "archive" | "news" | "system";
 const APPS: { id: App; name: string; icon: string; subtitle: string }[] = [
@@ -44,6 +45,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
     return () => { element?.close(); };
   }, []);
   useEffect(() => {
+    if (isPagesSite) return;
     const controller = new AbortController();
     fetch("/api/observer-room", { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
@@ -97,7 +99,8 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
               {app !== "system" ? <input type="search" aria-label={app === "archive" ? "考察を検索" : "収集ニュースを検索"} placeholder="タイトルを検索…" value={query} onChange={(event) => setQuery(event.target.value)} /> : <span>保存されている設定と状態</span>}
               <button type="button" onClick={reload} disabled={!snapshot && !error}>再読込</button>
             </div>
-            {error ? <div className={styles.empty} role="alert"><p>{error}</p><button type="button" onClick={reload}>再試行</button></div>
+            {isPagesSite ? <div className={styles.empty}><p>GitHub Pages公開版</p><p>保存済みの考察・ニュース・システム状態は、ローカルの端末で閲覧できます。この公開ページにはローカルデータを接続していません。</p></div>
+              : error ? <div className={styles.empty} role="alert"><p>{error}</p><button type="button" onClick={reload}>再試行</button></div>
               : !snapshot ? <p className={styles.empty} role="status">保存された記録を読み込んでいます…</p>
               : app === "archive" ? <div className={styles.splitPane}>
                 <div className={styles.recordList} aria-label="考察一覧">
@@ -151,7 +154,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
             <div className={styles.welcomeMark} aria-hidden="true">▧</div><p>THE OBSERVER&apos;S ARCHIVE</p><h1>考察箱</h1><span>問いを残す。世界を読み直す。</span><hr /><small>アプリを選んで、保存された記録をひらく。</small>
           </div>}
         </div>
-        <footer className={styles.taskbar}><span>▧　{app ? APPS.find((item) => item.id === app)?.name : "デスクトップ"}</span><span>{snapshot ? "記録を読込済み" : error ? "接続を確認してください" : "記録を読込中"}</span></footer>
+        <footer className={styles.taskbar}><span>▧　{app ? APPS.find((item) => item.id === app)?.name : "デスクトップ"}</span><span>{isPagesSite ? "公開版 · ローカルデータ未接続" : snapshot ? "記録を読込済み" : error ? "接続を確認してください" : "記録を読込中"}</span></footer>
       </div>
       <div className={styles.bottomBezel}><span>OBSERVER TERMINAL</span><span className={styles.powerLed} aria-hidden="true" /></div>
     </div>
