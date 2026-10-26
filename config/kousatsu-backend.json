@@ -34,7 +34,7 @@
     ]
   },
   "publication": {
-    "enabled": false,
+    "enabled": true,
     "repository": "yumirima1/houkago-no-chishikibako",
     "branch": "main"
   }

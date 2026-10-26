@@ -151,7 +151,7 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                   <dt>端末のアクセス</dt><dd>読み取り専用</dd>
                   {snapshot.operation&&<><dt>実行時刻（日本時間）</dt><dd>{snapshot.operation.operation.runTimes?.join(' / ')}</dd><dt>次回の実行枠</dt><dd>{date(snapshot.operation.nextRunAt)}</dd><dt>直近の実行開始</dt><dd>{date(snapshot.operation.lastRunAt)}</dd><dt>自動運用の終了</dt><dd>{date(snapshot.operation.operation.endsAt)}</dd></>}
                 </dl>
-                <h3>設定された出典</h3><ul className={styles.sources}>{snapshot.sources.map((source) => <li key={source.id}><strong>{source.name}</strong><span>{source.enabled ? "収集対象" : "無効"} · {source.intervalMinutes} 分間隔</span></li>)}</ul>
+                <h3>設定された出典</h3><ul className={styles.sources}>{snapshot.sources.map((source) => <li key={source.id}><strong>{source.name}</strong><span>{source.enabled ? "収集対象" : "無効"} · {snapshot.operation?'日次枠で取得':`${source.intervalMinutes} 分間隔`}</span></li>)}</ul>
                 {!snapshot.sources.length && <p>出典は設定されていません。</p>}
                 <h3>最近の処理</h3><ul className={styles.sources}>{snapshot.jobs.slice(0, 5).map((job) => <li key={job.id}><strong>{job.topic}</strong><span>{job.status}{job.stage ? ` / ${job.stage}` : ""}</span></li>)}</ul>
                 {!snapshot.jobs.length && <p>処理履歴はありません。</p>}

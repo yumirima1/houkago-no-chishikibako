@@ -23,7 +23,7 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       if(db.prepare('SELECT article_id FROM public_documents WHERE article_id=?').get(row.id))continue;
       const analysis=JSON.parse(String(row.data_json)) as AnalysisResult,q=analysis.quality;
       const verification=JSON.parse(String(row.verification_json));
-      if(!q?.reflection||verification.status!=='passed')continue;
+      if(!q?.reflection||verification.status!=='passed'||verification.factCheckStatus==='contradicted')continue;
       const isWeekly=db.prepare("SELECT name FROM sqlite_master WHERE name='weekly_articles'").get() && db.prepare('SELECT article_key FROM weekly_articles WHERE job_id=?').get(row.job_id);
       if(!isWeekly && Number(db.prepare('SELECT count(*) n FROM public_documents').get()?.n)>=3)continue;
       const items=(JSON.parse(String(row.selected_json)).items as StoredItem[]).filter(i=>q.focusItemIds.includes(i.id));
@@ -55,7 +55,10 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const latest=documents[0]?.created_at??config.operation?.startsAt??new Date(0).toISOString();
     const snapshot={initialized:documents.length>0,sources:sources.map(s=>({id:s.id,name:s.name,enabled:s.enabled,genre:s.genre,topic:s.topic,intervalMinutes:s.intervalMinutes})),
       worker:{active:false,lastSeenAt:latest},notes:documents.map(r=>{const p=JSON.parse(String(r.payload_json));return {id:p.id,jobId:p.id,title:p.title,createdAt:r.created_at,genre:p.genre,status:p.status,provider:p.provider,model:p.model,published:true};}),
-      news:documents.map(r=>JSON.parse(String(r.news_json))),jobs:[],memories:[],interests:[],operation,
+      news:documents.map(r=>JSON.parse(String(r.news_json))),jobs:documents.map(r=>{
+        const job=db.prepare('SELECT j.* FROM jobs j JOIN articles a ON a.job_id=j.id WHERE a.id=?').get(r.article_id)!;
+        const note=JSON.parse(String(r.payload_json));return {id:String(job.id),topic:note.title,status:String(job.status),stage:job.current_stage,error:null,queue:'done',createdAt:job.created_at};
+      }),memories:[],interests:[],operation,
       system:{readAt:latest,supervisorActive:true,pollSeconds:config.pollSeconds,maxJobsPerCycle:config.maxJobsPerCycle,provider:config.ai.provider,model:config.ai.model,access:'read-only'}};
     const files:Record<string,string>={'public/research/snapshot.json':JSON.stringify(snapshot,null,2)+'\n'};
     for(const row of documents){const payload=JSON.parse(String(row.payload_json));files[`public/research/notes/${row.article_id}.json`]=String(row.payload_json)+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;}
