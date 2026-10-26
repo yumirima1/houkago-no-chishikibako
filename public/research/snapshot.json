@@ -64,6 +64,17 @@
   },
   "notes": [
     {
+      "id": "f0a8519b-aae8-4cc5-9e95-c67eb54fb35d",
+      "jobId": "f0a8519b-aae8-4cc5-9e95-c67eb54fb35d",
+      "title": "「LitPivot: Developing research ideas through dynamic contextualization within the literature landscape」を手掛かりに、文献に沿った案を作ることと、従来の枠を超える問いを作ることをどう両立するか。",
+      "createdAt": "2026-10-26T12:09:21.523Z",
+      "genre": "ai",
+      "status": "generated",
+      "provider": "deterministic",
+      "model": "reflection-v3",
+      "published": true
+    },
+    {
       "id": "4ed03138-0d95-44d7-bf92-fc8c5eb7b020",
       "jobId": "4ed03138-0d95-44d7-bf92-fc8c5eb7b020",
       "title": "「Why do planes keep circling before landing? The UN has a plan to fix it」について、自分の見方を変えるのはどんな情報か。",
@@ -87,6 +98,18 @@
     }
   ],
   "news": [
+    {
+      "id": "451b511e-07b1-4867-bed6-29538c17ffd6",
+      "title": "LitPivot: Developing research ideas through dynamic contextualization within the literature landscape",
+      "source": "Hugging Face Blog",
+      "url": "https://huggingface.co/blog/allenai/litpivot",
+      "publishedAt": "2026-10-23T16:15:50.000Z",
+      "fetchedAt": "2026-10-26T12:06:19.773Z",
+      "summary": "In a study with 17 researchers, domain experts rated research ideas developed with LitPivot as better grounded in the literature",
+      "content": "In a study with 17 researchers, domain experts rated research ideas developed with LitPivot as better grounded in the literature",
+      "truncated": true,
+      "genre": "ai"
+    },
     {
       "id": "001b0f54-65a3-4eaf-8a94-e4241e6a234e",
       "title": "Why do planes keep circling before landing? The UN has a plan to fix it",
@@ -113,6 +136,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "c964098a-d1da-464f-bbca-6bd6e1aca8ea",
+      "topic": "「LitPivot: Developing research ideas through dynamic contextualization within the literature landscape」を手掛かりに、文献に沿った案を作ることと、従来の枠を超える問いを作ることをどう両立するか。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-26T12:06:19.880Z"
+    },
     {
       "id": "e9d341c5-cb2e-4f04-b9b2-320462b57ff9",
       "topic": "「Why do planes keep circling before landing? The UN has a plan to fix it」について、自分の見方を変えるのはどんな情報か。",
@@ -446,13 +478,12 @@
     ]
   },
   "system": {
-    "readAt": "2026-10-26T09:01:49.546Z",
+    "readAt": "2026-10-26T12:09:21.523Z",
     "supervisorActive": true,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
     "provider": "ollama",
     "model": "qwen3:4b-q4_K_M",
-    "access": "read-only",
-    "publicationStatus": "initial archive; new research follows through the publisher"
+    "access": "read-only"
   }
 }
