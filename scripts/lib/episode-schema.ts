@@ -20,7 +20,7 @@ export type EpisodeSpeakerLine = {
 
 export type ReviewResult = {
   reviewedAt: string;
-  status: "reviewed";
+  status: "reviewed" | "needs_revision";
   checks: {
     misinformationRisk: string;
     readability: string;
@@ -67,6 +67,7 @@ export type BuiltEpisode = {
   productionStatus: EpisodeProductionStatus;
   source: {
     reviewedScriptPath: string;
+    actualDurationSeconds: number;
     durationTargetMinutes: number;
     voices: Record<SpeakerId, VoiceId>;
   };

@@ -1,0 +1,8 @@
+{
+  "note": "2026-10-26 公式RSSとNASA・UNの本文取得、robotsを実確認。個人用の本文保存を下記ホストに限定して有効化。画像取得・公開なし。既存kousatsu-sources.jsonは保持。",
+  "sources": [
+    {"id":"nasa-science","name":"NASA News Releases","feedUrl":"https://www.nasa.gov/news-release/feed/","topic":"科学 自然 NASA","contentPolicy":"metadata-only","articlePolicy":{"enabled":true,"allowedHosts":["www.nasa.gov","science.nasa.gov"],"maxArticles":2,"cacheMinutes":60,"followLinks":1},"enabled":true,"intervalMinutes":60},
+    {"id":"loc-culture","name":"Library of Congress: Timeless","feedUrl":"https://blogs.loc.gov/loc/feed/","topic":"文化 歴史 Library","contentPolicy":"metadata-only","enabled":true,"intervalMinutes":60},
+    {"id":"un-society","name":"UN News","feedUrl":"https://news.un.org/feed/subscribe/en/news/all/rss.xml","topic":"社会 国際 United Nations","contentPolicy":"metadata-only","articlePolicy":{"enabled":true,"allowedHosts":["news.un.org"],"maxArticles":2,"cacheMinutes":60,"followLinks":1},"enabled":true,"intervalMinutes":60}
+  ]
+}

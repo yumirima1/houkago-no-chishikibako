@@ -1,0 +1,12 @@
+{
+  "dataDirectory": "D:/AI/KousatsuData",
+  "sourcesPath": "config/kousatsu-autonomous-sources.json",
+  "pollSeconds": 30,
+  "maxJobsPerCycle": 6,
+  "maxJobsPerDay": 100,
+  "maxDatabaseMiB": 1024,
+  "minFreeMiB": 1024,
+  "maxKnowledgeFiles": 50000,
+  "exploration": 0.25,
+  "ai": {"provider": "ollama", "model": "qwen2.5-coder:1.5b", "timeoutMs": 60000}
+}

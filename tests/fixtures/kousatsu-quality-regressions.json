@@ -1,0 +1,66 @@
+[
+  {
+    "articleId": "e8639c72-f27b-46ea-989a-08cbfe595595",
+    "items": [
+      {
+        "author": "HQ Web Team",
+        "canonicalUrl": "https://www.nasa.gov/image-article/rs-25-engine-tests-at-nasa-stennis/",
+        "contentHash": "e5d241732c1840d45d910fe520ed197ecd98067ef19a24699596d6b51f260834",
+        "externalId": "https://www.nasa.gov/?post_type=image-article&#038;p=1058887",
+        "fetchedAt": "2026-10-26T05:29:55.811Z",
+        "id": "6c95b075-51ad-448e-97b9-363afcbf87af",
+        "publishedAt": "2026-10-23T18:57:04.000Z",
+        "sourceId": "nasa-science",
+        "title": "RS-25 Engine Tests at NASA Stennis",
+        "url": "https://www.nasa.gov/image-article/rs-25-engine-tests-at-nasa-stennis/",
+        "versionId": "e54b7561-8a3c-433d-96a9-2598431273c4"
+      },
+      {
+        "author": "Holly Rink",
+        "canonicalUrl": "https://www.nasa.gov/centers-and-facilities/langley/nasa-power-energy-partnership/",
+        "contentHash": "1a3f30045058555b9ac14c2732be25bea3ed5ea054b6e50400e43d734260837d",
+        "externalId": "https://www.nasa.gov/?p=1058847",
+        "fetchedAt": "2026-10-26T05:29:55.811Z",
+        "id": "746f4b50-cd2f-4ec8-9e4b-58b1f18574a3",
+        "publishedAt": "2026-10-23T17:50:21.000Z",
+        "sourceId": "nasa-science",
+        "title": "NASA, Virginia Launch Power Partnership for Energy Security",
+        "url": "https://www.nasa.gov/centers-and-facilities/langley/nasa-power-energy-partnership/",
+        "versionId": "da70aafb-f97f-46fe-838f-d165f989aca0"
+      }
+    ],
+    "badSummary": "過去の未検証の情報源と分析結果が異なる可能性があります。",
+    "oldTopic": "accelerate"
+  },
+  {
+    "articleId": "5dfd23a5-6d1f-4f3b-afbe-e89f40e8d58d",
+    "items": [
+      {
+        "canonicalUrl": "https://news.un.org/feed/view/en/story/2026/10/1168666",
+        "contentHash": "ae94d4d30d35fc2090d31fe292239828b87f246cb353c43cb09a88b209eb48da",
+        "externalId": "https://news.un.org/en/story/2026/10/1168666",
+        "fetchedAt": "2026-10-26T05:56:54.406Z",
+        "id": "001b0f54-65a3-4eaf-8a94-e4241e6a234e",
+        "publishedAt": "2026-10-25T12:00:00.000Z",
+        "sourceId": "un-society",
+        "title": "Why do planes keep circling before landing? The UN has a plan to fix it",
+        "url": "https://news.un.org/feed/view/en/story/2026/10/1168666",
+        "versionId": "be69a2bf-f6ec-4de4-9576-b1017a5b1a49"
+      },
+      {
+        "canonicalUrl": "https://news.un.org/feed/view/en/story/2026/10/1168663",
+        "contentHash": "b23af3f5539e67c533b020e3e0684807213d895f2c12ea7012c535c1423911d4",
+        "externalId": "https://news.un.org/en/story/2026/10/1168663",
+        "fetchedAt": "2026-10-26T05:56:54.406Z",
+        "id": "14afa561-565a-41f4-855d-c09515e7eb2c",
+        "publishedAt": "2026-10-24T12:00:00.000Z",
+        "sourceId": "un-society",
+        "title": "Women ‘first to suffer’ under siege, first to step up as frontline responders in Sudan",
+        "url": "https://news.un.org/feed/view/en/story/2026/10/1168663",
+        "versionId": "ef0fb16d-3812-4785-8c6e-d29d9478324a"
+      }
+    ],
+    "badSummary": "The UN has provided a clear and detailed plan for addressing the issue of planes circling before landing. This plan outlines specific steps that can be taken to improve safety and efficiency.",
+    "oldTopic": "planes"
+  }
+]

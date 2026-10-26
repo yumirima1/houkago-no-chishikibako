@@ -35,6 +35,10 @@ yarn-error.log*
 .pnpm-debug.log*
 /tmp/
 
+# local Kousatsu-bako state and generated drafts
+/data/kousatsu/
+/content/kousatsu/articles/
+
 # env files (can opt-in for committing if needed)
 .env*
 

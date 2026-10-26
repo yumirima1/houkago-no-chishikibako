@@ -4014,3 +4014,28 @@ audio {
     animation: none !important;
   }
 }
+
+.research-console { display: grid; gap: 0.85rem; font-size: 0.8rem; }
+.research-console form, .research-console label, .research-console li { display: grid; gap: 0.4rem; }
+.research-console form { gap: 0.7rem; }
+.research-console select, .research-console input {
+  width: 100%; min-width: 0; padding: 0.5rem; border: 1px solid #7776;
+  border-radius: 0.3rem; color: inherit; background: #151c24;
+}
+.research-console button, .research-console a {
+  display: inline-block; padding: 0.45rem 0.6rem; border: 1px solid #aaa5;
+  border-radius: 0.3rem; color: inherit; text-align: left;
+}
+.research-console button:disabled { opacity: 0.5; cursor: wait; }
+.research-console pre {
+  max-height: 26rem; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  padding: 0.7rem; background: #0b1118; font: 0.75rem/1.8 monospace;
+}
+.research-console [role="alert"] { color: #ffb5a9; overflow-wrap: anywhere; }
+.research-console summary { cursor: pointer; }
+.research-console ol { display: grid; gap: 0.8rem; padding-left: 1rem; }
+.research-console small { opacity: 0.75; }
+.observation-box-panel.research-mobile-panel { align-items: start; overflow-y: auto; padding: 4rem 1rem 2rem; }
+.research-mobile-panel > div { width: min(100%, 44rem); }
+.room-scene-recovery { position: absolute; z-index: 20; bottom: 1rem; left: 1rem; right: 1rem; padding: 0.6rem; color: #eee; background: #111d; font-size: 0.75rem; }
+.room-scene-recovery button { margin-left: 0.5rem; text-decoration: underline; }

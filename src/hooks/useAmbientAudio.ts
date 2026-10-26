@@ -35,7 +35,8 @@ export function useAmbientAudio({
   const [enabled, setEnabledState] = useState(false);
   const [volume, setVolumeState] = useState(DEFAULT_BGM_VOLUME);
   const [isAvailable, setIsAvailable] = useState(false);
-  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const canSaveSettings = useRef(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const stopFade = useCallback(() => {
     if (fadeFrameRef.current !== null) {
@@ -90,13 +91,26 @@ export function useAmbientAudio({
     [applyVolume, stopFade],
   );
 
-  const setEnabled = useCallback((nextEnabled: boolean) => {
-    setEnabledState(nextEnabled);
+  const saveSetting = useCallback((key: string, value: string) => {
+    if (!canSaveSettings.current) return;
+    try {
+      window.localStorage.setItem(key, value);
+      setStorageError(null);
+    } catch {
+      setStorageError("BGM設定を保存できません。今回の変更は画面内でのみ有効です。");
+    }
   }, []);
 
+  const setEnabled = useCallback((nextEnabled: boolean) => {
+    setEnabledState(nextEnabled);
+    saveSetting(BGM_ENABLED_STORAGE_KEY, String(nextEnabled));
+  }, [saveSetting]);
+
   const setVolume = useCallback((nextVolume: number) => {
-    setVolumeState(clampVolume(nextVolume));
-  }, []);
+    const next = clampVolume(nextVolume);
+    setVolumeState(next);
+    saveSetting(BGM_VOLUME_STORAGE_KEY, String(next));
+  }, [saveSetting]);
 
   useEffect(() => {
     volumeRef.current = volume;
@@ -105,38 +119,29 @@ export function useAmbientAudio({
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const storedEnabled = window.localStorage.getItem(BGM_ENABLED_STORAGE_KEY);
-      const storedVolume = window.localStorage.getItem(BGM_VOLUME_STORAGE_KEY);
+      try {
+        const storedEnabled = window.localStorage.getItem(BGM_ENABLED_STORAGE_KEY);
+        const storedVolume = window.localStorage.getItem(BGM_VOLUME_STORAGE_KEY);
+        if ((storedEnabled !== null && storedEnabled !== "true" && storedEnabled !== "false") ||
+          (storedVolume !== null && (!storedVolume.trim() || !Number.isFinite(Number(storedVolume))))) {
+          throw new Error("Invalid BGM settings");
+        }
 
-      if (storedEnabled !== null) {
-        setEnabledState(storedEnabled === "true");
+        if (storedEnabled !== null) setEnabledState(storedEnabled === "true");
+        if (storedVolume !== null) setVolumeState(clampVolume(Number(storedVolume)));
+
+        canSaveSettings.current = true;
+      } catch {
+        // Do not save defaults over settings that could not be read.
+        setStorageError("BGM設定を読込できないため、設定の保存を停止しています。");
       }
-
-      if (storedVolume !== null) {
-        setVolumeState(clampVolume(Number(storedVolume)));
-      }
-
-      setHasLoadedSettings(true);
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      canSaveSettings.current = false;
+      window.clearTimeout(timer);
+    };
   }, []);
-
-  useEffect(() => {
-    if (!hasLoadedSettings) {
-      return;
-    }
-
-    window.localStorage.setItem(BGM_ENABLED_STORAGE_KEY, String(enabled));
-  }, [enabled, hasLoadedSettings]);
-
-  useEffect(() => {
-    if (!hasLoadedSettings) {
-      return;
-    }
-
-    window.localStorage.setItem(BGM_VOLUME_STORAGE_KEY, String(volume));
-  }, [hasLoadedSettings, volume]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -222,6 +227,7 @@ export function useAmbientAudio({
     isAvailable,
     setEnabled,
     setVolume,
+    storageError,
     volume,
   };
 }

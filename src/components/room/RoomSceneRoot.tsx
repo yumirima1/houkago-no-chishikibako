@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { Component, useEffect, useState, type ReactNode } from "react";
 
 import {
   BroadcastThemeCandidate,
@@ -46,11 +46,13 @@ function shouldUse3DScene() {
     return false;
   }
 
-  const canvas = document.createElement("canvas");
-  const gl =
-    canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl");
-
-  return Boolean(gl);
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl") ?? canvas.getContext("experimental-webgl");
+    return Boolean(gl);
+  } catch {
+    return false;
+  }
 }
 
 function WindowSideSceneLoading() {
@@ -64,6 +66,20 @@ function WindowSideSceneLoading() {
       <div className="window-side-loading-light" />
     </div>
   );
+}
+
+class RoomSceneBoundary extends Component<{children: ReactNode; fallback: ReactNode}, {failed: boolean}> {
+  state={failed:false};
+  static getDerivedStateFromError() { return {failed:true}; }
+  render() {
+    return this.state.failed ? <>
+      {this.props.fallback}
+      <div className="room-scene-recovery" role="status">
+        3Dを読み込めませんでした。2D表示で部屋の操作を続けられます。
+        <button type="button" onClick={()=>this.setState({failed:false})}>3Dを再試行</button>
+      </div>
+    </> : this.props.children;
+  }
 }
 
 export function RoomSceneRoot({
@@ -110,6 +126,7 @@ export function RoomSceneRoot({
   }
 
   return (
+    <RoomSceneBoundary fallback={<RoomFallback2D isScreensaver={isScreensaver} onInspectObject={onInspectObject} subject={subject} />}>
     <div className="room-scene-root room-scene-root-3d">
       <RoomScene3D
         action={action}
@@ -126,5 +143,6 @@ export function RoomSceneRoot({
         timeStateLabel={timeStateLabel}
       />
     </div>
+    </RoomSceneBoundary>
   );
 }

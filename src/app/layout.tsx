@@ -1,16 +1,6 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import "./geist-fonts.css";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "考察箱",
@@ -25,8 +15,12 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="kousatsu-fonts h-full antialiased"
     >
+      <head>
+        <link rel="preload" href="/fonts/geist/605ce01b664af129-s.p.0wgildi0cnwt9.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/geist/07a39a8a4660cc7c-s.p.0r6juujl39pe6.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

@@ -22,8 +22,13 @@ import {
 } from "./lib/audio-codec";
 import { assertEpisodeScript, EpisodeSpeakerLine } from "./lib/episode-schema";
 import { VoicevoxProvider } from "./lib/tts-provider";
-
-type AudioBuildMode = "preview" | "production";
+import {
+  audioManifestPath,
+  readAudioManifest,
+  writeAudioManifest,
+  type AudioBuildMode,
+  type AudioManifest,
+} from "./lib/audio-manifest";
 
 type CacheStats = {
   hits: number;
@@ -36,16 +41,6 @@ type AudioLineJob = {
   cachePath: string;
   line: EpisodeSpeakerLine;
   signature: unknown;
-};
-
-type AudioManifest = {
-  cacheKeys: string[];
-  inputPath: string;
-  lineCount: number;
-  mode: AudioBuildMode;
-  outputPath: string;
-  scriptId: string;
-  updatedAt: string;
 };
 
 async function resolveInputPath(args: Record<string, string | boolean>) {
@@ -119,14 +114,6 @@ async function fileExists(filePath: string) {
   }
 }
 
-async function readAudioManifest(filePath: string) {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8")) as AudioManifest;
-  } catch {
-    return null;
-  }
-}
-
 function manifestMatches(
   manifest: AudioManifest | null,
   {
@@ -136,10 +123,11 @@ function manifestMatches(
     mode,
     outputPath,
     scriptId,
-  }: Omit<AudioManifest, "updatedAt">,
+  }: Omit<AudioManifest, "actualDurationSeconds" | "updatedAt">,
 ) {
   return (
     manifest?.mode === mode &&
+    typeof manifest.actualDurationSeconds === "number" &&
     manifest.scriptId === scriptId &&
     manifest.inputPath === inputPath &&
     manifest.outputPath === outputPath &&
@@ -207,7 +195,7 @@ async function main() {
   const previewDir = path.join(generatedAudioDir, "previews");
   const suffix = mode === "preview" ? ".preview" : "";
   const combinedWavPath = path.join(episodeAudioDir, `${script.id}${suffix}.wav`);
-  const manifestPath = path.join(episodeAudioDir, `${script.id}${suffix}.manifest.json`);
+  const manifestPath = audioManifestPath(generatedAudioDir, script.id, mode);
   const mp3Path = outputMp3PathForMode(script.id, mode);
 
   await Promise.all([
@@ -243,7 +231,15 @@ async function main() {
     scriptId: script.id,
   };
   const force = args.force === true;
-  const existingManifest = await readAudioManifest(manifestPath);
+  let existingManifest: AudioManifest | null = null;
+  if (!force && (await fileExists(manifestPath))) {
+    try {
+      existingManifest = await readAudioManifest(generatedAudioDir, script.id, mode);
+    } catch (error) {
+      // Invalid cache metadata cannot mark an audio output as up to date.
+      console.warn(error instanceof Error ? error.message : error);
+    }
+  }
 
   if (
     !force &&
@@ -311,14 +307,16 @@ async function main() {
     wavPaths.map(async (wavPath) => parsePcm16Wav(await readFile(wavPath))),
   );
   const combinedWav = concatWavs(wavs, 280);
+  const actualDurationSeconds =
+    combinedWav.samples.length / (combinedWav.sampleRate * combinedWav.channels);
 
   await writeFile(combinedWavPath, wavToBuffer(combinedWav));
   await encodeWavToMp3File(combinedWav, mp3Path);
-  await writeFile(
-    manifestPath,
-    `${JSON.stringify({ ...nextManifest, updatedAt: new Date().toISOString() }, null, 2)}\n`,
-    "utf8",
-  );
+  await writeAudioManifest(generatedAudioDir, {
+    ...nextManifest,
+    actualDurationSeconds,
+    updatedAt: new Date().toISOString(),
+  });
 
   const elapsedSeconds = (performance.now() - startedAt) / 1000;
 

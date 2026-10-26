@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>考察箱ローカル検証フィード</title>
+    <link>https://example.invalid/</link>
+    <description>ネットワークを使わない統合テスト用データ</description>
+    <item>
+      <guid>sample-001</guid>
+      <title>AI検証の記録を保存する</title>
+      <link>https://example.invalid/articles/ai-verification-records?utm_source=test</link>
+      <pubDate>Sat, 24 Oct 2026 10:00:00 +0900</pubDate>
+      <author>fixture@example.invalid</author>
+      <description><![CDATA[AI検証では、主張と出典を分けて保存する必要があると配信元は述べています。]]></description>
+      <content:encoded><![CDATA[<p>AI検証の結果と根拠を別々に記録し、未確認の内容を断定しない運用を紹介します。</p>]]></content:encoded>
+    </item>
+    <item>
+      <guid>sample-002</guid>
+      <title>AI検証と再実行可能なジョブ</title>
+      <link>https://example.invalid/articles/restartable-ai-jobs</link>
+      <pubDate>Sun, 25 Oct 2026 09:00:00 +0900</pubDate>
+      <description><![CDATA[AI検証の処理を段階ごとに保存すると、失敗した地点から再開しやすいと配信元は説明しています。]]></description>
+    </item>
+    <item>
+      <guid>sample-003</guid>
+      <title>静かな読書時間の作り方</title>
+      <link>https://example.invalid/articles/quiet-reading</link>
+      <pubDate>Sun, 25 Oct 2026 08:00:00 +0900</pubDate>
+      <description><![CDATA[夜の読書環境についての短い記録です。]]></description>
+    </item>
+  </channel>
+</rss>

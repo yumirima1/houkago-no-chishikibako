@@ -1,0 +1,87 @@
+"use client";
+
+import { useFrame } from "@react-three/fiber";
+import { useLayoutEffect, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { RoomModel } from "./RoomAssets";
+import { trainPosition } from "./roomMotion";
+
+const BLOCKS: [string, number, number, number][] = [
+  ["low-detail-building-a", -14, -23, 10], ["building-skyscraper-b", -8, -26, 15],
+  ["low-detail-building-d", -2, -24, 9], ["building-skyscraper-e", 5, -28, 17],
+  ["building-skyscraper-b", 13, -26, 12], ["building-c", -10, -13, 5],
+  ["building-f", -4.7, -15, 7], ["building-c", 1.8, -14, 5.5], ["building-f", 9, -16, 7.5],
+];
+
+function Train({ reducedMotion }: { reducedMotion: boolean }) {
+  const train = useRef<THREE.Group>(null);
+  const elapsed = useRef(0);
+  useFrame((_, delta) => {
+    if (!train.current || reducedMotion) return;
+    elapsed.current += Math.min(delta, 0.05);
+    train.current.position.x = trainPosition(elapsed.current);
+  });
+  return <group ref={train} position={[trainPosition(0), 0.65, -8.2]} name="night-train">
+    {[0, 1, 2, 3].map((car) => <group key={car} position={[-car * 1.55, 0, 0]}>
+      <mesh><boxGeometry args={[1.48, 0.32, 0.36]} /><meshStandardMaterial color="#819195" roughness={0.55} /></mesh>
+      <mesh position={[0, -0.07, 0.185]}><boxGeometry args={[1.47, 0.035, 0.009]} /><meshStandardMaterial color="#688f86" /></mesh>
+      {[0, 1, 2, 3, 4].map((window) => <mesh key={window} position={[-0.56 + window * 0.28, 0.055, 0.187]}>
+        <planeGeometry args={[0.18, 0.12]} /><meshBasicMaterial color={window % 3 === 0 ? "#8eabaf" : "#e3c88b"} toneMapped={false} />
+      </mesh>)}
+    </group>)}
+    <mesh position={[0.75, 0, 0.15]}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial color="#fff1c6" /></mesh>
+  </group>;
+}
+
+function CityWindows() {
+  const instances = useRef<THREE.InstancedMesh>(null);
+  const windows = useMemo(() => BLOCKS.flatMap(([, x, z, height], index) =>
+    Array.from({ length: Math.floor(height / 0.8) }, (_, floor) => [0, 1, 2].map((column) => ({
+      visible: (floor + column + index) % 4 !== 0,
+      position: [x - 0.65 + column * 0.65, -3.25 + floor * 0.73, z + (height > 11 ? 1.5 : 1.75) + 0.025] as [number, number, number],
+      color: (floor + column) % 3 ? "#a69870" : "#556c85",
+    }))).flat().filter((window) => window.visible)), []);
+  useLayoutEffect(() => {
+    const object = new THREE.Object3D();
+    windows.forEach((window, index) => {
+      object.position.set(...window.position); object.updateMatrix();
+      instances.current?.setMatrixAt(index, object.matrix);
+      instances.current?.setColorAt(index, new THREE.Color(window.color));
+    });
+    if (instances.current) {
+      instances.current.instanceMatrix.needsUpdate = true;
+      if (instances.current.instanceColor) instances.current.instanceColor.needsUpdate = true;
+      instances.current.computeBoundingSphere();
+    }
+  }, [windows]);
+  return <instancedMesh ref={instances} args={[undefined, undefined, windows.length]}>
+    <planeGeometry args={[0.22, 0.18]} /><meshBasicMaterial toneMapped={false} />
+  </instancedMesh>;
+}
+
+export function NightCity({ reducedMotion }: { reducedMotion: boolean }) {
+  const beacon = useRef<THREE.MeshBasicMaterial>(null);
+  const litWindows = useRef<THREE.MeshBasicMaterial>(null);
+  const elapsed = useRef(0);
+  useFrame((_, delta) => {
+    if (reducedMotion) return;
+    elapsed.current += Math.min(delta, 0.05);
+    if (beacon.current) beacon.current.opacity = 0.35 + Math.pow((Math.sin(elapsed.current * 1.25) + 1) / 2, 7) * 0.65;
+    if (litWindows.current) litWindows.current.color.setRGB(0.56 + Math.sin(elapsed.current * 0.17) * 0.06, 0.52, 0.34);
+  });
+  return <group name="exterior-only">
+    <mesh position={[0, 3, -40]}><planeGeometry args={[110, 65]} /><meshBasicMaterial color="#101e30" /></mesh>
+    <mesh position={[-19, 8, -39]}><circleGeometry args={[0.62, 32]} /><meshBasicMaterial color="#7d8c9b" /></mesh>
+    {BLOCKS.map(([name, x, z, height], index) => <RoomModel key={index} position={[x, -3.8, z]} name={name} kind="city"
+      size={[height > 11 ? 3 : 3.8, height, height > 11 ? 3 : 3.5]} finish="city" />)}
+    <CityWindows />
+    <mesh position={[-14, 6.28, -23]}><sphereGeometry args={[0.075, 8, 8]} /><meshBasicMaterial ref={beacon} color="#c78069" transparent /></mesh>
+    <mesh position={[-10, 0.5, -11.225]}><planeGeometry args={[1.8, 0.14]} /><meshBasicMaterial ref={litWindows} color="#b3a079" /></mesh>
+    <group position={[0, 0.38, -8.2]}>
+      <mesh><boxGeometry args={[65, 0.16, 0.9]} /><meshStandardMaterial color="#25343f" /></mesh>
+      <mesh position={[0, 0.17, 0.45]}><boxGeometry args={[65, 0.045, 0.045]} /><meshStandardMaterial color="#637280" /></mesh>
+      {[-15, -9, -3, 3, 9, 15].map((x) => <mesh key={x} position={[x, -1.8, 0]}><boxGeometry args={[0.28, 3.6, 0.5]} /><meshStandardMaterial color="#2a3946" /></mesh>)}
+    </group>
+    <Train reducedMotion={reducedMotion} />
+  </group>;
+}

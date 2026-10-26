@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Clock } from "@/components/Clock";
 import {
@@ -134,6 +134,8 @@ export function SubjectRoomView({
     tartar: false,
   });
   const [isHydrated, setIsHydrated] = useState(false);
+  const [hintStorageError, setHintStorageError] = useState<string | null>(null);
+  const canSaveHints = useRef(false);
   const subjectLogs = logs
     .filter((log) => log.subjectId === subject.id)
     .slice(0, 6);
@@ -152,14 +154,28 @@ export function SubjectRoomView({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setIsHydrated(true);
-      setSeenRoomHints(readSeenRoomHints());
+      try {
+        setSeenRoomHints(readSeenRoomHints());
+        canSaveHints.current = true;
+      } catch {
+        setHintStorageError("案内の表示設定を読込できません。この画面内でのみ設定を変更します。");
+      }
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      canSaveHints.current = false;
+      window.clearTimeout(timer);
+    };
   }, []);
 
   function markHintSeen() {
-    writeSeenRoomHint(subject.id);
+    if (canSaveHints.current) {
+      try {
+        writeSeenRoomHint(subject.id);
+      } catch {
+        setHintStorageError("案内の表示設定を保存できません。この画面内でのみ設定を変更します。");
+      }
+    }
     setSeenRoomHints((currentHints) => ({
       ...currentHints,
       [subject.id]: true,
@@ -205,6 +221,7 @@ export function SubjectRoomView({
       </div>
 
       <div className="subject-room-overlay">
+        {hintStorageError ? <p role="status">{hintStorageError}</p> : null}
         <header className="subject-room-header">
           <div>
             <p className="observation-kicker">{isScreensaver ? "背景" : "窓辺"}</p>

@@ -18,6 +18,7 @@ export type TtsProvider = {
 
 type VoicevoxConfig = {
   endpoint: string;
+  requestTimeoutMs: number;
   voices: Record<string, number>;
   voiceProfiles: Record<
     string,
@@ -39,9 +40,10 @@ const defaultVoicevoxConfig: VoicevoxConfig = {
     process.env.VOICEVOX_ENDPOINT ??
     "http://127.0.0.1:50021",
   voices: {
-    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 12),
-    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 2),
+    rikei: Number(process.env.VOICEVOX_RIKEI_SPEAKER_ID ?? 13),
+    bunkei: Number(process.env.VOICEVOX_BUNKEI_SPEAKER_ID ?? 8),
   },
+  requestTimeoutMs: Number(process.env.VOICEVOX_TIMEOUT_MS ?? 120_000),
   voiceProfiles: {
     rikei: {
       intonationScale: 0.86,
@@ -159,7 +161,9 @@ export class VoicevoxProvider implements TtsProvider {
 
   async assertAvailable() {
     try {
-      const response = await fetch(`${this.config.endpoint}/version`);
+      const response = await fetch(`${this.config.endpoint}/version`, {
+        signal: AbortSignal.timeout(Math.min(this.config.requestTimeoutMs, 10_000)),
+      });
 
       if (!response.ok) {
         throw new Error(`VOICEVOX /version returned ${response.status}`);
@@ -188,7 +192,10 @@ export class VoicevoxProvider implements TtsProvider {
           speaker: String(speaker),
           text,
         })}`,
-        { method: "POST" },
+        {
+          method: "POST",
+          signal: AbortSignal.timeout(this.config.requestTimeoutMs),
+        },
       );
 
       if (!queryResponse.ok) {
@@ -206,6 +213,7 @@ export class VoicevoxProvider implements TtsProvider {
           body: JSON.stringify(audioQuery),
           headers: { "Content-Type": "application/json" },
           method: "POST",
+          signal: AbortSignal.timeout(this.config.requestTimeoutMs),
         },
       );
 

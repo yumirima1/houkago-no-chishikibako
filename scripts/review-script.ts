@@ -16,6 +16,7 @@ import {
   EpisodeScript,
   EpisodeSpeakerLine,
 } from "./lib/episode-schema";
+import { reviewStatusForWarnings } from "./lib/production-gates";
 
 const riskyPhrases = [
   ["絶対に", "多くの場合"],
@@ -723,7 +724,7 @@ function reviewScript(script: EpisodeScript): EpisodeScript {
     updatedAt: now,
     review: {
       reviewedAt: now,
-      status: "reviewed",
+      status: reviewStatusForWarnings(warnings),
       checks: {
         misinformationRisk: "断定表現を弱め、検証が必要な表現を残しにくくしました。",
         readability: "長すぎる文と余分な空白を簡易調整しました。",

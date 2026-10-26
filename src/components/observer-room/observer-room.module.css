@@ -1,0 +1,96 @@
+.room { position: fixed; inset: 0; background: #101a21; overflow: hidden; }
+.scene { position: absolute; inset: 0; }
+.loading, .unavailable { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 16px; background: #101a21; color: #c7c8b8; font-size: 13px; }
+.unavailable { flex-direction: column; padding: 24px; }
+.unavailable button { padding: 10px 20px; border: 1px solid #86866d; }
+.keyboardEntry { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.keyboardEntry:focus-visible { width: auto; height: auto; clip-path: none; top: 20px; left: 20px; padding: 12px 20px; background: #d1c7ac; color: #242d2a; border: 2px solid #fff6d7; z-index: 2; }
+.monitorDialog { border: 0; padding: 0; margin: auto; width: min(1280px, 96vw); max-width: none; max-height: 97dvh; background: transparent; color: #283731; overflow: visible; font-family: "Geist Mono", "MS Gothic", monospace; }
+.monitorDialog::backdrop { background: rgb(4 11 15 / 84%); backdrop-filter: blur(5px); }
+.computerFrame { padding: 16px 30px 7px; border: 2px solid #88816e; border-top-color: #dad1b7; border-left-color: #c7bea4; border-radius: 24px; background: linear-gradient(120deg, #c6bda3, #a9a189 75%, #8e8774); box-shadow: 0 22px 90px #000b, inset 3px 3px 12px #e6dec142, inset -5px -5px 12px #534b3440; }
+.bezelLabel, .bottomBezel { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #494c3d; font-size: 10px; letter-spacing: 2px; }
+.bezelLabel { padding: 0 1px 12px; }
+.leave { cursor: pointer; font-size: 12px; letter-spacing: 0; color: #28362f; background: #c7bfa7; border: 1px solid #827f6c; border-radius: 3px; padding: 7px 12px; box-shadow: inset 1px 1px #e3dcc7; }
+.leave kbd { margin-left: 10px; font-size: 10px; opacity: .7; }
+.desktopScreen { display: flex; flex-direction: column; height: min(76dvh, 780px); min-height: 350px; background: #345653; border: 10px solid #333e35; border-radius: 14px; overflow: hidden; box-shadow: 0 0 0 2px #797e68, inset 0 0 24px #061b1b55; position: relative; }
+.desktopScreen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgb(1 18 12 / 5%) 3px, rgb(1 18 12 / 5%) 4px); z-index: 3; border-radius: 3px; }
+.menuBar, .taskbar { display: flex; align-items: center; gap: 18px; padding: 4px 13px; min-height: 32px; flex-shrink: 0; background: #c7cbb4; border-bottom: 1px solid #1b322d; font-size: 12px; }
+.menuBar > button { padding: 0 4px; font-size: 20px; cursor: pointer; }
+.menuBar strong { letter-spacing: 3px; }
+.menuRight { margin-left: auto; font-size: 10px; color: #596758; }
+.desktopBody { flex: 1; display: flex; min-height: 0; padding: 20px; gap: 24px; }
+.appDock { width: 100px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px; }
+.appDock button { display: flex; flex-direction: column; align-items: center; gap: 7px; background: transparent; cursor: pointer; color: #e3e4cf; text-shadow: 1px 1px #183b35; font-size: 11px; padding: 7px 2px; border: 1px solid transparent; }
+.appDock button:hover, .appDock button[aria-pressed="true"] { background: #c8d4bb20; border: 1px dotted #c6d4b4; }
+.appIcon { font-size: 37px; line-height: 1; color: #dfd7ac; text-shadow: 2px 3px #173a31; }
+.welcome { align-self: center; margin: auto; padding: 25px; color: #d4ddc8; text-align: center; }
+.welcomeMark { font-size: 46px; color: #afc8b4; }
+.welcome p { letter-spacing: 4px; font-size: 10px; margin: 15px 0; }
+.welcome h1 { font-family: serif; font-size: clamp(32px, 5vw, 62px); font-weight: 400; letter-spacing: 14px; margin: 20px 0; }
+.welcome > span { font-size: 13px; letter-spacing: 2px; }
+.welcome hr { width: 75px; border: 0; border-top: 1px solid #a5bda455; margin: 30px auto; }
+.welcome small { color: #b0c3b1; font-size: 11px; }
+.appWindow { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: #e4e3d2; border: 2px solid #d1d5be; border-right-color: #243b32; border-bottom-color: #243b32; box-shadow: 5px 6px #0f2a2a66; }
+.windowTitle { display: flex; justify-content: space-between; align-items: center; background: repeating-linear-gradient(#758671 0, #758671 1px, #b3bfa4 1px, #b3bfa4 4px); padding: 5px 8px; border-bottom: 1px solid #5b6d58; }
+.windowTitle h1 { font-size: 12px; font-weight: 600; background: #b8c3aa; padding: 0 10px; margin: 0; }
+.windowTitle h1:focus { outline: none; }
+.windowTitle button { line-height: 16px; width: 19px; border: 1px solid #4b604c; background: #ced4bf; cursor: pointer; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 12px; background: #d4d7c2; border-bottom: 1px solid #9fa890; flex-shrink: 0; font-size: 11px; }
+.toolbar input { width: min(330px, 100%); min-width: 80px; background: #f5f4e9; border: 1px solid #84927c; padding: 6px 8px; border-radius: 0; font: inherit; }
+.toolbar button, .empty button, .reader button { flex-shrink: 0; padding: 5px 10px; border: 1px solid #77856c; background: #e4e5d3; box-shadow: inset 1px 1px #fffff4; font-size: 11px; cursor: pointer; }
+.toolbar button:disabled { opacity: .5; cursor: wait; }
+.splitPane { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(180px, 31%) minmax(0, 1fr); }
+.recordList { overflow: auto; background: #d3d8c6; border-right: 1px solid #9ca98f; scrollbar-width: thin; }
+.listCaption { font-size: 10px; padding: 10px 12px; margin: 0; color: #5f705d; border-bottom: 1px solid #a9b398; }
+.recordList button { text-align: left; display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 14px 12px; border: 0; border-bottom: 1px solid #b2bba4; cursor: pointer; color: #304434; background: transparent; }
+.recordList button:hover { background: #c3ccb4; }
+.recordList button[aria-pressed="true"] { background: #4d6959; color: #f2f0dc; }
+.recordList small { font-size: 10px; opacity: .8; }
+.recordList strong { font-size: 12px; font-weight: 500; line-height: 1.8; overflow-wrap: anywhere; }
+.recordList button > span { font-size: 9px; opacity: .75; }
+.reader { overflow: auto; padding: 24px 28px; background: #f1f0e2; scrollbar-width: thin; color: #354233; overflow-wrap: anywhere; }
+.reader h2 { font-family: serif; font-size: 21px; font-weight: 500; line-height: 1.8; margin: 12px 0 20px; }
+.readerWelcome { display: flex; min-height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #677662; }
+.readerWelcome > span { font-size: 40px; color: #87947d; }
+.readerWelcome p { max-width: 250px; font-size: 12px; line-height: 2; }
+.markdown { white-space: pre-wrap; font: 12px/2.1 "Geist Mono", "MS Gothic", monospace; overflow-wrap: anywhere; margin: 22px 0; }
+.documentNotice { padding: 11px 13px; font-size: 10px; line-height: 1.9; border-left: 2px solid #a7b494; background: #dce1cd; }
+.reader a { display: inline-block; font-size: 12px; color: #38674f; text-decoration: underline; text-underline-offset: 4px; margin: 14px 0; }
+.eyebrow { font-size: 10px; letter-spacing: 2px; color: #60745b; }
+.metadata { font-size: 10px; line-height: 1.9; color: #687863; }
+.newsText { white-space: pre-wrap; font-size: 12px; line-height: 2.15; margin-top: 20px; }
+.systemContent { padding: 26px 30px; overflow: auto; background: #f1f0e2; font-size: 12px; }
+.systemContent h2 { font-family: serif; font-size: 23px; font-weight: 400; margin: 8px 0; }
+.systemContent h3 { font-size: 13px; margin-top: 30px; }
+.systemGrid { display: grid; grid-template-columns: 170px 1fr; margin: 26px 0; }
+.systemGrid dt, .systemGrid dd { margin: 0; padding: 12px 0; border-bottom: 1px solid #ccd1be; font-size: 11px; overflow-wrap: anywhere; }
+.systemGrid dt { color: #6a7862; }
+.sources { padding: 0; list-style: none; }
+.sources li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 7px; border-bottom: 1px solid #cdd4bd; padding: 12px 0; }
+.sources strong { font-weight: 500; }
+.sources span { color: #6b7a63; font-size: 11px; }
+.taskbar { justify-content: space-between; border-top: 1px solid #809077; border-bottom: 0; min-height: 27px; font-size: 10px; }
+.bottomBezel { height: 28px; font-size: 8px; }
+.powerLed { display: block; width: 7px; height: 7px; border-radius: 50%; background: #9fc783; box-shadow: 0 0 6px #9fc783; margin-right: 12px; }
+.empty { padding: 25px 20px; font-size: 12px; line-height: 2; }
+.monitorDialog button:focus-visible, .monitorDialog input:focus-visible, .monitorDialog a:focus-visible, .markdown:focus-visible { outline: 2px solid #bba564; outline-offset: 2px; }
+@media (max-width: 800px) {
+  .computerFrame { padding: 9px 10px 3px; border-radius: 14px; }
+  .bezelLabel { font-size: 7px; letter-spacing: 1px; padding-bottom: 7px; }
+  .leave { font-size: 11px; padding: 7px; }
+  .leave kbd { display: none; }
+  .desktopScreen { height: 84dvh; border-width: 6px; }
+  .desktopBody { gap: 10px; padding: 10px; flex-direction: column; }
+  .appDock { width: 100%; flex-direction: row; gap: 10px; }
+  .appDock button { flex: 1; font-size: 10px; gap: 5px; padding: 4px; }
+  .appIcon { font-size: 26px; }
+  .reader { padding: 16px; }
+  .splitPane { grid-template-columns: minmax(125px, 35%) minmax(0, 1fr); }
+  .recordList button { padding: 10px 8px; }
+  .recordList strong { font-size: 11px; }
+  .reader h2 { font-size: 17px; }
+  .systemContent { padding: 18px; }
+  .systemGrid { grid-template-columns: 125px 1fr; }
+  .menuRight { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .monitorDialog::backdrop { backdrop-filter: none; } }

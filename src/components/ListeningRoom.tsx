@@ -1,11 +1,15 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AmbientSoundControls } from "@/components/AmbientSoundControls";
 import { BgmControls } from "@/components/BgmControls";
 import { Clock } from "@/components/Clock";
 import { EpisodeList } from "@/components/EpisodeList";
+import { ResearchConsole } from "@/components/kousatsu/ResearchConsole";
+import { useResearchRuntime, type ResearchController } from "@/components/kousatsu/useResearchRuntime";
+import { researchActivity } from "@/lib/kousatsu/runtime-status";
 import { SubjectRoomView } from "@/components/observation/SubjectRoomView";
 import {
   RoomMode,
@@ -72,9 +76,14 @@ function getInitialMobileBoxMode(): MobileBoxMode {
     return "knowledge";
   }
 
-  return window.localStorage.getItem(MOBILE_BOX_STORAGE_KEY) === "observation"
-    ? "observation"
-    : "knowledge";
+  try {
+    return window.localStorage.getItem(MOBILE_BOX_STORAGE_KEY) === "observation"
+      ? "observation"
+      : "knowledge";
+  } catch {
+    // Observation persistence reports the storage failure after hydration.
+    return "knowledge";
+  }
 }
 
 function getRequestedSubject(): SubjectId {
@@ -232,6 +241,23 @@ function RoomNavigationMenu({
           >
             かなの部屋
           </button>
+          <Link
+            href="/observer-room"
+            onClick={() => onOpenChange(false)}
+            style={{
+              display: "block",
+              textAlign: "left",
+              padding: "0.55rem 0.8rem",
+              color: "#a4cca8",
+              textDecoration: "none",
+              fontSize: "0.85rem",
+              borderRadius: "4px",
+              borderTop: "1px solid rgba(255, 255, 255, 0.08)",
+              marginTop: "0.25rem",
+            }}
+          >
+            観察者の書斎 (3D)
+          </Link>
         </div>
       ) : null}
     </nav>
@@ -267,13 +293,13 @@ function MobileBoxSwitcher({
   );
 }
 
-function ObservationBoxPanel() {
+function ObservationBoxPanel({research}: {research: ResearchController}) {
   return (
-    <section className="observation-box-panel" aria-label="観察箱">
+    <section className="observation-box-panel research-mobile-panel" aria-label="観察箱">
       <div>
         <span>観察箱</span>
-        <h1>準備中</h1>
-        <p>ここに観察ログ・部屋・対象切り替えを統合予定</p>
+        <h1>調査端末</h1>
+        <ResearchConsole research={research} />
       </div>
     </section>
   );
@@ -348,14 +374,19 @@ function MobileKnowledgeBoxPanel({
 }
 
 export function ListeningRoom({ episodes }: ListeningRoomProps) {
+  const research = useResearchRuntime();
+  const activity = researchActivity(research.snapshot);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const isMobileViewport = useIsMobileViewport();
   const {
+    hydrated,
     logs,
     recordObservation,
+    reloadStoredState,
     selectSubject,
     selectedRelationship,
     selectedSubjectId,
+    storageError,
   } = useObservationState();
   const [fallbackSubjectId] = useState<SubjectId>(() => getRequestedSubject());
   const [roomMode, setRoomMode] = useState<RoomMode>(() => getInitialRoomMode());
@@ -379,6 +410,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
     getInitialMobileBoxMode(),
   );
   const [shouldAutoPlayNext, setShouldAutoPlayNext] = useState(false);
+  const [mobileStorageError, setMobileStorageError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const bgm = useAmbientAudio({ isVoicePlaying });
   const ambience = useBroadcastAmbience({ isActive: true });
@@ -428,10 +460,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       selectedTags.every((tag) => getEpisodeTags(episode).includes(tag)),
     );
   }, [listEpisodes, selectedTags]);
-  const currentSubjectAction = getSubjectAction(selectedSubject.id, {
-    logs,
-    relationship: selectedRelationship,
-  });
+  const currentSubjectAction = useMemo(() => {
+    const observationAction = getSubjectAction(selectedSubject.id, {logs,relationship:selectedRelationship});
+    return activity.kind === "idle" ? observationAction : {
+      ...observationAction,label:activity.label,thought:activity.thought,mood:activity.label,
+    };
+  },[activity.kind,activity.label,activity.thought,logs,selectedRelationship,selectedSubject.id]);
   const relationshipAtmosphere = getRelationshipAtmosphere(
     selectedSubject.id,
     selectedRelationship,
@@ -628,7 +662,12 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   const changeMobileBoxMode = useCallback(
     (nextMode: MobileBoxMode) => {
       setMobileBoxMode(nextMode);
-      window.localStorage.setItem(MOBILE_BOX_STORAGE_KEY, nextMode);
+      try {
+        window.localStorage.setItem(MOBILE_BOX_STORAGE_KEY, nextMode);
+        setMobileStorageError(null);
+      } catch {
+        setMobileStorageError("表示モードを保存できません。今回の変更は画面内でのみ有効です。");
+      }
       setLastInteractionAt(Date.now());
 
       if (nextMode === "knowledge") {
@@ -655,10 +694,10 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
   );
 
   useEffect(() => {
-    if (!selectedSubjectId) {
+    if (hydrated && !selectedSubjectId && !storageError) {
       selectSubject(effectiveSubjectId);
     }
-  }, [effectiveSubjectId, selectSubject, selectedSubjectId]);
+  }, [effectiveSubjectId, hydrated, selectSubject, selectedSubjectId, storageError]);
 
   useEffect(() => {
     if (!isMobileViewport) {
@@ -752,6 +791,19 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
   return (
     <main className="night-observation-shell min-h-screen text-slate-100">
+      {storageError && (
+        <p role="alert" className="relative z-50 bg-slate-950 px-4 py-2 text-sm text-amber-200">
+          観察記録を保存・読込できません。記録を保護して保存を停止しています。
+          <button type="button" className="ml-3 underline" onClick={() => reloadStoredState()}>
+            保存状態を再読込
+          </button>
+        </p>
+      )}
+      {(bgm.storageError || ambience.storageError || mobileStorageError) && (
+        <p role="alert" className="relative z-50 bg-slate-950 px-4 py-2 text-sm text-amber-200">
+          {bgm.storageError || ambience.storageError || mobileStorageError}
+        </p>
+      )}
       <RoomNavigationMenu
         isOpen={isMenuOpen}
         onEnterListening={enterListeningRoom}
@@ -765,7 +817,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
       />
 
       {isMobileObservationBox ? (
-        <ObservationBoxPanel />
+        <ObservationBoxPanel research={research} />
       ) : isMobileKnowledgeBox ? (
         <MobileKnowledgeBoxPanel
           currentTime={currentTime}
@@ -908,6 +960,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
             {activePanel === "terminal" ? (
               <div className="room-panel-scroll">
+                <ResearchConsole research={research} />
                 <div className="terminal-readout">
                   <p>観察ログ</p>
                   {subjectLogs.length > 0 ? (
@@ -944,6 +997,7 @@ export function ListeningRoom({ episodes }: ListeningRoomProps) {
 
             {activePanel === "memo" ? (
               <div className="room-panel-scroll">
+                <ResearchConsole research={research} notesOnly />
                 <div className="memo-paper">
                   <p>{selectedObject?.description ?? currentSubjectAction.thought}</p>
                   <strong>{currentSubjectAction.thought}</strong>

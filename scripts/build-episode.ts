@@ -5,6 +5,7 @@ import {
   builtEpisodeDir,
   ensureProductionDirs,
   findLatestJsonFile,
+  generatedAudioDir,
   getStringArg,
   parseArgs,
   publicAudioDir,
@@ -18,10 +19,17 @@ import {
   writeGeneratedEpisodesFile,
 } from "./lib/episode-site-data";
 import { assertEpisodeScript, BuiltEpisode } from "./lib/episode-schema";
+import { readAudioManifest } from "./lib/audio-manifest";
+import {
+  assertAudioDurationMatchesTarget,
+  assertPublishableReview,
+} from "./lib/production-gates";
 
-function formatDuration(minutes: number) {
-  const wholeMinutes = Math.max(1, Math.round(minutes));
-  return `${String(wholeMinutes).padStart(2, "0")}:00`;
+function formatDuration(seconds: number) {
+  const wholeSeconds = Math.max(1, Math.round(seconds));
+  const minutes = Math.floor(wholeSeconds / 60);
+  const remainder = wholeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(remainder).padStart(2, "0")}`;
 }
 
 async function fileExists(filePath: string) {
@@ -50,6 +58,13 @@ async function ensureAudioFile(id: string) {
   );
 }
 
+async function readVerifiedAudioDuration(id: string, targetMinutes: number) {
+  const manifest = await readAudioManifest(generatedAudioDir, id);
+  assertAudioDurationMatchesTarget(manifest.actualDurationSeconds, targetMinutes);
+
+  return manifest.actualDurationSeconds;
+}
+
 async function resolveInputPath() {
   const args = parseArgs();
   const explicitInput = getStringArg(args, "input");
@@ -74,7 +89,13 @@ async function main() {
   const reviewedScript = await readJsonFile<unknown>(inputPath);
   assertEpisodeScript(reviewedScript);
 
+  assertPublishableReview(reviewedScript);
+
   const audioUrl = await ensureAudioFile(reviewedScript.id);
+  const actualDurationSeconds = await readVerifiedAudioDuration(
+    reviewedScript.id,
+    reviewedScript.durationTargetMinutes,
+  );
   const publishedAt = new Date().toISOString().slice(0, 10);
   const rikeiVoice =
     reviewedScript.speakers.find((line) => line.id === "rikei")?.voice ?? "rikei";
@@ -90,7 +111,7 @@ async function main() {
       (reviewedScript.id === "episode-000" ? "anniversary" : "regular"),
     durationType: reviewedScript.durationType ?? "normal",
     publishedAt,
-    duration: formatDuration(reviewedScript.durationTargetMinutes),
+    duration: formatDuration(actualDurationSeconds),
     tags: reviewedScript.tags ?? reviewedScript.themes,
     themes: reviewedScript.themes,
     speakers: {
@@ -100,6 +121,7 @@ async function main() {
     productionStatus: "published",
     source: {
       reviewedScriptPath: toProjectPath(inputPath),
+      actualDurationSeconds,
       durationTargetMinutes: reviewedScript.durationTargetMinutes,
       voices: {
         rikei: rikeiVoice,

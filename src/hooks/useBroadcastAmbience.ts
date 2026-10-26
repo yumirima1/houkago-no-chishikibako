@@ -203,7 +203,8 @@ export function useBroadcastAmbience({ isActive }: UseBroadcastAmbienceOptions) 
   const [enabled, setEnabledState] = useState(false);
   const [volumes, setVolumesState] = useState<AmbienceVolumes>(DEFAULT_VOLUMES);
   const [isAvailable, setIsAvailable] = useState(true);
-  const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+  const canSaveSettings = useRef(false);
+  const [storageError, setStorageError] = useState<string | null>(null);
 
   const ensureGraph = useCallback(() => {
     if (graphRef.current) {
@@ -231,9 +232,20 @@ export function useBroadcastAmbience({ isActive }: UseBroadcastAmbienceOptions) 
     scheduleThunder(graph, nextVolumes);
   }, []);
 
+  const saveSetting = useCallback((key: string, value: string) => {
+    if (!canSaveSettings.current) return;
+    try {
+      window.localStorage.setItem(key, value);
+      setStorageError(null);
+    } catch {
+      setStorageError("環境音設定を保存できません。今回の変更は画面内でのみ有効です。");
+    }
+  }, []);
+
   const setEnabled = useCallback(
     (nextEnabled: boolean) => {
       setEnabledState(nextEnabled);
+      saveSetting(AMBIENCE_ENABLED_STORAGE_KEY, String(nextEnabled));
 
       if (!nextEnabled) {
         return;
@@ -242,81 +254,58 @@ export function useBroadcastAmbience({ isActive }: UseBroadcastAmbienceOptions) 
       const graph = ensureGraph();
       void graph?.context.resume();
     },
-    [ensureGraph],
+    [ensureGraph, saveSetting],
   );
 
   const setVolume = useCallback(
     (layer: AmbienceLayerKey, nextVolume: number) => {
-      setVolumesState((currentVolumes) => {
-        const nextVolumes = {
-          ...currentVolumes,
-          [layer]: clampVolume(nextVolume),
-        };
-
-        volumesRef.current = nextVolumes;
-        applyVolumes(nextVolumes);
-
-        return nextVolumes;
-      });
+      const nextVolumes = { ...volumesRef.current, [layer]: clampVolume(nextVolume) };
+      volumesRef.current = nextVolumes;
+      setVolumesState(nextVolumes);
+      applyVolumes(nextVolumes);
+      saveSetting(`${AMBIENCE_VOLUME_STORAGE_PREFIX}${layer}`, String(nextVolumes[layer]));
 
       if (enabled) {
         const graph = ensureGraph();
         void graph?.context.resume();
       }
     },
-    [applyVolumes, enabled, ensureGraph],
+    [applyVolumes, enabled, ensureGraph, saveSetting],
   );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const storedEnabled = window.localStorage.getItem(
-        AMBIENCE_ENABLED_STORAGE_KEY,
-      );
-      const nextVolumes = { ...DEFAULT_VOLUMES };
-
-      (Object.keys(DEFAULT_VOLUMES) as AmbienceLayerKey[]).forEach((layer) => {
-        const storedVolume = window.localStorage.getItem(
-          `${AMBIENCE_VOLUME_STORAGE_PREFIX}${layer}`,
-        );
-
-        if (storedVolume !== null) {
-          nextVolumes[layer] = clampVolume(Number(storedVolume));
+      try {
+        const storedEnabled = window.localStorage.getItem(AMBIENCE_ENABLED_STORAGE_KEY);
+        if (storedEnabled !== null && storedEnabled !== "true" && storedEnabled !== "false") {
+          throw new Error("Invalid ambience setting");
         }
-      });
+        const nextVolumes = { ...DEFAULT_VOLUMES };
 
-      volumesRef.current = nextVolumes;
-      setVolumesState(nextVolumes);
+        (Object.keys(DEFAULT_VOLUMES) as AmbienceLayerKey[]).forEach((layer) => {
+          const storedVolume = window.localStorage.getItem(`${AMBIENCE_VOLUME_STORAGE_PREFIX}${layer}`);
+          if (storedVolume !== null && (!storedVolume.trim() || !Number.isFinite(Number(storedVolume)))) {
+            throw new Error("Invalid ambience volume");
+          }
 
-      if (storedEnabled !== null) {
-        setEnabledState(storedEnabled === "true");
+          if (storedVolume !== null) nextVolumes[layer] = clampVolume(Number(storedVolume));
+        });
+
+        volumesRef.current = nextVolumes;
+        setVolumesState(nextVolumes);
+
+        if (storedEnabled !== null) setEnabledState(storedEnabled === "true");
+        canSaveSettings.current = true;
+      } catch {
+        setStorageError("環境音設定を読込できないため、設定の保存を停止しています。");
       }
-
-      setHasLoadedSettings(true);
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      canSaveSettings.current = false;
+      window.clearTimeout(timer);
+    };
   }, []);
-
-  useEffect(() => {
-    if (!hasLoadedSettings) {
-      return;
-    }
-
-    window.localStorage.setItem(AMBIENCE_ENABLED_STORAGE_KEY, String(enabled));
-  }, [enabled, hasLoadedSettings]);
-
-  useEffect(() => {
-    if (!hasLoadedSettings) {
-      return;
-    }
-
-    (Object.keys(volumes) as AmbienceLayerKey[]).forEach((layer) => {
-      window.localStorage.setItem(
-        `${AMBIENCE_VOLUME_STORAGE_PREFIX}${layer}`,
-        String(volumes[layer]),
-      );
-    });
-  }, [hasLoadedSettings, volumes]);
 
   useEffect(() => {
     volumesRef.current = volumes;
@@ -373,6 +362,7 @@ export function useBroadcastAmbience({ isActive }: UseBroadcastAmbienceOptions) 
     isAvailable,
     setEnabled,
     setVolume,
+    storageError,
     volumes,
   };
 }
