@@ -1,0 +1,71 @@
+name: Publish 3D room to GitHub Pages
+
+on:
+  push:
+    branches: [fix/github-pages-room]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/configure-pages@v6.0.0
+      - name: Build static room
+        id: build
+        run: npm run build:pages
+      - name: Check exported HTML and GLB dependencies
+        run: npm run verify:pages
+      - run: npx playwright install --with-deps chromium
+      - name: Render static room in Chromium
+        run: npm run test:pages
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: ${{ steps.build.outputs.path }}
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1
+  verify-public:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Render the deployed GitHub Pages site
+        env:
+          PAGES_TEST_URL: https://yumirima1.github.io/houkago-no-chishikibako/
+        run: npm run test:pages
+      - name: Save public browser evidence
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: public-room-browser
+          path: |
+            tmp/pages-browser
+            tmp/pages-browser-report

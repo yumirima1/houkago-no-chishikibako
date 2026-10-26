@@ -18,8 +18,8 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   return null;
 }
 
-export function ObserverStudyScene({ onOpen, interactive, reducedMotion }: {
-  onOpen: () => void; interactive: boolean; reducedMotion: boolean;
+export function ObserverStudyScene({ onOpen, interactive, reducedMotion, terminalEnabled = true }: {
+  onOpen: () => void; interactive: boolean; reducedMotion: boolean; terminalEnabled?: boolean;
 }) {
   const visible = useSyncExternalStore(subscribeVisibility, () => !document.hidden, () => true);
   const [hovered, setHovered] = useState(false);
@@ -41,7 +41,7 @@ export function ObserverStudyScene({ onOpen, interactive, reducedMotion }: {
       color="#ffd099" castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.001} />
     <Suspense fallback={null}>
       <NightCity reducedMotion={reducedMotion} />
-      <NightStudy onOpen={() => { setHovered(false); onOpen(); }} enabled={interactive} onHover={setHovered} />
+      <NightStudy onOpen={() => { setHovered(false); onOpen(); }} enabled={interactive && terminalEnabled} onHover={setHovered} />
       <SceneReady onReady={handleReady} />
     </Suspense>
   </Canvas>{!ready && <div role="status" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "#101a21", color: "#c7c8b8", fontSize: 12, pointerEvents: "none" }}>部屋を準備しています…</div>}</div>;

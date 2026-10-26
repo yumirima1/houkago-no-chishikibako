@@ -31,12 +31,12 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
-export function ObserverStudyRoot() {
+export function ObserverStudyRoot({ previewOnly = false }: { previewOnly?: boolean }) {
   const [open, setOpen] = useState(false);
   const monitorButton = useRef<HTMLButtonElement>(null);
   const webGL = useSyncExternalStore(subscribeClient, webGLSupport, () => null);
   const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => false);
-  const fallback = <div className={styles.unavailable}><p>この環境では3Dの部屋を表示できません。</p><button type="button" onClick={() => setOpen(true)}>端末を開く</button><button type="button" onClick={() => window.location.reload()}>再試行</button></div>;
+  const fallback = <div className={styles.unavailable}><p>この環境では3Dの部屋を表示できません。</p>{!previewOnly && <button type="button" onClick={() => setOpen(true)}>端末を開く</button>}<button type="button" onClick={() => window.location.reload()}>再試行</button></div>;
   function close() {
     setOpen(false);
     requestAnimationFrame(() => monitorButton.current?.focus({ preventScroll: true }));
@@ -44,10 +44,10 @@ export function ObserverStudyRoot() {
   return <div className={styles.room}>
     <div inert={open} className={styles.scene}>
       {webGL === null ? <RoomLoading /> : webGL ? <SceneBoundary fallback={fallback}>
-        <ObserverStudyScene onOpen={() => setOpen(true)} interactive={!open} reducedMotion={reducedMotion} />
+        <ObserverStudyScene onOpen={() => setOpen(true)} interactive={!open} terminalEnabled={!previewOnly} reducedMotion={reducedMotion} />
       </SceneBoundary> : fallback}
-      <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={() => setOpen(true)} aria-haspopup="dialog">CRTモニターを開く</button>
+      {!previewOnly && <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={() => setOpen(true)} aria-haspopup="dialog">CRTモニターを開く</button>}
     </div>
-    {open && <ObserverDesktop onClose={close} />}
+    {!previewOnly && open && <ObserverDesktop onClose={close} />}
   </div>;
 }
