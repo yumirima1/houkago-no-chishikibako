@@ -33,6 +33,7 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx next typegen
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:kousatsu
