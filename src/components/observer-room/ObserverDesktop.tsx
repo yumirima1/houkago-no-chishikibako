@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import type { ResearchNote } from "@/lib/kousatsu/runtime-types";
 import type { ObserverDesktopSnapshot } from "./desktopTypes";
 import styles from "./observer-room.module.css";
+import { DesktopClock } from "./DesktopClock";
+import { WeatherStatus } from "./WeatherStatus";
+import type { RoomWeather } from "@/lib/observer-weather";
 import { isPagesSite } from "@/lib/site-url";
 
 type App = "archive" | "news" | "system";
@@ -25,8 +28,9 @@ function apiMessage(status: number) {
     : "保存データを読み込めませんでした。時間をおいて再読込してください。";
 }
 
-export function ObserverDesktop({ onClose }: { onClose: () => void }) {
+export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => void; phase: "opening" | "desktop" | "closing"; weather: RoomWeather }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const returnButton = useRef<HTMLButtonElement>(null);
   const [app, setApp] = useState<App | null>(null);
   const [snapshot, setSnapshot] = useState<ObserverDesktopSnapshot | null>(null);
   const [error, setError] = useState("");
@@ -71,6 +75,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
     return () => controller.abort();
   }, [noteId, noteAttempt]);
   useEffect(() => { if (app) appHeading.current?.focus({ preventScroll: true }); }, [app]);
+  useEffect(() => { if (phase === "desktop") returnButton.current?.focus({ preventScroll: true }); }, [phase]);
 
   const notes = snapshot?.notes.filter((item) => item.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())) ?? [];
   const news = snapshot?.news.filter((item) => `${item.title} ${item.source}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())) ?? [];
@@ -78,14 +83,14 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
   function openApp(next: App) { setApp(next); setQuery(""); }
   function reload() { setSnapshot(null); setError(""); setNoteId(null); setNote(null); setNewsId(null); setRevision((value) => value + 1); }
 
-  return <dialog ref={dialog} className={styles.monitorDialog} aria-labelledby="desktop-name"
+  return <dialog ref={dialog} className={styles.monitorDialog} data-phase={phase} aria-labelledby="desktop-name" aria-busy={phase !== "desktop"}
     onCancel={(event) => { event.preventDefault(); onClose(); }}>
-    <div className={styles.computerFrame}>
-      <div className={styles.bezelLabel}><span>KOUSATSU / PERSONAL ARCHIVE</span><button type="button" className={styles.leave} onClick={onClose} autoFocus aria-label="モニターを閉じて部屋に戻る">部屋に戻る <kbd>Esc</kbd></button></div>
+    <div className={styles.computerFrame} inert={phase !== "desktop"}>
+      <div className={styles.bezelLabel}><span>KOUSATSU / PERSONAL ARCHIVE</span><button ref={returnButton} type="button" className={styles.leave} onClick={onClose} autoFocus aria-label="モニターを閉じて部屋に戻る">部屋に戻る <kbd>Esc</kbd></button></div>
       <div className={styles.desktopScreen}>
         <header className={styles.menuBar}>
           <button type="button" onClick={() => { setApp(null); setQuery(""); }} aria-label="デスクトップに戻る">▧</button>
-          <strong id="desktop-name">考察箱</strong><span>Observer OS</span><span className={styles.menuRight}>LOCAL ARCHIVE</span>
+          <strong id="desktop-name">考察箱</strong><span>Observer OS</span><span className={styles.menuRight}>{isPagesSite ? "OBSERVER TERMINAL" : "LOCAL ARCHIVE"}</span><DesktopClock />
         </header>
         <div className={styles.desktopBody}>
           <nav className={styles.appDock} aria-label="端末のアプリ">
@@ -99,7 +104,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
               {app !== "system" ? <input type="search" aria-label={app === "archive" ? "考察を検索" : "収集ニュースを検索"} placeholder="タイトルを検索…" value={query} onChange={(event) => setQuery(event.target.value)} /> : <span>保存されている設定と状態</span>}
               <button type="button" onClick={reload} disabled={!snapshot && !error}>再読込</button>
             </div>
-            {isPagesSite ? <div className={styles.empty}><p>GitHub Pages公開版</p><p>保存済みの考察・ニュース・システム状態は、ローカルの端末で閲覧できます。この公開ページにはローカルデータを接続していません。</p></div>
+            {isPagesSite ? <div className={styles.systemContent}><p>GitHub Pages公開版</p>{app === "system" && <WeatherStatus weather={weather} />}<p>保存済みの考察・ニュース・システム状態は、ローカルの端末で閲覧できます。この公開ページにはローカルデータを接続していません。</p></div>
               : error ? <div className={styles.empty} role="alert"><p>{error}</p><button type="button" onClick={reload}>再試行</button></div>
               : !snapshot ? <p className={styles.empty} role="status">保存された記録を読み込んでいます…</p>
               : app === "archive" ? <div className={styles.splitPane}>
@@ -134,6 +139,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
                     : <div className={styles.readerWelcome}><span aria-hidden="true">▥</span><h2>世界から届いた記録。</h2><p>一覧から収集済みの記事を選んでください。</p></div>}
                 </article>
               </div> : <div className={styles.systemContent}>
+                <WeatherStatus weather={weather} />
                 <p className={styles.eyebrow}>SYSTEM INFORMATION</p><h2>ローカル調査の状態</h2><p className={styles.metadata}>取得日時 {date(snapshot.system.readAt)}</p>
                 <dl className={styles.systemGrid}>
                   <dt>保存データ</dt><dd>{snapshot.initialized ? "既存のデータベースに接続" : "データベースは未初期化"}</dd>

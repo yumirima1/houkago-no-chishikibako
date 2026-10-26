@@ -25,7 +25,7 @@ function screenResources() {
   context.fillStyle = "#ced7bc"; context.font = "38px serif"; context.fillText("考 察 箱", 326, 223);
   context.fillStyle = "#88aca1"; context.font = "13px monospace"; context.fillText("A quiet place for questions.", 290, 285);
   context.fillStyle = "#bec4b0"; context.fillRect(0, 451, 768, 29);
-  context.fillStyle = "#344840"; context.font = "14px monospace"; context.fillText("Open desktop", 18, 471);
+  context.fillStyle = "#344840"; context.font = "16px monospace"; context.fillText("クリックして起動 / Open desktop", 18, 472);
   for (let y = 0; y < 480; y += 3) { context.fillStyle = "rgba(3,14,13,0.16)"; context.fillRect(0, y, 768, 1); }
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
   const w = 0.62, h = 0.36, r = 0.07;

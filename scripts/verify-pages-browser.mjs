@@ -81,7 +81,7 @@ try {
         p95FrameMs: Math.round(intervals[Math.floor(intervals.length * 0.95)] * 10) / 10 }); }
     }; requestAnimationFrame(frame);
   }));
-  await page.mouse.click(792, 477); await page.getByRole('dialog').waitFor({ state: 'visible' });
+  await page.mouse.click(792, 477); await page.locator('dialog[data-phase="desktop"]').waitFor({ state: 'visible' });
   await screenshot('desktop.png');
   for (const app of ['考察アーカイブ', '収集ニュース', 'システム']) {
     await page.getByRole('button', { name: app, exact: true }).click();

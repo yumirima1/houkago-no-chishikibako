@@ -55,9 +55,10 @@ Actions deployment the recoverable legacy settings were the source and commit
 recorded above; switching back to legacy would restore the old README site,
 not the Next.js UI. Do not reset or discard local work to roll back a deployment.
 
-The visual/weather/clock requests are deferred while establishing this public
-initial display. The requested weather location is Fukuoka City; no geolocation
-request or weather data transmission has been added in this change.
+The resumed visual/weather/clock work is described in
+[OBSERVER_UI_IMPROVEMENTS.md](OBSERVER_UI_IMPROVEMENTS.md). The user explicitly
+selected Fukuoka City. The weather request uses that configured city only, with
+no device geolocation. Local research data is still not exported by this UI build.
 
 ## Pre-deployment results
 

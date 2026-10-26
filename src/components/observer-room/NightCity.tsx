@@ -1,10 +1,11 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { RoomModel } from "./RoomAssets";
 import { trainPosition } from "./roomMotion";
+import type { NightWeather } from "@/lib/observer-weather";
 
 const BLOCKS: [string, number, number, number][] = [
   ["low-detail-building-a", -14, -23, 10], ["building-skyscraper-b", -8, -26, 15],
@@ -33,8 +34,19 @@ function Train({ reducedMotion }: { reducedMotion: boolean }) {
   </group>;
 }
 
-function CityWindows() {
+function CityWindows({ rainy }: { rainy: boolean }) {
   const instances = useRef<THREE.InstancedMesh>(null);
+  const halos = useRef<THREE.InstancedMesh>(null);
+  const glow = useMemo(() => {
+    const size = 32, pixels = new Uint8Array(size * size * 4);
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = (y * size + x) * 4, radius = Math.hypot((x + 0.5) / size * 2 - 1, (y + 0.5) / size * 2 - 1);
+      pixels[i] = pixels[i + 1] = pixels[i + 2] = 255;
+      pixels[i + 3] = Math.max(0, 1 - radius) ** 2 * 255;
+    }
+    const texture = new THREE.DataTexture(pixels, size, size); texture.needsUpdate = true; return texture;
+  }, []);
+  useEffect(() => () => glow.dispose(), [glow]);
   const windows = useMemo(() => BLOCKS.flatMap(([, x, z, height], index) =>
     Array.from({ length: Math.floor(height / 0.8) }, (_, floor) => [0, 1, 2].map((column) => ({
       visible: (floor + column + index) % 4 !== 0,
@@ -47,19 +59,28 @@ function CityWindows() {
       object.position.set(...window.position); object.updateMatrix();
       instances.current?.setMatrixAt(index, object.matrix);
       instances.current?.setColorAt(index, new THREE.Color(window.color));
+      halos.current?.setMatrixAt(index, object.matrix);
+      halos.current?.setColorAt(index, new THREE.Color(window.color));
     });
     if (instances.current) {
       instances.current.instanceMatrix.needsUpdate = true;
       if (instances.current.instanceColor) instances.current.instanceColor.needsUpdate = true;
       instances.current.computeBoundingSphere();
     }
+    if (halos.current) {
+      halos.current.instanceMatrix.needsUpdate = true;
+      if (halos.current.instanceColor) halos.current.instanceColor.needsUpdate = true;
+      halos.current.computeBoundingSphere();
+    }
   }, [windows]);
-  return <instancedMesh ref={instances} args={[undefined, undefined, windows.length]}>
+  return <group><instancedMesh ref={instances} args={[undefined, undefined, windows.length]}>
     <planeGeometry args={[0.22, 0.18]} /><meshBasicMaterial toneMapped={false} />
-  </instancedMesh>;
+  </instancedMesh><instancedMesh ref={halos} args={[undefined, undefined, windows.length]} visible={rainy}>
+    <planeGeometry args={[1.1, 0.85]} /><meshBasicMaterial map={glow} transparent opacity={0.38} depthWrite={false} toneMapped={false} />
+  </instancedMesh></group>;
 }
 
-export function NightCity({ reducedMotion }: { reducedMotion: boolean }) {
+export function NightCity({ reducedMotion, weather }: { reducedMotion: boolean; weather: NightWeather }) {
   const beacon = useRef<THREE.MeshBasicMaterial>(null);
   const litWindows = useRef<THREE.MeshBasicMaterial>(null);
   const elapsed = useRef(0);
@@ -70,11 +91,11 @@ export function NightCity({ reducedMotion }: { reducedMotion: boolean }) {
     if (litWindows.current) litWindows.current.color.setRGB(0.56 + Math.sin(elapsed.current * 0.17) * 0.06, 0.52, 0.34);
   });
   return <group name="exterior-only">
-    <mesh position={[0, 3, -40]}><planeGeometry args={[110, 65]} /><meshBasicMaterial color="#101e30" /></mesh>
-    <mesh position={[-19, 8, -39]}><circleGeometry args={[0.62, 32]} /><meshBasicMaterial color="#7d8c9b" /></mesh>
+    <mesh position={[0, 3, -40]}><planeGeometry args={[110, 65]} /><meshBasicMaterial color={weather === "rain" ? "#0b1626" : "#101e30"} /></mesh>
+    <mesh position={[-19, 8, -39]} visible={weather === "clear"}><circleGeometry args={[0.62, 32]} /><meshBasicMaterial color="#7d8c9b" /></mesh>
     {BLOCKS.map(([name, x, z, height], index) => <RoomModel key={index} position={[x, -3.8, z]} name={name} kind="city"
       size={[height > 11 ? 3 : 3.8, height, height > 11 ? 3 : 3.5]} finish="city" />)}
-    <CityWindows />
+    <CityWindows rainy={weather === "rain"} />
     <mesh position={[-14, 6.28, -23]}><sphereGeometry args={[0.075, 8, 8]} /><meshBasicMaterial ref={beacon} color="#c78069" transparent /></mesh>
     <mesh position={[-10, 0.5, -11.225]}><planeGeometry args={[1.8, 0.14]} /><meshBasicMaterial ref={litWindows} color="#b3a079" /></mesh>
     <group position={[0, 0.38, -8.2]}>

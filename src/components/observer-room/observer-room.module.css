@@ -7,6 +7,17 @@
 .keyboardEntry:focus-visible { width: auto; height: auto; clip-path: none; top: 20px; left: 20px; padding: 12px 20px; background: #d1c7ac; color: #242d2a; border: 2px solid #fff6d7; z-index: 2; }
 .monitorDialog { border: 0; padding: 0; margin: auto; width: min(1280px, 96vw); max-width: none; max-height: 97dvh; background: transparent; color: #283731; overflow: visible; font-family: "Geist Mono", "MS Gothic", monospace; }
 .monitorDialog::backdrop { background: rgb(4 11 15 / 84%); backdrop-filter: blur(5px); }
+.monitorDialog:focus { outline: none; }
+.monitorDialog[data-phase="opening"] { animation: crtArrive 950ms cubic-bezier(.2,.65,.25,1) both; }
+.monitorDialog[data-phase="opening"]::backdrop { animation: backdropArrive 950ms ease both; }
+.monitorDialog[data-phase="opening"] .desktopScreen { animation: crtPower 950ms ease both; }
+.monitorDialog[data-phase="closing"] { animation: crtLeave 600ms ease both; pointer-events: none; }
+.monitorDialog[data-phase="closing"]::backdrop { animation: backdropLeave 600ms ease both; }
+@keyframes crtArrive { 0%, 14% { opacity: 0; transform: scale(.82); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes crtPower { 0%, 20% { filter: brightness(0); } 36% { filter: brightness(.22); } 100% { filter: brightness(1); } }
+@keyframes crtLeave { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(.95); } }
+@keyframes backdropArrive { from { opacity: 0; } to { opacity: 1; } }
+@keyframes backdropLeave { from { opacity: 1; } to { opacity: 0; } }
 .computerFrame { padding: 16px 30px 7px; border: 2px solid #88816e; border-top-color: #dad1b7; border-left-color: #c7bea4; border-radius: 24px; background: linear-gradient(120deg, #c6bda3, #a9a189 75%, #8e8774); box-shadow: 0 22px 90px #000b, inset 3px 3px 12px #e6dec142, inset -5px -5px 12px #534b3440; }
 .bezelLabel, .bottomBezel { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: #494c3d; font-size: 10px; letter-spacing: 2px; }
 .bezelLabel { padding: 0 1px 12px; }
@@ -18,6 +29,7 @@
 .menuBar > button { padding: 0 4px; font-size: 20px; cursor: pointer; }
 .menuBar strong { letter-spacing: 3px; }
 .menuRight { margin-left: auto; font-size: 10px; color: #596758; }
+.menuBar time { min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; }
 .desktopBody { flex: 1; display: flex; min-height: 0; padding: 20px; gap: 24px; }
 .appDock { width: 100px; flex-shrink: 0; display: flex; flex-direction: column; gap: 18px; }
 .appDock button { display: flex; flex-direction: column; align-items: center; gap: 7px; background: transparent; cursor: pointer; color: #e3e4cf; text-shadow: 1px 1px #183b35; font-size: 11px; padding: 7px 2px; border: 1px solid transparent; }
@@ -62,6 +74,8 @@
 .systemContent { padding: 26px 30px; overflow: auto; background: #f1f0e2; font-size: 12px; }
 .systemContent h2 { font-family: serif; font-size: 23px; font-weight: 400; margin: 8px 0; }
 .systemContent h3 { font-size: 13px; margin-top: 30px; }
+.weatherStatus p { font-size: 11px; line-height: 1.9; }
+.weatherStatus a { color: #38674f; text-decoration: underline; text-underline-offset: 3px; }
 .systemGrid { display: grid; grid-template-columns: 170px 1fr; margin: 26px 0; }
 .systemGrid dt, .systemGrid dd { margin: 0; padding: 12px 0; border-bottom: 1px solid #ccd1be; font-size: 11px; overflow-wrap: anywhere; }
 .systemGrid dt { color: #6a7862; }
@@ -93,4 +107,10 @@
   .systemGrid { grid-template-columns: 125px 1fr; }
   .menuRight { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .monitorDialog::backdrop { backdrop-filter: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .monitorDialog::backdrop { backdrop-filter: none; }
+  .monitorDialog[data-phase="opening"] { animation: backdropArrive 120ms ease both; }
+  .monitorDialog[data-phase="opening"] .desktopScreen { animation: none; }
+  .monitorDialog[data-phase="closing"] { animation: backdropLeave 120ms ease both; }
+  .monitorDialog[data-phase="opening"]::backdrop, .monitorDialog[data-phase="closing"]::backdrop { animation-duration: 120ms; }
+}
