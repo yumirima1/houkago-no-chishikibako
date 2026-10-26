@@ -14,6 +14,7 @@ export type AutonomousConfig = {
   exploration: number;
   ai: {provider: 'deterministic' | 'ollama'; model: string; timeoutMs: number};
   operation?: WeeklyOperation;
+  publication?:{enabled:boolean;repository:'yumirima1/houkago-no-chishikibako';branch:string};
 };
 
 export function parseAutonomousConfig(value: unknown, base = process.cwd()): AutonomousConfig {
@@ -41,6 +42,8 @@ export function parseAutonomousConfig(value: unknown, base = process.cwd()): Aut
     throw new Error('BACKEND_CONFIG_INVALID: ai settings');
   }
   const exploration = row.exploration ?? 0.25;
+  const publication=row.publication as AutonomousConfig['publication'];
+  if(publication && (typeof publication.enabled!=='boolean'||publication.repository!=='yumirima1/houkago-no-chishikibako'||!/^[-\w/]+$/.test(publication.branch)))throw Error('BACKEND_CONFIG_INVALID: publication');
   if (typeof exploration !== 'number' || exploration < 0 || exploration > 1) throw new Error('BACKEND_CONFIG_INVALID: exploration');
   return {
     dataDirectory: resolve('dataDirectory', process.platform === 'win32' ? 'D:/AI/KousatsuData' : './data/kousatsu'),
@@ -50,6 +53,7 @@ export function parseAutonomousConfig(value: unknown, base = process.cwd()): Aut
     minFreeMiB: integer('minFreeMiB',1024,1,102400), maxKnowledgeFiles: integer('maxKnowledgeFiles',50000,1,1000000),
     exploration, ai:{provider,model: String(ai.model ?? 'rules-v1'),timeoutMs},
     ...(row.operation===undefined ? {} : {operation:parseWeeklyOperation(row.operation)}),
+    ...(publication?{publication}:{}),
   };
 }
 

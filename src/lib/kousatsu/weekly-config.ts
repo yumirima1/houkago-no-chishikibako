@@ -1,6 +1,6 @@
 export const weeklyGenres=['ai','pc','economy','world','science','culture','environment'] as const;
 export type WeeklyGenre=typeof weeklyGenres[number];
-export type WeeklyOperation={id:string;startsAt:string;endsAt:string;dailyAt:string;intervalDays:number;maxArticles:number;genres:WeeklyGenre[]};
+export type WeeklyOperation={id:string;startsAt:string;endsAt:string;dailyAt:string;runTimes?:string[];intervalDays:number;maxArticles:number;genres:WeeklyGenre[]};
 const dayMs=86400000,offset=9*3600000;
 export function parseWeeklyOperation(value:unknown):WeeklyOperation {
   const v=value as Record<string,unknown>;
@@ -11,13 +11,24 @@ export function parseWeeklyOperation(value:unknown):WeeklyOperation {
   const dailyAt=v.dailyAt??new Date(start+offset).toISOString().slice(11,16),intervalDays=v.intervalDays??1,maxArticles=v.maxArticles??3;
   if(typeof dailyAt!=='string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(dailyAt) || !Number.isInteger(intervalDays) || Number(intervalDays)<1 || Number(intervalDays)>7 || !Number.isInteger(maxArticles) || Number(maxArticles)<1 || Number(maxArticles)>3)throw Error('WEEKLY_CONFIG_INVALID: schedule/limit');
   if(!Array.isArray(v.genres) || !v.genres.length || v.genres.some(g=>!weeklyGenres.includes(g as WeeklyGenre)) || new Set(v.genres).size!==v.genres.length)throw Error('WEEKLY_CONFIG_INVALID: genres');
-  const op={id:v.id,startsAt:new Date(start).toISOString(),endsAt:new Date(end).toISOString(),dailyAt,intervalDays:Number(intervalDays),maxArticles:Number(maxArticles),genres:v.genres as WeeklyGenre[]};
+  const runTimes=v.runTimes;
+  if(runTimes!==undefined && (!Array.isArray(runTimes) || runTimes.length<1 || runTimes.length>3 || !runTimes.includes('18:00') || new Set(runTimes).size!==runTimes.length || runTimes.some(t=>typeof t!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(t))))throw Error('WEEKLY_CONFIG_INVALID: 1..3 distinct times including 18:00');
+  const op={id:v.id,startsAt:new Date(start).toISOString(),endsAt:new Date(end).toISOString(),dailyAt,...(runTimes?{runTimes:[...runTimes].sort()}:{}),intervalDays:Number(intervalDays),maxArticles:Number(maxArticles),genres:v.genres as WeeklyGenre[]};
   if(!weeklySlots(op).length)throw Error('WEEKLY_CONFIG_INVALID: no run inside window');
   return op;
 }
 export function weeklySlots(op:WeeklyOperation) {
   const slots:Array<{day:string;dueAt:string}>=[];
   const start=Date.parse(op.startsAt),end=Date.parse(op.endsAt),date=new Date(start+offset).toISOString().slice(0,10);
+  if(op.runTimes){
+    const first=Date.parse(`${date}T00:00:00+09:00`);
+    // Recover the most recent slot on first startup, recording its actual late start.
+    const latestPast=op.runTimes.map(t=>Date.parse(`${date}T${t}:00+09:00`)).filter(d=>d<=start).at(-1);
+    for(let d=first;d<end;d+=op.intervalDays*dayMs)for(const t of op.runTimes){
+      const day=new Date(d+offset).toISOString().slice(0,10),due=Date.parse(`${day}T${t}:00+09:00`);
+      if(due<end && (due>=start || due===latestPast))slots.push({day:`${day}@${t}`,dueAt:new Date(due).toISOString()});
+    }return slots;
+  }
   let due=Date.parse(`${date}T${op.dailyAt}:00+09:00`);
   if(due<start)due+=dayMs;
   for(;due<end;due+=op.intervalDays*dayMs)slots.push({day:new Date(due+offset).toISOString().slice(0,10),dueAt:new Date(due).toISOString()});

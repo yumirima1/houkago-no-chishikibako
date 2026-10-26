@@ -271,8 +271,8 @@ export class KousatsuPipeline {
       if (!collection && job.input.articleRef) {
         collection=commit(()=>{
           const ref=job.input.articleRef!;
-          const item=this.database.getItemVersion(ref.versionId);
-          if(!item || item.id!==ref.itemId || this.database.getItem(item.id)?.versionId!==ref.versionId ||
+          const archived=this.database.getItemVersion(ref.versionId),item=this.database.getItem(ref.itemId);
+          if(!item || !archived || archived.id!==ref.itemId || item.versionId!==ref.versionId || digest(documentIdentity(item))!==digest(documentIdentity(archived)) ||
             !this.database.listItemSources(item.id,{includeHistorical:true}).some(s=>s.sourceId===job.input.source.id && s.versionId===ref.versionId)) {
             throw new Error('CHECKPOINT_ARTICLE_REFERENCE_MISMATCH');
           }

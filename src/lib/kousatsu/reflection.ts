@@ -10,6 +10,30 @@ const hasStance=(value:string)=>/私は|私の|したい|重視|優先|鍵|核�
 /** These are analytical lenses, not extra source facts. Every lens supplies an
  * answer and a competing mechanism that could change the answer. */
 function contextualView(basis:string) {
+  if(/\bresearch ideas?\b|\bliterature\b|\b(?:language model|llm|agentic)\b|人工知能|研究アイデア|文献/i.test(basis))return {
+    issue:'文献に沿った案を作ることと、従来の枠を超える問いを作ることをどう両立するか。',
+    position:'私は、文献への接続を採否の判定に使う前に、案の前提を洗い出す道具として使いたい。既存研究と整合する案だけを残すと、未開拓の問いまで失う可能性がある。',
+    reasoning:'文献との対応が明瞭になることは、発想そのものの新規性や実験での有効性とは別の評価軸だ。そこで、根拠を辿れるかと、どの前提を変えた案なのかを分けて比較するのが有用だと考える。',
+    alternative:'一方、文献から離れた案の多くが既知の限界を見落としているなら、まず既存研究との整合性を優先する方が研究資源を節約できる。',
+    revisionCondition:'発案方法を伏せた比較で、文献への接続を優先した案が新規性と実行可能性の両方でも優れるなら、前提の探索を優先する見解を弱める。',
+    assumptions:['文献との整合性と発想の新規性は一致するとは限らない、という分析上の仮定を置いた。'],
+  };
+  if(/\b(windows|heic|webp|software|laptop|hardware|gadget)\b|ソフトウェア|アプリ|ハードウェア/i.test(basis))return {
+    issue:'機能が増える価値を、普段の操作の速さや互換性とどう比較するか。',
+    position:'私は機能の数より、既存のファイルと日常の作業を無理なく引き継げるかを優先したい。新機能を使わない場面でも負担が増えないことが、更新を続ける条件になると考える。',
+    reasoning:'追加機能が特定の利用場面に役立つことと、起動・保存・移行を含む作業全体が改善することは別だ。対応範囲と操作上の負担を分けて比べると、更新を選ぶ理由を具体的に評価できる。',
+    alternative:'一方、従来の方法では扱えない形式や作業が主要な制約なら、多少の操作負担より新機能への対応を優先する説明が成り立つ。',
+    revisionCondition:'実際の主要作業で、追加機能による便益が移行や待ち時間の負担を継続して上回るなら、互換性と負担の少なさを優先する見解を修正する。',
+    assumptions:['利用頻度の高い作業と例外的な作業では、機能追加の価値が異なると仮定した。'],
+  };
+  if(/\b(federal reserve|banks?|bancshares|enforcement|financial)\b|金融|銀行|規制/i.test(basis))return {
+    issue:'個別の監督措置の終了から、どこまで金融機関や制度全体を評価してよいか。',
+    position:'私は個別措置の終了を、規制全体の緩和や健全性の証明へ直結させず、その措置で求められた条件の充足としてまず評価したい。次の判断には、終了理由と終了後のリスク指標の対応を重視する。',
+    reasoning:'措置の終了という行政上の判断と、将来の損失や運営上の安定は異なる対象だ。終了の事実だけで両者を同一視すると、是正の達成と監督方針の変化を取り違える可能性がある。',
+    alternative:'ただし複数の金融機関で条件が変わらないまま措置の終了が続くなら、個別の是正より監督方針の変更が主な説明となる可能性がある。',
+    revisionCondition:'終了理由の資料と同時期の比較対象が揃い、個別の是正では説明しにくい共通の判断変更が確認されれば、個別事例として扱う見解を修正する。',
+    assumptions:['個別の行政措置と制度全体の方針は区別して検討できると仮定した。'],
+  };
   if(/\b(engine|rocket|flight|stennis|artemis)\b|エンジン|地上試験/i.test(basis))return {
     issue:'試験で得た手応えを、どこまで次の設計・運用判断へ移してよいか。',
     position:'私は試験の価値を、成功という一語より、次に変える設計条件を絞れるかで評価したい。条件を限定した試験でも、次の不確実性を減らすなら意味がある。',
@@ -26,7 +50,7 @@ function contextualView(basis:string) {
     revisionCondition:'調整を改善した区間でも総待機時間が変わらず、能力を増やした区間だけ改善するなら、調整を優先する見解を修正する。待機の地域間移動も含めて比較したい。',
     assumptions:['調整の遅れが待機の一因だと仮定した。取得できた範囲で原因や施策の効果を実証したわけではない。'],
   };
-  if(/\b(tv|television|film|adaptation|novel|cinema|eden|steinbeck)\b|原作|映像|小説|映画/i.test(basis))return {
+  if(/\b(tv|television|film|cinema|eden|steinbeck)\b|\b(?:the|a) novel\b|\bnovel (?:by|adaptation)\b|原作|映像|小説|映画/i.test(basis))return {
     issue:'作品が別の媒体へ移るとき、何を保ち、何を変えることに価値があるか。',
     position:'私は、保存と再解釈は相互補完になり得ると考える。映像化の評価では原作への忠実さだけでなく、どの視点を選び直したかを重視したい。',
     reasoning:'保存された作品と新しい媒体での受容を並べると、作品を残すことと、読者・視聴者がその作品へ入り直すことは別の役割だと考えられる。同じ内容の複製よりも、媒体による視点の差を読む余地に意味を見いだす。',

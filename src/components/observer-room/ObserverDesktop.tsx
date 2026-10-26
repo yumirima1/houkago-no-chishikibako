@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import type { ResearchNote } from "@/lib/kousatsu/runtime-types";
 import type { ObserverDesktopSnapshot } from "./desktopTypes";
 import styles from "./observer-room.module.css";
+import { DesktopClock } from "./DesktopClock";
+import { WeatherStatus } from "./WeatherStatus";
+import type { RoomWeather } from "@/lib/observer-weather";
+import {snapshotUrl,noteUrl,downloadUrl,staticResearch,genreName} from './observerTransport';
 
 type App = "archive" | "news" | "system";
 const APPS: { id: App; name: string; icon: string; subtitle: string }[] = [
@@ -24,8 +28,9 @@ function apiMessage(status: number) {
     : "保存データを読み込めませんでした。時間をおいて再読込してください。";
 }
 
-export function ObserverDesktop({ onClose }: { onClose: () => void }) {
+export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => void; phase: "opening" | "desktop" | "closing"; weather: RoomWeather }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const returnButton = useRef<HTMLButtonElement>(null);
   const [app, setApp] = useState<App | null>(null);
   const [snapshot, setSnapshot] = useState<ObserverDesktopSnapshot | null>(null);
   const [error, setError] = useState("");
@@ -45,7 +50,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
   }, []);
   useEffect(() => {
     const controller = new AbortController();
-    fetch("/api/observer-room", { cache: "no-store", signal: controller.signal })
+    fetch(snapshotUrl(), { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(apiMessage(response.status));
         const result: ObserverDesktopSnapshot = await response.json();
@@ -58,7 +63,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     if (!noteId) return;
     const controller = new AbortController();
-    fetch(`/api/observer-room?note=${encodeURIComponent(noteId)}`, { cache: "no-store", signal: controller.signal })
+    fetch(noteUrl(noteId), { cache: "no-store", signal: controller.signal })
       .then(async (response) => {
         if (!response.ok) throw new Error(response.status === 404 ? "この考察が見つかりません。アーカイブを再読込してください。" : apiMessage(response.status));
         const result: ResearchNote = await response.json();
@@ -69,6 +74,8 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
     return () => controller.abort();
   }, [noteId, noteAttempt]);
   useEffect(() => { if (app) appHeading.current?.focus({ preventScroll: true }); }, [app]);
+  useEffect(() => { if (phase === "desktop") returnButton.current?.focus({ preventScroll: true }); }, [phase]);
+  useEffect(()=>{const timer=setInterval(()=>setRevision(v=>v+1),60000);return()=>clearInterval(timer);},[]);
 
   const notes = snapshot?.notes.filter((item) => item.title.toLocaleLowerCase().includes(query.toLocaleLowerCase())) ?? [];
   const news = snapshot?.news.filter((item) => `${item.title} ${item.source}`.toLocaleLowerCase().includes(query.toLocaleLowerCase())) ?? [];
@@ -76,14 +83,14 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
   function openApp(next: App) { setApp(next); setQuery(""); }
   function reload() { setSnapshot(null); setError(""); setNoteId(null); setNote(null); setNewsId(null); setRevision((value) => value + 1); }
 
-  return <dialog ref={dialog} className={styles.monitorDialog} aria-labelledby="desktop-name"
+  return <dialog ref={dialog} className={styles.monitorDialog} data-phase={phase} aria-labelledby="desktop-name" aria-busy={phase !== "desktop"}
     onCancel={(event) => { event.preventDefault(); onClose(); }}>
-    <div className={styles.computerFrame}>
-      <div className={styles.bezelLabel}><span>KOUSATSU / PERSONAL ARCHIVE</span><button type="button" className={styles.leave} onClick={onClose} autoFocus aria-label="モニターを閉じて部屋に戻る">部屋に戻る <kbd>Esc</kbd></button></div>
+    <div className={styles.computerFrame} inert={phase !== "desktop"}>
+      <div className={styles.bezelLabel}><span>KOUSATSU / PERSONAL ARCHIVE</span><button ref={returnButton} type="button" className={styles.leave} onClick={onClose} autoFocus aria-label="モニターを閉じて部屋に戻る">部屋に戻る <kbd>Esc</kbd></button></div>
       <div className={styles.desktopScreen}>
         <header className={styles.menuBar}>
           <button type="button" onClick={() => { setApp(null); setQuery(""); }} aria-label="デスクトップに戻る">▧</button>
-          <strong id="desktop-name">考察箱</strong><span>Observer OS</span><span className={styles.menuRight}>LOCAL ARCHIVE</span>
+          <strong id="desktop-name">考察箱</strong><span>Observer OS</span><span className={styles.menuRight}>LOCAL ARCHIVE</span><DesktopClock />
         </header>
         <div className={styles.desktopBody}>
           <nav className={styles.appDock} aria-label="端末のアプリ">
@@ -103,7 +110,7 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
                 <div className={styles.recordList} aria-label="考察一覧">
                   <p className={styles.listCaption}>最新 {snapshot.notes.length} 件から表示</p>
                   {notes.length ? notes.map((item) => <button type="button" key={item.id} onClick={() => { setNoteId(item.id); setNoteError(null); }} aria-pressed={noteId === item.id}>
-                    <small>{date(item.createdAt)}</small><strong>{item.title}</strong><span>{item.status} · {item.published ? "保存先あり" : "DB内の記録"}</span>
+                    <small>{date(item.createdAt)} {genreName(item.genre)}</small><strong>{item.title}</strong><span>{item.status} · {item.published ? "保存先あり" : "DB内の記録"}</span>
                   </button>) : <p className={styles.empty}>{query ? "一致する考察はありません。" : "保存された考察はまだありません。"}</p>}
                 </div>
                 <article className={styles.reader} aria-label="考察本文" aria-live="polite">
@@ -113,13 +120,13 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
                     : <><p className={styles.documentNotice}>生成された考察です。出典の主張と見解を区別してお読みください。独立した事実確認は未実施です。</p><h2>{note.title}</h2>
                       {note.artifact === "conflict" && <p className={styles.documentNotice}>保存先に編集された内容があります。この画面ではDB内の記録を表示し、保存先を変更しません。</p>}
                       <pre className={styles.markdown} tabIndex={0}>{note.markdown}</pre>
-                      <a href={`/api/observer-room?note=${encodeURIComponent(note.id)}&download=1`} download>Markdownをダウンロード ↓</a></>}
+                      <a href={downloadUrl(note.id)} download>Markdownをダウンロード ↓</a></>}
                 </article>
               </div> : app === "news" ? <div className={styles.splitPane}>
                 <div className={styles.recordList} aria-label="収集ニュース一覧">
                   <p className={styles.listCaption}>収集済みの最新 {snapshot.news.length} 件</p>
                   {news.length ? news.map((item) => <button type="button" key={item.id} onClick={() => setNewsId(item.id)} aria-pressed={newsId === item.id}>
-                    <small>{item.source} · {date(item.publishedAt)}</small><strong>{item.title}</strong>
+                    <small>{item.source} · {genreName(item.genre)} · {date(item.publishedAt)}</small><strong>{item.title}</strong>
                   </button>) : <p className={styles.empty}>{query ? "一致する記事はありません。" : "収集済みの記事はありません。"}</p>}
                 </div>
                 <article className={styles.reader} aria-label="収集ニュース本文">
@@ -131,16 +138,18 @@ export function ObserverDesktop({ onClose }: { onClose: () => void }) {
                     : <div className={styles.readerWelcome}><span aria-hidden="true">▥</span><h2>世界から届いた記録。</h2><p>一覧から収集済みの記事を選んでください。</p></div>}
                 </article>
               </div> : <div className={styles.systemContent}>
-                <p className={styles.eyebrow}>SYSTEM INFORMATION</p><h2>ローカル調査の状態</h2><p className={styles.metadata}>取得日時 {date(snapshot.system.readAt)}</p>
+                <WeatherStatus weather={weather} />
+                <p className={styles.eyebrow}>SYSTEM INFORMATION</p><h2>{staticResearch?'公開された考察の状態':'ローカル調査の状態'}</h2><p className={styles.metadata}>{staticResearch?'最終更新':'取得日時'} {date(snapshot.system.readAt)}{staticResearch?'（公開データの記録時点）':''}</p>
                 <dl className={styles.systemGrid}>
                   <dt>保存データ</dt><dd>{snapshot.initialized ? "既存のデータベースに接続" : "データベースは未初期化"}</dd>
-                  <dt>バックグラウンド監視</dt><dd>{snapshot.system.supervisorActive ? "監視プロセスの応答あり" : "現在の応答を確認できません"}</dd>
+                  <dt>{staticResearch?'公開方法':'バックグラウンド監視'}</dt><dd>{staticResearch?'ローカルで生成した考察を静的配信':snapshot.system.supervisorActive ? "監視プロセスの応答あり" : "現在の応答を確認できません"}</dd>
                   <dt>調査ジョブ</dt><dd>{snapshot.worker.active ? "処理中" : "処理中のジョブなし"}</dd>
                   <dt>最終ワーカー応答</dt><dd>{date(snapshot.worker.lastSeenAt)}</dd>
                   <dt>巡回の確認間隔</dt><dd>{snapshot.system.pollSeconds} 秒</dd>
                   <dt>1サイクルの上限</dt><dd>{snapshot.system.maxJobsPerCycle} ジョブ</dd>
                   <dt>生成方式 / モデル</dt><dd>{snapshot.system.provider} / {snapshot.system.model}</dd>
                   <dt>端末のアクセス</dt><dd>読み取り専用</dd>
+                  {snapshot.operation&&<><dt>実行時刻（日本時間）</dt><dd>{snapshot.operation.operation.runTimes?.join(' / ')}</dd><dt>次回の実行枠</dt><dd>{date(snapshot.operation.nextRunAt)}</dd><dt>直近の実行開始</dt><dd>{date(snapshot.operation.lastRunAt)}</dd><dt>自動運用の終了</dt><dd>{date(snapshot.operation.operation.endsAt)}</dd></>}
                 </dl>
                 <h3>設定された出典</h3><ul className={styles.sources}>{snapshot.sources.map((source) => <li key={source.id}><strong>{source.name}</strong><span>{source.enabled ? "収集対象" : "無効"} · {source.intervalMinutes} 分間隔</span></li>)}</ul>
                 {!snapshot.sources.length && <p>出典は設定されていません。</p>}

@@ -4,6 +4,7 @@ import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { clipCRTFront } from "./crtGeometry";
+import { siteAsset } from "@/lib/site-url";
 
 type ModelProps = {
   name: string;
@@ -19,7 +20,7 @@ type ModelProps = {
 
 /** Clone materials only; cached GLB geometry and embedded textures stay shared. */
 export function RoomModel({ name, kind = "furniture", position, rotation, size, height, finish, wood, rearCut }: ModelProps) {
-  const { scene } = useGLTF(`/assets/observer-room/${kind}/${name}.glb`);
+  const { scene } = useGLTF(siteAsset(`/assets/observer-room/${kind}/${name}.glb`));
   const width = size?.[0], modelHeight = size?.[1], depth = size?.[2];
   const prepared = useMemo(() => {
     const object = scene.clone(true);

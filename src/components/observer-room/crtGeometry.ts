@@ -55,7 +55,7 @@ export function clipCRTFront(source: THREE.BufferGeometry, cutoffZ: number) {
   type Vertex = { p: THREE.Vector3; n: THREE.Vector3; uv: THREE.Vector2 };
   const vertex = (i: number): Vertex => ({ p: new THREE.Vector3().fromBufferAttribute(positions, i),
     n: normals ? new THREE.Vector3().fromBufferAttribute(normals, i) : new THREE.Vector3(0, 0, 1),
-    uv: uv ? new THREE.Vector2().fromBufferAttribute(uv, i) : new THREE.Vector2() });
+    uv: uv ? new THREE.Vector2(uv.getX(i), uv.getY(i)) : new THREE.Vector2() });
   for (let i = 0; i < count; i += 3) {
     const triangle = [0, 1, 2].map((j) => vertex(index ? index.getX(i + j) : i + j));
     const clipped: Vertex[] = [];

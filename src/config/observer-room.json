@@ -1,0 +1,9 @@
+{
+  "weather": {
+    "city": "福岡市",
+    "latitude": 33.6,
+    "longitude": 130.41667,
+    "defaultMode": "clear",
+    "refreshMinutes": 15
+  }
+}

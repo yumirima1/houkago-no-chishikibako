@@ -1,12 +1,41 @@
 {
   "dataDirectory": "D:/AI/KousatsuData",
-  "sourcesPath": "config/kousatsu-autonomous-sources.json",
-  "pollSeconds": 30,
-  "maxJobsPerCycle": 6,
-  "maxJobsPerDay": 100,
+  "sourcesPath": "config/kousatsu-week-sources.json",
+  "pollSeconds": 60,
+  "maxJobsPerCycle": 3,
+  "maxJobsPerDay": 3,
   "maxDatabaseMiB": 1024,
   "minFreeMiB": 1024,
   "maxKnowledgeFiles": 50000,
   "exploration": 0.25,
-  "ai": {"provider": "ollama", "model": "qwen2.5-coder:1.5b", "timeoutMs": 60000}
+  "ai": {
+    "provider": "ollama",
+    "model": "qwen3:4b-q4_K_M",
+    "timeoutMs": 180000
+  },
+  "operation": {
+    "id": "week-20261026",
+    "startsAt": "2026-10-26T11:56:19.622Z",
+    "endsAt": "2026-11-02T11:56:19.622Z",
+    "runTimes": [
+      "06:00",
+      "18:00",
+      "22:00"
+    ],
+    "maxArticles": 1,
+    "genres": [
+      "ai",
+      "pc",
+      "economy",
+      "world",
+      "science",
+      "culture",
+      "environment"
+    ]
+  },
+  "publication": {
+    "enabled": false,
+    "repository": "yumirima1/houkago-no-chishikibako",
+    "branch": "main"
+  }
 }

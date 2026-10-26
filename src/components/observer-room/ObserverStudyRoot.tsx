@@ -1,8 +1,9 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Component, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Component, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ObserverDesktop } from "./ObserverDesktop";
+import { useRoomWeather } from "./useRoomWeather";
 import styles from "./observer-room.module.css";
 
 const ObserverStudyScene = dynamic(() => import("./ObserverStudyScene").then((module) => module.ObserverStudyScene), {
@@ -32,22 +33,38 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 export function ObserverStudyRoot() {
-  const [open, setOpen] = useState(false);
+  const [phase, setPhase] = useState<"room" | "opening" | "desktop" | "closing">("room");
+  const phaseRef = useRef(phase);
   const monitorButton = useRef<HTMLButtonElement>(null);
+  const weather = useRoomWeather();
   const webGL = useSyncExternalStore(subscribeClient, webGLSupport, () => null);
   const reducedMotion = useSyncExternalStore(subscribeMotion, () => window.matchMedia("(prefers-reduced-motion: reduce)").matches, () => false);
-  const fallback = <div className={styles.unavailable}><p>この環境では3Dの部屋を表示できません。</p><button type="button" onClick={() => setOpen(true)}>端末を開く</button><button type="button" onClick={() => window.location.reload()}>再試行</button></div>;
-  function close() {
-    setOpen(false);
-    requestAnimationFrame(() => monitorButton.current?.focus({ preventScroll: true }));
+  useEffect(() => {
+    if (phase !== "opening" && phase !== "closing") return;
+    const timer = setTimeout(() => {
+      const next = phase === "opening" ? "desktop" : "room";
+      phaseRef.current = next; setPhase(next);
+      if (next === "room") monitorButton.current?.focus({ preventScroll: true });
+    }, reducedMotion ? 120 : phase === "opening" ? 950 : 600);
+    return () => clearTimeout(timer);
+  }, [phase, reducedMotion]);
+  function open() {
+    if (phaseRef.current !== "room") return;
+    phaseRef.current = "opening"; setPhase("opening");
   }
-  return <div className={styles.room}>
-    <div inert={open} className={styles.scene}>
+  function close() {
+    if (phaseRef.current !== "desktop") return;
+    phaseRef.current = "closing"; setPhase("closing");
+  }
+  const openDesktop = phase !== "room";
+  const fallback = <div className={styles.unavailable}><p>この環境では3Dの部屋を表示できません。</p><button type="button" onClick={open}>端末を開く</button><button type="button" onClick={() => window.location.reload()}>再試行</button></div>;
+  return <div className={styles.room} data-phase={phase} data-weather={weather.mode} data-weather-status={weather.status}>
+    <div inert={openDesktop} className={styles.scene}>
       {webGL === null ? <RoomLoading /> : webGL ? <SceneBoundary fallback={fallback}>
-        <ObserverStudyScene onOpen={() => setOpen(true)} interactive={!open} reducedMotion={reducedMotion} />
+        <ObserverStudyScene onOpen={open} interactive={!openDesktop} focused={phase === "opening" || phase === "desktop"} reducedMotion={reducedMotion} weather={weather.mode} />
       </SceneBoundary> : fallback}
-      <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={() => setOpen(true)} aria-haspopup="dialog">CRTモニターを開く</button>
+      <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={open} aria-haspopup="dialog">CRTモニターを開く</button>
     </div>
-    {open && <ObserverDesktop onClose={close} />}
+    {openDesktop && <ObserverDesktop onClose={close} phase={phase} weather={weather} />}
   </div>;
 }

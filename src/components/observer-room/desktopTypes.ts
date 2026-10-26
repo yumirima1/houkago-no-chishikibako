@@ -1,6 +1,7 @@
 import type { ResearchSnapshot } from "@/lib/kousatsu/runtime-types";
 
 export type CollectedNews = {
+  genre?: string;
   id: string;
   title: string;
   source: string;
@@ -13,6 +14,7 @@ export type CollectedNews = {
 };
 
 export type ObserverDesktopSnapshot = ResearchSnapshot & {
+  operation?: {state:string;nextRunAt:string|null;lastRunAt:string|null;operation:{startsAt:string;endsAt:string;runTimes?:string[]}} | null;
   news: CollectedNews[];
   system: {
     readAt: string;

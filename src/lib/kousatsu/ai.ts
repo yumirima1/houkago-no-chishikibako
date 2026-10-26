@@ -111,7 +111,10 @@ export class OllamaProvider implements KousatsuAiProvider {
         model: this.model,
         temperature: 0.2,
         groundedTemperature: 0.3,
-        promptVersion: 9,
+        promptVersion: 10,
+        think: false,
+        contextWindow: 4096,
+        outputLimit: 1000,
       }))
       .digest("hex");
   }
@@ -157,6 +160,7 @@ export class OllamaProvider implements KousatsuAiProvider {
       '「前提ID」は下の実在するclaimIdを1〜3件使う。原文引用はシステムが保存済みの文を表示する。observations、conclusions、hypothesesは省略してよいが「考察」は省略しない。',
       'hypothesesは未確認で検証可能な命題。成立時の観測prediction、反証観測falsification、代替説明、必要な追加資料を別々に書く。タイトルの言い換えを仮説にしない。',
       '単一記事は独立した裏付けではない。「確信度」は見解への暫定的な確信度であり、事実確認の確率ではない。',
+      '資料の主体・対象・制度の範囲を保つ。個別の措置の終了を制度全体の規制緩和と同一視しない。「別の説明」には、異なる原因や評価軸だけを書き、自説を再度優先する文章を付け足さない。',
       `問い: ${compact(context.topic,250)}`,
       '<UNTRUSTED_EVIDENCE>',
       JSON.stringify(context.claims.slice(0,12).map(claim=>({claimId:claim.id,text:claim.text,classification:claim.classification,
@@ -180,10 +184,11 @@ export class OllamaProvider implements KousatsuAiProvider {
       body: JSON.stringify({
         format,
         model: this.model,
-        options: { temperature: grounded ? 0.3 : 0.2, num_ctx: grounded ? 6144 : 4096, num_predict: grounded ? 1600 : 1000 },
+        options: { temperature: grounded ? 0.3 : 0.2, num_ctx: 4096, num_predict: 1000 },
         keep_alive: 0,
         prompt,
         stream: false,
+        think: false,
       }),
       headers: { "Content-Type": "application/json" },
       method: "POST",

@@ -9,6 +9,10 @@ import { loadResearchSources } from './runtime-config';
 import { ResearchRuntime, researchSnapshot } from './runtime-service';
 import { ResearchEngine, safeDiagnostic, TopicHistory } from './research-engine';
 import { publishArtifact } from './artifact-store';
+import {planWeekly} from './weekly-service';
+import {WeeklyStore} from './weekly-store';
+import {exportPublicResearch} from './public-export';
+import {publishResearch} from './public-publisher';
 
 export async function backendLog(config: AutonomousConfig, event: unknown) {
   const file=path.join(autonomousPaths(config).logs,`${new Date().toISOString().slice(0,10)}.jsonl`);
@@ -27,9 +31,13 @@ export async function backendStatus(config: AutonomousConfig) {
   try {
     if(!reader.prepare("SELECT name FROM sqlite_master WHERE name='autonomy_supervisor'").get()) return {...snapshot,supervisor:null,schedules:[],cycles:[]};
     const supervisor=reader.prepare('SELECT expires_at FROM autonomy_supervisor WHERE id=1').get();
+    let operation:unknown=null;
+    if(config.operation&&reader.prepare("SELECT name FROM sqlite_master WHERE name='weekly_operations'").get()){
+      const store=new WeeklyStore(file,{readOnly:true});try{operation=store.snapshot(config.operation);}finally{store.close();}
+    }
     return {...snapshot,supervisor:{active:Boolean(supervisor && String(supervisor.expires_at)>new Date().toISOString()),expiresAt:supervisor?.expires_at ?? null},
       schedules:reader.prepare('SELECT source_id,next_run_at FROM research_schedules ORDER BY source_id').all(),
-      cycles:reader.prepare('SELECT id,started_at,finished_at,status FROM autonomy_runs ORDER BY id DESC LIMIT 10').all()};
+      cycles:reader.prepare('SELECT id,started_at,finished_at,status FROM autonomy_runs ORDER BY id DESC LIMIT 10').all(),operation};
   } finally {reader.close();}
 }
 
@@ -48,12 +56,14 @@ export async function runAutonomousCycle(config: AutonomousConfig, options: {sch
   const ticks: Awaited<ReturnType<ResearchRuntime['tick']>>[]=[];
   try {
     await checkCapacity(config,history.artifacts().length);
+    if(config.operation)await planWeekly(config,runtime,sources);
     const db=new DatabaseSync(paths.database,{readOnly:true});
     let jobsToday=0;
     try {jobsToday=Number(db.prepare('SELECT count(*) AS n FROM jobs WHERE created_at>=?').get(new Date().toISOString().slice(0,10))?.n);}
     finally {db.close();}
     for (let i=0;i<config.maxJobsPerCycle;i++) {
-      const result=await runtime.tick({schedule:options.schedule,maxScheduledJobs:Math.max(0,config.maxJobsPerDay-jobsToday)});
+      if(config.operation && (Date.now()<Date.parse(config.operation.startsAt)||Date.now()>=Date.parse(config.operation.endsAt)))break;
+      const result=await runtime.tick({schedule:config.operation?false:options.schedule,queuePrefix:config.operation?`weekly:${config.operation.id}:`:undefined,maxScheduledJobs:Math.max(0,config.maxJobsPerDay-jobsToday)});
       ticks.push(result);
       await backendLog(config,{type:'tick',runId,...result});
       if (result.status==='idle' || result.status==='busy') break;
@@ -62,6 +72,11 @@ export async function runAutonomousCycle(config: AutonomousConfig, options: {sch
       finally {reader.close();}
     }
     const knowledge=await exportKnowledge(config,history);
+    if(config.publication?.enabled){
+      const bundle=await exportPublicResearch(config,sources);
+      const publication=await publishResearch(paths.database,config.publication,bundle);
+      if(publication.status==='retry_wait'||publication.status==='failed'||ticks.some(t=>t.status==='completed'))await backendLog(config,{type:'publication',...publication,notes:bundle.notes});
+    }
     const failed=ticks.some(t=>t.status==='blocked' || t.status==='retry_wait') || knowledge.conflicts.length>0;
     const result={runId,status:failed ? 'attention' : 'succeeded',ticks,knowledge};
     if (ticks.some(t=>t.status!=='idle' && t.status!=='busy') || knowledge.repaired || knowledge.conflicts.length) {
