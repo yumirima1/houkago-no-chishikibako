@@ -2,7 +2,7 @@ name: Deploy Observer Room to GitHub Pages
 
 on:
   push:
-    branches: [main, fix/github-pages-observer-room]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -42,6 +42,8 @@ jobs:
           npm run test:kousatsu
       - run: npm run build:pages
       - run: node scripts/verify-pages-artifact.mjs
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:pages
       - uses: actions/upload-pages-artifact@v4
         with:
           path: out
@@ -58,3 +60,25 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+  verify-public:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Verify the deployed archive
+        env:
+          PAGES_TEST_URL: https://yumirima1.github.io/houkago-no-chishikibako/
+        run: npm run test:pages
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: research-browser
+          path: |
+            tmp/research-browser
+            tmp/research-browser-report

@@ -1,0 +1,73 @@
+import {DatabaseSync} from 'node:sqlite';
+import {mkdir,writeFile,rename,readFile} from 'node:fs/promises';
+import path from 'node:path';
+import {createHash} from 'node:crypto';
+import {autonomousPaths,type AutonomousConfig} from './autonomous-config';
+import type {AnalysisResult,StoredItem} from './types';
+import type {ResearchSource} from './runtime-types';
+import {WeeklyStore} from './weekly-store';
+const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
+const line=(s:string)=>s.replace(/[\r\n]/g,' ').slice(0,2000);
+const excerpt=(s:string)=>s.trim().split(/\s+/).slice(0,20).join(' ').slice(0,180);
+export async function exportPublicResearch(config:AutonomousConfig,sources:ResearchSource[]){
+  const file=autonomousPaths(config).database,db=new DatabaseSync(file);
+  db.exec(`PRAGMA busy_timeout=5000;CREATE TABLE IF NOT EXISTS public_documents(article_id TEXT PRIMARY KEY,payload_json TEXT NOT NULL,news_json TEXT NOT NULL,created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER NOT NULL,next_at TEXT NOT NULL,status TEXT NOT NULL,error TEXT,commit_sha TEXT);`);
+  try{
+    const rows=db.prepare(`SELECT a.id,a.job_id,a.title,a.created_at,a.provider,a.model,c.data_json,s.data_json selected_json,v.data_json verification_json,j.input_json
+      FROM articles a JOIN jobs j ON j.id=a.job_id JOIN checkpoints c ON c.job_id=a.job_id AND c.stage='analyze'
+      JOIN checkpoints s ON s.job_id=a.job_id AND s.stage='selected-items' JOIN checkpoints v ON v.job_id=a.job_id AND v.stage='verify'
+      WHERE j.status IN ('succeeded','needs_review') ORDER BY a.created_at DESC LIMIT 100`).all();
+    // Freeze public projections. Model changes never rewrite already published views.
+    for(const row of rows){
+      if(db.prepare('SELECT article_id FROM public_documents WHERE article_id=?').get(row.id))continue;
+      const analysis=JSON.parse(String(row.data_json)) as AnalysisResult,q=analysis.quality;
+      const verification=JSON.parse(String(row.verification_json));
+      if(!q?.reflection||verification.status!=='passed'||verification.factCheckStatus==='contradicted')continue;
+      const isWeekly=db.prepare("SELECT name FROM sqlite_master WHERE name='weekly_articles'").get() && db.prepare('SELECT article_key FROM weekly_articles WHERE job_id=?').get(row.job_id);
+      if(!isWeekly && Number(db.prepare('SELECT count(*) n FROM public_documents').get()?.n)>=3)continue;
+      const items=(JSON.parse(String(row.selected_json)).items as StoredItem[]).filter(i=>q.focusItemIds.includes(i.id));
+      if(!items.length)continue;
+      const view=q.reflection,input=JSON.parse(String(row.input_json)),source=sources.find(s=>s.id===input.source.id),genre=source?.genre??'science';
+      // Keep the research view and a short attributed excerpt; raw page bodies stay local.
+      const clean=(value:string)=>{
+        let text=value;for(const observation of q.observations)if(observation.quote.length>80)text=text.replaceAll(observation.quote,'出典の該当記述');
+        return line(text).replace(/(?:[A-Z]:[\\/][^\s。]+)/g,'[ローカル保存先]');
+      };
+      const primary=items[0],observation=q.observations.find(o=>o.itemId===primary.id&&o.kind!=='metadata'),quote=observation?excerpt(observation.quote):'';
+      const markdown=[`# ${line(String(row.title))}`,'',`作成: ${row.created_at}`,`ジャンル: ${genre}`,`生成: ${analysis.provider}/${analysis.model} / ${analysis.research?.model.elapsedMs??'不明'} ms`,'',
+        '## 出典で確認できる主張（独立検証は未実施）','',`[${line(primary.title)}](${primary.url}) — ${line(input.source.name)}`,
+        `公開: ${primary.publishedAt??'不明'} / 取得: ${primary.fetchedAt} / 文書版: ${primary.versionId}`,quote?`\n> ${quote}\n\n※本文からの短い抜粋。発表主体の主張であり独立した事実確認ではありません。`:'本文の確認範囲は限定されています。題名から具体的な結果を補っていません。','',
+        '## 考察の問い','',clean(view.issue),'','## 現時点の見解（推論）','',clean(view.position),'','## 理由','',clean(view.reasoning),'',
+        '## 別の説明','',clean(view.alternative),'','## 見解を修正する条件','',clean(view.revisionCondition),'',
+        `確信度: ${view.confidence}（見解への暫定評価。事実確認の確率ではありません） / 生成: ${view.origin}`,'',
+        '## 仮定・未解決の問い','',...view.assumptions.map(s=>`- ${clean(s)}`),...q.unresolved.slice(0,3).map(s=>`- ${clean(s)}`),'',
+        ...(q.priorMemory.some(m=>m.decision==='related')?['## 関連する過去の考察','',...q.priorMemory.filter(m=>m.decision==='related').map(m=>`- ${clean(m.reason)}`),'']:[]),
+        ...(q.viewReviews?.length?['## 過去の見解の再評価','',...q.viewReviews.map(r=>`- ${r.action}: ${clean(r.reason)}`),'']:[]),
+        '取得記事の全文と詳細な実行ログはローカルで保存。未観測の結果は補っていません。',''].join('\n');
+      const payload={id:String(row.id),title:String(row.title),markdown,genre,provider:analysis.provider,model:analysis.model,status:'generated',artifact:'matching',verification:{status:'passed',scope:'structure-and-references',factCheckStatus:'unverified'}};
+      const news={id:primary.id,title:primary.title,source:input.source.name,url:primary.url,publishedAt:primary.publishedAt??null,fetchedAt:primary.fetchedAt,summary:quote,content:quote,truncated:true,genre};
+      db.prepare('INSERT OR IGNORE INTO public_documents VALUES(?,?,?,?)').run(row.id,JSON.stringify(payload),JSON.stringify(news),row.created_at);
+    }
+    const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id LIMIT 100').all();
+    let operation:unknown=null;
+    if(config.operation){const store=new WeeklyStore(file);try{const state=store.snapshot(config.operation);operation={...state,days:state.days.map(d=>({...d,collection:undefined,articles:d.articles.map(a=>({...a,error:a.error?'処理失敗。ローカルログに詳細を記録。':null}))}))};}finally{store.close();}}
+    const latest=documents[0]?.created_at??config.operation?.startsAt??new Date(0).toISOString();
+    const snapshot={initialized:documents.length>0,sources:sources.map(s=>({id:s.id,name:s.name,enabled:s.enabled,genre:s.genre,topic:s.topic,intervalMinutes:s.intervalMinutes})),
+      worker:{active:false,lastSeenAt:latest},notes:documents.map(r=>{const p=JSON.parse(String(r.payload_json));return {id:p.id,jobId:p.id,title:p.title,createdAt:r.created_at,genre:p.genre,status:p.status,provider:p.provider,model:p.model,published:true};}),
+      news:documents.map(r=>JSON.parse(String(r.news_json))),jobs:documents.map(r=>{
+        const job=db.prepare('SELECT j.* FROM jobs j JOIN articles a ON a.job_id=j.id WHERE a.id=?').get(r.article_id)!;
+        const note=JSON.parse(String(r.payload_json));return {id:String(job.id),topic:note.title,status:String(job.status),stage:job.current_stage,error:null,queue:'done',createdAt:job.created_at};
+      }),memories:[],interests:[],operation,
+      system:{readAt:latest,supervisorActive:true,pollSeconds:config.pollSeconds,maxJobsPerCycle:config.maxJobsPerCycle,provider:config.ai.provider,model:config.ai.model,access:'read-only'}};
+    const files:Record<string,string>={'public/research/snapshot.json':JSON.stringify(snapshot,null,2)+'\n'};
+    for(const row of documents){const payload=JSON.parse(String(row.payload_json));files[`public/research/notes/${row.article_id}.json`]=String(row.payload_json)+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;}
+    const directory=path.join(config.dataDirectory,'Publishing','export');
+    for(const [relative,contents]of Object.entries(files)){
+      const target=path.join(directory,relative);await mkdir(path.dirname(target),{recursive:true});
+      if(relative!=='public/research/snapshot.json')try{if(await readFile(target,'utf8')!==contents)throw Error('PUBLIC_ARTIFACT_CONFLICT: '+relative);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
+      const temp=target+'.tmp';await writeFile(temp,contents);await rename(temp,target);
+    }
+    return {files,directory,digest:hash(JSON.stringify(files)),notes:documents.length,operation};
+  }finally{db.close();}
+}

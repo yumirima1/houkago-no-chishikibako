@@ -9,6 +9,7 @@ import { KousatsuDatabase } from '../src/lib/kousatsu/database';
 import { ResearchRuntime } from '../src/lib/kousatsu/runtime-service';
 import { loadResearchSources } from '../src/lib/kousatsu/runtime-config';
 import { safeDiagnostic, TopicHistory } from '../src/lib/kousatsu/research-engine';
+import {exportPublicResearch} from '../src/lib/kousatsu/public-export';
 
 async function main() {
   const [command='status',...args]=process.argv.slice(2);
@@ -35,6 +36,7 @@ async function main() {
     } finally {runtime.close();}return;
   }
   if (command==='status') {console.log(JSON.stringify(await backendStatus(config),null,2));return;}
+  if(command==='public-export'){const bundle=await exportPublicResearch(config,await loadResearchSources(config.sourcesPath));console.log(JSON.stringify({directory:bundle.directory,notes:bundle.notes,digest:bundle.digest}));return;}
   if (command==='run') {const result=await runAutonomousCycle(config);if (result.status!=='succeeded') process.exitCode=1;return;}
   if (command==='export') {
     const runtime=await ResearchRuntime.open({databasePath:paths.database,outputDirectory:paths.notes,sources:[]});
@@ -77,6 +79,10 @@ async function main() {
   await backendLog(config,{type:'supervisor-start',pid:process.pid,config:configFile});
   try {
     while (!stopping && !existsSync(marker)) {
+      if(config.operation && Date.now()>=Date.parse(config.operation.endsAt)){
+        await runAutonomousCycle(config);
+        await backendLog(config,{type:'operation-ended',endsAt:config.operation.endsAt});break;
+      }
       // A real child-process deadline can terminate a stuck dependency. SQLite
       // checkpoints and expiring leases let the next child resume safely.
       const child=spawn(process.execPath,['--import','tsx',path.resolve('scripts/kousatsu-backend.ts'),'run','--config',path.resolve(configFile)],

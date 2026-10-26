@@ -85,7 +85,7 @@ export class ResearchRuntime {
   /** Trusted CLI/test input only; HTTP never accepts fixture or output paths. */
   enqueueInput(input: PipelineInput) { return this.store.enqueue({...input,outputDirectory:input.outputDirectory ?? this.outputDirectory}); }
 
-  async tick(options: { schedule?: boolean; maxScheduledJobs?: number } = {}) {
+  async tick(options: { schedule?: boolean; maxScheduledJobs?: number; queuePrefix?:string } = {}) {
     const token=this.store.acquireWorker();
     if (!token) return {status:"busy" as const};
     let leaseError: unknown;
@@ -95,7 +95,7 @@ export class ResearchRuntime {
     heartbeat.unref();
     try {
       if (options.schedule !== false) this.store.schedule(this.sources,this.outputDirectory,token,Date.now(),options.maxScheduledJobs);
-      const next=this.store.nextJob();
+      const next=this.store.nextJob(Date.now(),options.queuePrefix);
       if (!next) return {status:"idle" as const};
       const job=this.database.getJob(next.jobId);
       if (!job) throw new Error("QUEUE_JOB_MISSING");

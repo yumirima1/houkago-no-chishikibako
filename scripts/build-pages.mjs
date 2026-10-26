@@ -19,7 +19,7 @@ await cp(sourceRoot, path.join(stage, 'src'), { recursive: true, filter: (source
 for (const file of ['package.json', 'package-lock.json', 'tsconfig.json', 'next.config.ts', 'postcss.config.mjs']) {
   await cp(path.join(root, file), path.join(stage, file));
 }
-for (const directory of ['assets/observer-room', 'fonts']) {
+for (const directory of ['assets/observer-room', 'fonts', 'research']) {
   await cp(path.join(root, 'public', directory), path.join(stage, 'public', directory), { recursive: true });
 }
 // CSS public URLs are not rewritten by Next's basePath. Rewrite this staged copy.
@@ -30,9 +30,9 @@ const commit = process.env.GITHUB_SHA ?? execFileSync('git', ['rev-parse', 'HEAD
 const branch = process.env.GITHUB_REF_NAME ?? execFileSync('git', ['branch', '--show-current'], { cwd: root, encoding: 'utf8' }).trim();
 await writeFile(path.join(stage, 'public/build-info.json'), JSON.stringify({ commit, branch, basePath, target: 'github-pages', builtAt: new Date().toISOString() }, null, 2));
 await writeFile(path.join(stage, 'public/.nojekyll'), '');
-const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'build'], {
+const child = spawn(process.execPath, [path.join(root, 'node_modules/next/dist/bin/next'), 'build','--webpack'], {
   cwd: stage, stdio: 'inherit', env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1',
-    NEXT_PUBLIC_DEPLOY_TARGET: 'github-pages', NEXT_PUBLIC_BASE_PATH: basePath, PAGES_BUILD_ROOT: root },
+    NEXT_PUBLIC_DEPLOY_TARGET: 'github-pages', NEXT_PUBLIC_RESEARCH_STATIC:'1', NEXT_PUBLIC_BASE_PATH: basePath, PAGES_BUILD_ROOT: root },
 });
 const code = await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', resolve); });
 if (code !== 0) throw new Error(`Static UI build failed (${code}); staging files retained at ${stage}`);

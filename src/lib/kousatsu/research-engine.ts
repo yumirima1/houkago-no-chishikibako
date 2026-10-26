@@ -122,7 +122,11 @@ export class ResearchEngine implements KousatsuAiProvider {
     let used='deterministic/reflection-v3';
     let error: string|null=null;
     const selected={...context,topic:decision.topic,items:focus,claims:context.claims.filter(c=>focusIds.includes(c.itemId!)),
-      memories:(context.memories??[]).filter(m=>m.quality?.reflection&&m.references.some(ref=>focusIds.includes(ref.itemId))).slice(0,2)};
+      memories:(context.memories??[]).filter(m=>m.quality?.reflection&&m.references.some(ref=>{
+        if(focusIds.includes(ref.itemId))return true;
+        const old=this.options.database.getItemVersion(ref.versionId);
+        return old&&focus.some(item=>['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(old,item).kind));
+      })).slice(0,2)};
     if(focus.length)try {
       if(this.options.provider.proposeGrounded) {proposal=await this.options.provider.proposeGrounded(selected);used=`${this.options.provider.id}/${this.options.provider.model}`;}
       else if(this.options.provider.id!=='deterministic') {await this.options.provider.analyze(selected);error='MODEL_SOURCE_BINDINGS_REQUIRED';}

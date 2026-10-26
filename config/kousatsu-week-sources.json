@@ -1,0 +1,139 @@
+{
+  "note": "実取得・本文取得を検証済みの出典。既存3出典設定を保持した独立設定。公開日と取得日時は区別。",
+  "sources": [
+    {
+      "id": "hf-ai",
+      "name": "Hugging Face Blog",
+      "genre": "ai",
+      "feedUrl": "https://huggingface.co/blog/feed.xml",
+      "topic": "AI LLM エージェント",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "huggingface.co"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "windows-pc",
+      "name": "Windows Experience Blog",
+      "genre": "pc",
+      "feedUrl": "https://blogs.windows.com/windowsexperience/feed/",
+      "topic": "PC ハードウェア ソフトウェア",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "blogs.windows.com"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "fed-economy",
+      "name": "Federal Reserve",
+      "genre": "economy",
+      "feedUrl": "https://www.federalreserve.gov/feeds/press_all.xml",
+      "topic": "経済 金融 株式市場",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "www.federalreserve.gov"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "un-society",
+      "name": "UN News",
+      "genre": "world",
+      "feedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+      "topic": "国際情勢 外交 政治",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "news.un.org"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "nasa-science",
+      "name": "NASA News Releases",
+      "genre": "science",
+      "feedUrl": "https://www.nasa.gov/news-release/feed/",
+      "topic": "科学 宇宙 研究",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "www.nasa.gov",
+          "science.nasa.gov"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "loc-culture",
+      "name": "Library of Congress: Timeless",
+      "genre": "culture",
+      "feedUrl": "https://blogs.loc.gov/loc/feed/",
+      "topic": "文化 芸術 歴史",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "blogs.loc.gov"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    },
+    {
+      "id": "eia-environment",
+      "name": "EIA Today in Energy",
+      "feedUrl": "https://www.eia.gov/rss/todayinenergy.xml",
+      "topic": "環境 エネルギー 資源",
+      "genre": "environment",
+      "enabled": true,
+      "intervalMinutes": 1440,
+      "contentPolicy": "metadata-only",
+      "articlePolicy": {
+        "enabled": true,
+        "allowedHosts": [
+          "www.eia.gov"
+        ],
+        "maxArticles": 1,
+        "cacheMinutes": 1440,
+        "followLinks": 0
+      }
+    }
+  ]
+}

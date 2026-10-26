@@ -1,0 +1,458 @@
+{
+  "initialized": true,
+  "sources": [
+    {
+      "id": "hf-ai",
+      "name": "Hugging Face Blog",
+      "enabled": true,
+      "genre": "ai",
+      "topic": "AI LLM エージェント",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "windows-pc",
+      "name": "Windows Experience Blog",
+      "enabled": true,
+      "genre": "pc",
+      "topic": "PC ハードウェア ソフトウェア",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "fed-economy",
+      "name": "Federal Reserve",
+      "enabled": true,
+      "genre": "economy",
+      "topic": "経済 金融 株式市場",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "un-society",
+      "name": "UN News",
+      "enabled": true,
+      "genre": "world",
+      "topic": "国際情勢 外交 政治",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "nasa-science",
+      "name": "NASA News Releases",
+      "enabled": true,
+      "genre": "science",
+      "topic": "科学 宇宙 研究",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "loc-culture",
+      "name": "Library of Congress: Timeless",
+      "enabled": true,
+      "genre": "culture",
+      "topic": "文化 芸術 歴史",
+      "intervalMinutes": 1440
+    },
+    {
+      "id": "eia-environment",
+      "name": "EIA Today in Energy",
+      "enabled": true,
+      "genre": "environment",
+      "topic": "環境 エネルギー 資源",
+      "intervalMinutes": 1440
+    }
+  ],
+  "worker": {
+    "active": false,
+    "lastSeenAt": "2026-10-26T12:09:21.523Z"
+  },
+  "notes": [
+    {
+      "id": "4ed03138-0d95-44d7-bf92-fc8c5eb7b020",
+      "jobId": "4ed03138-0d95-44d7-bf92-fc8c5eb7b020",
+      "title": "「Why do planes keep circling before landing? The UN has a plan to fix it」について、自分の見方を変えるのはどんな情報か。",
+      "createdAt": "2026-10-26T09:01:49.546Z",
+      "genre": "world",
+      "status": "generated",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:1.5b",
+      "published": true
+    },
+    {
+      "id": "0daf118a-0d5a-48ed-abb4-6e625b1eb02c",
+      "jobId": "0daf118a-0d5a-48ed-abb4-6e625b1eb02c",
+      "title": "「&#8220;East of Eden&#8221; Is at the Library; Now It Comes to TV」を手掛かりに、作品が別の媒体へ移るとき、何を保ち、何を変えることに価値があるか。",
+      "createdAt": "2026-10-26T09:01:33.380Z",
+      "genre": "culture",
+      "status": "generated",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:1.5b",
+      "published": true
+    }
+  ],
+  "news": [
+    {
+      "id": "001b0f54-65a3-4eaf-8a94-e4241e6a234e",
+      "title": "Why do planes keep circling before landing? The UN has a plan to fix it",
+      "source": "UN News",
+      "url": "https://news.un.org/feed/view/en/story/2026/10/1168666",
+      "publishedAt": "2026-10-25T12:00:00.000Z",
+      "fetchedAt": "2026-10-26T06:42:42.725Z",
+      "summary": "In the Americas, collaborative trials supported by ICAO saved more than 265,000 minutes of flying time in 2026, about 4,400",
+      "content": "In the Americas, collaborative trials supported by ICAO saved more than 265,000 minutes of flying time in 2026, about 4,400",
+      "truncated": true,
+      "genre": "world"
+    },
+    {
+      "id": "1d389a8b-683e-4367-96cf-050289344ca8",
+      "title": "&#8220;East of Eden&#8221; Is at the Library; Now It Comes to TV",
+      "source": "Library of Congress: Timeless",
+      "url": "https://blogs.loc.gov/loc/2026/09/east-of-eden-is-at-the-library-now-it-comes-to-tv/",
+      "publishedAt": "2026-09-30T13:00:39.000Z",
+      "fetchedAt": "2026-10-26T09:01:21.412Z",
+      "summary": "",
+      "content": "",
+      "truncated": true,
+      "genre": "culture"
+    }
+  ],
+  "jobs": [
+    {
+      "id": "e9d341c5-cb2e-4f04-b9b2-320462b57ff9",
+      "topic": "「Why do planes keep circling before landing? The UN has a plan to fix it」について、自分の見方を変えるのはどんな情報か。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-26T09:01:03.436Z"
+    },
+    {
+      "id": "59399b8b-5893-4c6e-a645-df22ea5affc1",
+      "topic": "「&#8220;East of Eden&#8221; Is at the Library; Now It Comes to TV」を手掛かりに、作品が別の媒体へ移るとき、何を保ち、何を変えることに価値があるか。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-26T09:01:03.436Z"
+    }
+  ],
+  "memories": [],
+  "interests": [],
+  "operation": {
+    "operation": {
+      "id": "week-20261026",
+      "startsAt": "2026-10-26T11:56:19.622Z",
+      "endsAt": "2026-11-02T11:56:19.622Z",
+      "dailyAt": "20:56",
+      "runTimes": [
+        "06:00",
+        "18:00",
+        "22:00"
+      ],
+      "intervalDays": 1,
+      "maxArticles": 1,
+      "genres": [
+        "ai",
+        "pc",
+        "economy",
+        "world",
+        "science",
+        "culture",
+        "environment"
+      ]
+    },
+    "timezone": "Asia/Tokyo",
+    "state": "active",
+    "nextRunAt": "2026-10-26T13:00:00.000Z",
+    "lastRunAt": "2026-10-26T12:06:13.356Z",
+    "days": [
+      {
+        "day": "2026-10-26@18:00",
+        "dueAt": "2026-10-26T09:00:00.000Z",
+        "state": "succeeded",
+        "sourceFailures": 0,
+        "success": 1,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": "2026-10-26T12:06:13.356Z",
+        "finishedAt": "2026-10-26T12:06:13.356Z",
+        "articles": [
+          {
+            "jobId": "c964098a-d1da-464f-bbca-6bd6e1aca8ea",
+            "genre": "ai",
+            "title": "LitPivot: Developing research ideas through dynamic contextualization within the literature landscape",
+            "status": "succeeded",
+            "queue": "done",
+            "error": null,
+            "attempts": 1,
+            "nextAttemptAt": "2026-10-26T12:06:19.880Z",
+            "model": {
+              "requested": "ollama/qwen3:4b-q4_K_M",
+              "used": "deterministic/reflection-v3",
+              "elapsedMs": 180066,
+              "error": "TimeoutError: The operation was aborted due to timeout"
+            }
+          }
+        ]
+      },
+      {
+        "day": "2026-10-26@22:00",
+        "dueAt": "2026-10-26T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-27@06:00",
+        "dueAt": "2026-10-26T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-27@18:00",
+        "dueAt": "2026-10-27T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-27@22:00",
+        "dueAt": "2026-10-27T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-28@06:00",
+        "dueAt": "2026-10-27T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-28@18:00",
+        "dueAt": "2026-10-28T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-28@22:00",
+        "dueAt": "2026-10-28T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-29@06:00",
+        "dueAt": "2026-10-28T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-29@18:00",
+        "dueAt": "2026-10-29T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-29@22:00",
+        "dueAt": "2026-10-29T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-30@06:00",
+        "dueAt": "2026-10-29T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-30@18:00",
+        "dueAt": "2026-10-30T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-30@22:00",
+        "dueAt": "2026-10-30T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-31@06:00",
+        "dueAt": "2026-10-30T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-31@18:00",
+        "dueAt": "2026-10-31T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-10-31@22:00",
+        "dueAt": "2026-10-31T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-01@06:00",
+        "dueAt": "2026-10-31T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-01@18:00",
+        "dueAt": "2026-11-01T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-01@22:00",
+        "dueAt": "2026-11-01T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-02@06:00",
+        "dueAt": "2026-11-01T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-02@18:00",
+        "dueAt": "2026-11-02T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      }
+    ]
+  },
+  "system": {
+    "readAt": "2026-10-26T09:01:49.546Z",
+    "supervisorActive": true,
+    "pollSeconds": 60,
+    "maxJobsPerCycle": 3,
+    "provider": "ollama",
+    "model": "qwen3:4b-q4_K_M",
+    "access": "read-only",
+    "publicationStatus": "initial archive; new research follows through the publisher"
+  }
+}

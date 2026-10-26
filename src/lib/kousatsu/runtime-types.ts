@@ -30,6 +30,7 @@ export type ResearchSnapshot = {
     error: string | null; queue: string | null; createdAt: string;
   }>;
   notes: Array<{
+    genre?: string;
     id: string; jobId: string; title: string; createdAt: string;
     status: string; provider: string; model: string; published: boolean;
   }>;

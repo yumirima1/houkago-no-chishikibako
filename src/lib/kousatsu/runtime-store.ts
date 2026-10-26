@@ -152,10 +152,10 @@ export class ResearchStore {
     });
   }
 
-  nextJob(now = Date.now()): { jobId: string; memories: MemoryContext[]; sourceConfig: ResearchSource|null } | null {
+  nextJob(now = Date.now(),prefix?:string): { jobId: string; memories: MemoryContext[]; sourceConfig: ResearchSource|null } | null {
     const row = this.db.prepare(`SELECT q.job_id,q.memory_json,q.source_config_json FROM research_queue q JOIN jobs j ON j.id=q.job_id
-      WHERE q.decision='ready' AND q.next_attempt_at<=? ORDER BY j.created_at,j.id LIMIT 1`)
-      .get(timestamp(now)) as Row | undefined;
+      WHERE q.decision='ready' AND q.next_attempt_at<=? AND (? IS NULL OR substr(q.schedule_key,1,length(?))=?) ORDER BY j.created_at,j.id LIMIT 1`)
+      .get(timestamp(now),prefix??null,prefix??null,prefix??null) as Row | undefined;
     return row ? {jobId:String(row.job_id),memories:JSON.parse(String(row.memory_json)),sourceConfig:row.source_config_json ? JSON.parse(String(row.source_config_json)) : null} : null;
   }
 
@@ -307,6 +307,7 @@ export class ResearchStore {
         status:row.status as ResearchSnapshot['jobs'][number]['status'],stage:row.current_stage as string|null,
         error:(row.queue_error ?? row.last_error) as string|null,queue:row.decision as string|null,createdAt:String(row.created_at)})),
       notes:notes.map((row)=>({id:String(row.id),jobId:String(row.job_id),title:String(row.title),createdAt:String(row.created_at),
+        genre:sources.find(s=>s.id===(JSON.parse(String(this.db.prepare('SELECT input_json FROM jobs WHERE id=?').get(row.job_id)?.input_json??'{}')) as PipelineInput).source?.id)?.genre,
         status:String(row.status),provider:String(row.provider),model:String(row.model),published:row.output_path!==null})),
       memories:this.recentMemories(40),
       interests:topics.map((row)=>({topic:String(row.topic),observations:Number(row.observations),lastSeenAt:String(row.last_seen_at),

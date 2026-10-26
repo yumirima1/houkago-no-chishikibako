@@ -28,7 +28,8 @@
     "episode:seed:legacy": "tsx scripts/seed-episodes.ts",
     "episode:pipeline": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts",
     "episode:publish": "tsx scripts/generate-script.ts && tsx scripts/review-script.ts && tsx scripts/generate-audio.ts && tsx scripts/build-episode.ts",
-    "episode:weekly": "tsx scripts/weekly-episode.ts"
+    "episode:weekly": "tsx scripts/weekly-episode.ts",
+    "test:pages": "playwright test --config=playwright.research.config.ts"
   },
   "dependencies": {
     "@mozilla/readability": "0.6.0",
@@ -53,6 +54,7 @@
     "lamejs": "^1.2.1",
     "tailwindcss": "^4",
     "tsx": "^4.22.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "@playwright/test": "1.64.1"
   }
 }

@@ -17,8 +17,10 @@ export function sameArticle(a:Pick<StoredItem,'canonicalUrl'|'title'|'content'|'
 }
 export class WeeklyStore {
   readonly db:DatabaseSync;
-  constructor(file:string){
-    this.db=new DatabaseSync(file);this.db.exec(`PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;
+  constructor(file:string,options:{readOnly?:boolean}={}){
+    this.db=new DatabaseSync(file,{readOnly:options.readOnly??false});
+    this.db.exec('PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON;');if(options.readOnly)return;
+    this.db.exec(`
       CREATE TABLE IF NOT EXISTS weekly_operations(id TEXT PRIMARY KEY,config_json TEXT NOT NULL,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS weekly_days(operation_id TEXT NOT NULL REFERENCES weekly_operations(id),day TEXT NOT NULL,due_at TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_attempt_at TEXT NOT NULL,started_at TEXT,finished_at TEXT,collection_json TEXT,
@@ -39,16 +41,26 @@ export class WeeklyStore {
   }
   due(op:WeeklyOperation,now=Date.now()) {
     if(now<Date.parse(op.startsAt) || now>=Date.parse(op.endsAt))return null;
+    const date=new Date(now+9*3600000).toISOString().slice(0,10);
+    this.db.prepare("UPDATE weekly_days SET state='missed',finished_at=? WHERE operation_id=? AND substr(day,1,10)<? AND state IN ('pending','collecting','retry_wait')")
+      .run(new Date(now).toISOString(),op.id,date);
+    this.db.prepare("UPDATE weekly_days SET state='failed',finished_at=? WHERE operation_id=? AND attempts>=3 AND state IN ('collecting','retry_wait')").run(new Date(now).toISOString(),op.id);
     return this.db.prepare("SELECT day,attempts FROM weekly_days WHERE operation_id=? AND state IN ('pending','collecting','retry_wait') AND attempts<3 AND due_at<=? AND next_attempt_at<=? ORDER BY day LIMIT 1").get(op.id,new Date(now).toISOString(),new Date(now).toISOString()) as {day:string;attempts:number}|undefined;
   }
   begin(op:WeeklyOperation,day:string,now=Date.now()){
     this.db.prepare("UPDATE weekly_days SET state='collecting',attempts=attempts+1,started_at=COALESCE(started_at,?),next_attempt_at=? WHERE operation_id=? AND day=?")
       .run(new Date(now).toISOString(),new Date(now+60000).toISOString(),op.id,day);
   }
+  fail(op:WeeklyOperation,day:string,error:string,now=Date.now()){
+    this.db.prepare("UPDATE weekly_days SET state=CASE WHEN attempts>=3 THEN 'failed' ELSE 'retry_wait' END,collection_json=?,next_attempt_at=? WHERE operation_id=? AND day=?")
+      .run(JSON.stringify({error}),new Date(now+60000).toISOString(),op.id,day);
+  }
   history(){return this.db.prepare('SELECT genre,item_json FROM weekly_articles ORDER BY rowid DESC LIMIT 1000').all().map(r=>({genre:String(r.genre),item:JSON.parse(String(r.item_json)) as StoredItem}));}
   reserve(op:WeeklyOperation,day:string,entries:Array<{genre:string;item:StoredItem;input:PipelineInput;source:ResearchSource}>,collection:unknown,now=Date.now()) {
     this.atomic(()=>{
       const count=Number(this.db.prepare('SELECT count(*) n FROM weekly_articles WHERE operation_id=? AND day=?').get(op.id,day)?.n);
+      const slot=this.db.prepare('SELECT state FROM weekly_days WHERE operation_id=? AND day=?').get(op.id,day);
+      if(!slot || slot.state!=='collecting')throw Error('WEEKLY_SLOT_NOT_COLLECTING');
       const previous=this.history();let added=0;
       for(const e of entries){if(count+added>=op.maxArticles)break;
         if(previous.some(p=>sameArticle(p.item,e.item)))continue;
@@ -60,25 +72,27 @@ export class WeeklyStore {
         .run(JSON.stringify(collection),new Date(now).toISOString(),op.id,day);
     });
   }
-  outbox(op:WeeklyOperation){return this.db.prepare('SELECT * FROM weekly_articles WHERE operation_id=? AND job_id IS NULL ORDER BY rowid').all().map(r=>({key:String(r.article_key),input:JSON.parse(String(r.input_json)) as PipelineInput,source:JSON.parse(String(r.source_json)) as ResearchSource}));}
+  outbox(op:WeeklyOperation){return this.db.prepare('SELECT * FROM weekly_articles WHERE operation_id=? AND job_id IS NULL ORDER BY rowid').all(op.id).map(r=>({key:String(r.article_key),input:JSON.parse(String(r.input_json)) as PipelineInput,source:JSON.parse(String(r.source_json)) as ResearchSource}));}
   attach(key:string,jobId:string){this.db.prepare('UPDATE weekly_articles SET job_id=? WHERE article_key=? AND (job_id IS NULL OR job_id=?)').run(jobId,key,jobId);}
   snapshot(op:WeeklyOperation,now=Date.now()) {
-    const days=this.db.prepare('SELECT * FROM weekly_days WHERE operation_id=? ORDER BY day').all();
+    const days=this.db.prepare('SELECT * FROM weekly_days WHERE operation_id=? ORDER BY day').all(op.id);
     const articles=this.db.prepare(`SELECT a.day,a.genre,a.job_id,a.item_json,j.status,j.attempts,q.decision,q.next_attempt_at,q.error,
-      (SELECT value_json FROM job_checkpoints WHERE job_id=j.id AND stage='analyze') analysis_json FROM weekly_articles a
+      (SELECT data_json FROM checkpoints WHERE job_id=j.id AND stage='analyze') analysis_json FROM weekly_articles a
       LEFT JOIN jobs j ON j.id=a.job_id LEFT JOIN research_queue q ON q.job_id=j.id WHERE a.operation_id=? ORDER BY a.day,a.rowid`).all(op.id);
     const results=days.map(d=>{
       const items=articles.filter(a=>a.day===d.day),success=items.filter(a=>['succeeded','needs_review'].includes(String(a.status))).length;
       const pending=items.filter(a=>!a.status || (!['succeeded','needs_review','failed','cancelled'].includes(String(a.status))&&a.decision!=='blocked')).length;
       const failed=items.length-success-pending;
       let state=String(d.state);
-      if(state==='planned')state=pending ? (items.some(a=>a.status==='running')?'running':items.some(a=>a.status==='retry_wait')?'retry_wait':'pending') : success ? (failed?'partial_success':'succeeded') : 'failed';
+      const collection=d.collection_json?JSON.parse(String(d.collection_json)):null;
+      const sourceFailures=Array.isArray(collection)?collection.filter(c=>c.status==='failed').length:0;
+      if(state==='planned')state=pending ? (items.some(a=>a.status==='running')?'running':items.some(a=>a.status==='retry_wait')?'retry_wait':'pending') : success ? ((failed||sourceFailures)?'partial_success':'succeeded') : 'failed';
       if(now>=Date.parse(op.endsAt) && (pending || ['pending','collecting','retry_wait'].includes(state)))state='expired';
-      return {day:d.day,dueAt:d.due_at,state,collection:d.collection_json?JSON.parse(String(d.collection_json)):null,success,failed,pending,startedAt:d.started_at,finishedAt:d.finished_at,
+      return {day:d.day,dueAt:d.due_at,state,collection,sourceFailures,success,failed,pending,startedAt:d.started_at,finishedAt:d.finished_at,
         articles:items.map(a=>{const analysis=a.analysis_json?JSON.parse(String(a.analysis_json)):null;return {jobId:a.job_id,genre:a.genre,title:JSON.parse(String(a.item_json)).title,status:a.status,queue:a.decision,error:a.error,attempts:a.attempts,nextAttemptAt:a.next_attempt_at,model:analysis?.research?.model??null};})};
     });
     return {operation:op,timezone:'Asia/Tokyo',state:now>=Date.parse(op.endsAt)?'ended':now<Date.parse(op.startsAt)?'scheduled':'active',
-      nextRunAt:now>=Date.parse(op.endsAt)?null:days.find(d=>['pending','collecting','retry_wait'].includes(String(d.state)))?.next_attempt_at??null,
-      lastRunAt:[...days].reverse().find(d=>d.started_at)?.started_at??null,days:results};
+      nextRunAt:now>=Date.parse(op.endsAt)?null:(()=>{const value=days.find(d=>['pending','collecting','retry_wait'].includes(String(d.state)))?.next_attempt_at;return value?String(value):null;})(),
+      lastRunAt:(()=>{const value=[...days].reverse().find(d=>d.started_at)?.started_at;return value?String(value):null;})(),days:results};
   }
 }

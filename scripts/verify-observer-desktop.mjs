@@ -40,7 +40,7 @@ async function harness(fetcher, webgl = true) {
   // jsdom lacks dialog methods. Only our component's lifecycle is tested here.
   window.HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
   window.HTMLDialogElement.prototype.close = function () { this.removeAttribute('open'); };
-  const context = vm.createContext({ window, document: window.document, console, AbortController, URL, requestAnimationFrame: window.requestAnimationFrame.bind(window), fetch: fetcher });
+  const context = vm.createContext({ window, document: window.document, console, AbortController, URL, process:{env:{}},setInterval,clearInterval, requestAnimationFrame: window.requestAnimationFrame.bind(window), fetch: fetcher });
   const modules = new Map();
   function load(name) {
     if (modules.has(name)) return modules.get(name);
