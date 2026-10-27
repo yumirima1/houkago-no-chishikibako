@@ -128,6 +128,17 @@
       "provider": "ollama",
       "model": "qwen2.5-coder:1.5b",
       "published": true
+    },
+    {
+      "id": "505815bf-855b-475d-8b58-05664e1444e2",
+      "jobId": "505815bf-855b-475d-8b58-05664e1444e2",
+      "title": "「RS-25 Engine Tests at NASA Stennis」を手掛かりに、試験で得た手応えを、どこまで次の設計・運用判断へ移してよいか。",
+      "createdAt": "2026-10-26T09:01:20.230Z",
+      "genre": "science",
+      "status": "generated",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:1.5b",
+      "published": true
     }
   ],
   "news": [
@@ -202,6 +213,18 @@
       "content": "",
       "truncated": true,
       "genre": "culture"
+    },
+    {
+      "id": "6c95b075-51ad-448e-97b9-363afcbf87af",
+      "title": "RS-25 Engine Tests at NASA Stennis",
+      "source": "NASA News Releases",
+      "url": "https://www.nasa.gov/image-article/rs-25-engine-tests-at-nasa-stennis/",
+      "publishedAt": "2026-10-23T18:57:04.000Z",
+      "fetchedAt": "2026-10-26T06:42:50.645Z",
+      "summary": "Teams at NASA’s Stennis Space Center near Bay St. Louis, Mississippi tested RS-25 engine No. 10001 on Oct. 21, 2026.",
+      "content": "Teams at NASA’s Stennis Space Center near Bay St. Louis, Mississippi tested RS-25 engine No. 10001 on Oct. 21, 2026.",
+      "truncated": true,
+      "genre": "science"
     }
   ],
   "jobs": [
@@ -258,6 +281,15 @@
       "error": null,
       "queue": "done",
       "createdAt": "2026-10-26T09:01:03.436Z"
+    },
+    {
+      "id": "14ea5188-f1bc-4413-b993-64d2e81be225",
+      "topic": "「RS-25 Engine Tests at NASA Stennis」を手掛かりに、試験で得た手応えを、どこまで次の設計・運用判断へ移してよいか。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-26T09:01:03.436Z"
     }
   ],
   "memories": [],
@@ -299,7 +331,7 @@
         "failed": 0,
         "pending": 0,
         "startedAt": "2026-10-26T12:06:13.356Z",
-        "finishedAt": "2026-10-26T12:06:13.356Z",
+        "finishedAt": "2026-10-26T12:09:22.403Z",
         "articles": [
           {
             "jobId": "c964098a-d1da-464f-bbca-6bd6e1aca8ea",
@@ -328,7 +360,7 @@
         "failed": 0,
         "pending": 0,
         "startedAt": "2026-10-26T13:00:01.104Z",
-        "finishedAt": "2026-10-26T13:00:01.104Z",
+        "finishedAt": "2026-10-26T13:03:13.540Z",
         "articles": [
           {
             "jobId": "c71c1eaa-d7a5-44aa-bb84-6436cec92e91",
@@ -357,7 +389,7 @@
         "failed": 0,
         "pending": 0,
         "startedAt": "2026-10-27T09:36:26.918Z",
-        "finishedAt": "2026-10-27T09:36:26.918Z",
+        "finishedAt": "2026-10-27T09:36:59.209Z",
         "articles": [
           {
             "jobId": "ccd67c8c-0310-4f0f-a7e8-1b4e4e22866d",
@@ -386,7 +418,7 @@
         "failed": 0,
         "pending": 0,
         "startedAt": "2026-10-27T09:38:39.027Z",
-        "finishedAt": "2026-10-27T09:38:39.027Z",
+        "finishedAt": "2026-10-27T09:41:39.285Z",
         "articles": [
           {
             "jobId": "94a7f2d4-f7c3-4ea0-a073-af7ad989c189",
