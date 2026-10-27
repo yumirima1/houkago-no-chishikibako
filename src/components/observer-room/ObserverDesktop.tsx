@@ -118,8 +118,10 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                     : noteError?.id === noteId ? <div role="alert"><p>{noteError.text}</p><button type="button" onClick={() => { setNoteError(null); setNote(null); setNoteAttempt((value) => value + 1); }}>本文を再読込</button></div>
                     : note?.id !== noteId ? <p role="status">本文を開いています…</p>
                     : <><p className={styles.documentNotice}>生成された考察です。出典の主張と見解を区別してお読みください。独立した事実確認は未実施です。</p><h2>{note.title}</h2>
+                      {note.generation && <p className={styles.documentNotice}>生成方式: {note.generation.origin === 'model' ? 'モデルによる考察' : note.generation.origin === 'mixed' ? 'モデルとルール分析の併用' : '根拠に基づくルール分析'}{note.generation.issues.length > 0 && <>。モデルの制約・エラー: {note.generation.issues.join(' / ')}</>}</p>}
                       {note.artifact === "conflict" && <p className={styles.documentNotice}>保存先に編集された内容があります。この画面ではDB内の記録を表示し、保存先を変更しません。</p>}
                       <pre className={styles.markdown} tabIndex={0}>{note.markdown}</pre>
+                      {note.sources?.map(source=>safeSourceUrl(source.url)&&<p key={source.url}><a href={safeSourceUrl(source.url)!} target="_blank" rel="noopener noreferrer">出典: {source.title} ↗</a></p>)}
                       <a href={downloadUrl(note.id)} download>Markdownをダウンロード ↓</a></>}
                 </article>
               </div> : app === "news" ? <div className={styles.splitPane}>
@@ -133,7 +135,7 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                   {selectedNews ? <><p className={styles.eyebrow}>{selectedNews.source}</p><h2>{selectedNews.title}</h2><p className={styles.metadata}>公開 {date(selectedNews.publishedAt)}<br />収集 {date(selectedNews.fetchedAt)}</p>
                     <p className={styles.documentNotice}>収集時に保存された情報です。記事の主張について独立した事実確認は行っていません。</p>
                     <div className={styles.newsText}>{selectedNews.content || selectedNews.summary || "この記事の本文・要約は保存されていません。"}</div>
-                    {selectedNews.truncated && <p>長い記事のため、保存本文の先頭40,000文字を表示しています。</p>}
+                    {selectedNews.truncated && <p>{staticResearch?'公開用の短い抜粋を表示しています。全文は出典から確認できます。':'長い記事のため、保存本文の先頭40,000文字を表示しています。'}</p>}
                     {safeSourceUrl(selectedNews.url) && <a href={safeSourceUrl(selectedNews.url)!} target="_blank" rel="noopener noreferrer">元の記事を開く ↗</a>}</>
                     : <div className={styles.readerWelcome}><span aria-hidden="true">▥</span><h2>世界から届いた記録。</h2><p>一覧から収集済みの記事を選んでください。</p></div>}
                 </article>
@@ -141,7 +143,7 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                 <WeatherStatus weather={weather} />
                 <p className={styles.eyebrow}>SYSTEM INFORMATION</p><h2>{staticResearch?'公開された考察の状態':'ローカル調査の状態'}</h2><p className={styles.metadata}>{staticResearch?'最終更新':'取得日時'} {date(snapshot.system.readAt)}{staticResearch?'（公開データの記録時点）':''}</p>
                 <dl className={styles.systemGrid}>
-                  <dt>保存データ</dt><dd>{snapshot.initialized ? "既存のデータベースに接続" : "データベースは未初期化"}</dd>
+                  <dt>保存データ</dt><dd>{staticResearch ? `公開された考察 ${snapshot.notes.length} 件` : snapshot.initialized ? "既存のデータベースに接続" : "データベースは未初期化"}</dd>
                   <dt>{staticResearch?'公開方法':'バックグラウンド監視'}</dt><dd>{staticResearch?'ローカルで生成した考察を静的配信':snapshot.system.supervisorActive ? "監視プロセスの応答あり" : "現在の応答を確認できません"}</dd>
                   <dt>調査ジョブ</dt><dd>{snapshot.worker.active ? "処理中" : "処理中のジョブなし"}</dd>
                   <dt>最終ワーカー応答</dt><dd>{date(snapshot.worker.lastSeenAt)}</dd>

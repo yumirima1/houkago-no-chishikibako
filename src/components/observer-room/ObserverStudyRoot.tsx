@@ -63,7 +63,7 @@ export function ObserverStudyRoot() {
   return <div className={styles.room} data-phase={phase} data-weather={weather.mode} data-weather-status={weather.status} data-window={windowOpen ? "open" : "closed"}>
     <div inert={openDesktop} className={styles.scene}>
       {webGL === null ? <RoomLoading /> : webGL ? <SceneBoundary fallback={fallback}>
-        <ObserverStudyScene onOpen={open} interactive={!openDesktop} focused={phase === "opening" || phase === "desktop"} reducedMotion={reducedMotion} weather={weather.mode} windowOpen={windowOpen} onWindowToggle={() => setWindowOpen(value => !value)} />
+        <ObserverStudyScene onOpen={open} interactive={!openDesktop} focused={phase === "opening" || phase === "desktop"} paused={phase === "desktop"} reducedMotion={reducedMotion} weather={weather.mode} windowOpen={windowOpen} onWindowToggle={() => setWindowOpen(value => !value)} />
       </SceneBoundary> : fallback}
       <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={open} aria-haspopup="dialog">CRTモニターを開く</button>
       <RoomControls windowOpen={windowOpen} onWindowChange={() => setWindowOpen(value => !value)} />

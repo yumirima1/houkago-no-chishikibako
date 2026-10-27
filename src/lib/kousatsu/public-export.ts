@@ -1,7 +1,7 @@
 import {DatabaseSync} from 'node:sqlite';
 import {mkdir,writeFile,rename,readFile} from 'node:fs/promises';
 import path from 'node:path';
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 import {autonomousPaths,type AutonomousConfig} from './autonomous-config';
 import type {AnalysisResult,StoredItem} from './types';
 import type {ResearchSource} from './runtime-types';
@@ -14,21 +14,26 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
   db.exec(`PRAGMA busy_timeout=5000;CREATE TABLE IF NOT EXISTS public_documents(article_id TEXT PRIMARY KEY,payload_json TEXT NOT NULL,news_json TEXT NOT NULL,created_at TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER NOT NULL,next_at TEXT NOT NULL,status TEXT NOT NULL,error TEXT,commit_sha TEXT);`);
   try{
+    db.exec('BEGIN IMMEDIATE');
     const rows=db.prepare(`SELECT a.id,a.job_id,a.title,a.created_at,a.provider,a.model,c.data_json,s.data_json selected_json,v.data_json verification_json,j.input_json
       FROM articles a JOIN jobs j ON j.id=a.job_id JOIN checkpoints c ON c.job_id=a.job_id AND c.stage='analyze'
       JOIN checkpoints s ON s.job_id=a.job_id AND s.stage='selected-items' JOIN checkpoints v ON v.job_id=a.job_id AND v.stage='verify'
-      WHERE j.status IN ('succeeded','needs_review') ORDER BY a.created_at DESC LIMIT 100`).all();
+      WHERE j.status IN ('succeeded','needs_review') ORDER BY a.created_at DESC,a.id`).all();
     // Freeze public projections. Model changes never rewrite already published views.
     for(const row of rows){
       if(db.prepare('SELECT article_id FROM public_documents WHERE article_id=?').get(row.id))continue;
       const analysis=JSON.parse(String(row.data_json)) as AnalysisResult,q=analysis.quality;
       const verification=JSON.parse(String(row.verification_json));
       if(!q?.reflection||verification.status!=='passed'||verification.factCheckStatus==='contradicted')continue;
-      const isWeekly=db.prepare("SELECT name FROM sqlite_master WHERE name='weekly_articles'").get() && db.prepare('SELECT article_key FROM weekly_articles WHERE job_id=?').get(row.job_id);
-      if(!isWeekly && Number(db.prepare('SELECT count(*) n FROM public_documents').get()?.n)>=3)continue;
       const items=(JSON.parse(String(row.selected_json)).items as StoredItem[]).filter(i=>q.focusItemIds.includes(i.id));
       if(!items.length)continue;
-      const view=q.reflection,input=JSON.parse(String(row.input_json)),source=sources.find(s=>s.id===input.source.id),genre=source?.genre??'science';
+      // Historical model experiments can contain several notes for one source article.
+      // Keep the frozen published view, or choose the newest eligible view once.
+      const published=db.prepare('SELECT news_json FROM public_documents').all();
+      if(published.some(r=>{const news=JSON.parse(String(r.news_json));return news.id===items[0].id||news.url===items[0].url;}))continue;
+      const view=q.reflection,input=JSON.parse(String(row.input_json));
+      const source=sources.find(s=>s.id===input.source.id)||sources.find(s=>new URL(s.feedUrl).hostname===new URL(input.source.feedUrl).hostname);
+      const genre=source?.genre??'science';
       // Keep the research view and a short attributed excerpt; raw page bodies stay local.
       const clean=(value:string)=>{
         let text=value;for(const observation of q.observations)if(observation.quote.length>80)text=text.replaceAll(observation.quote,'出典の該当記述');
@@ -49,7 +54,8 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       const news={id:primary.id,title:primary.title,source:input.source.name,url:primary.url,publishedAt:primary.publishedAt??null,fetchedAt:primary.fetchedAt,summary:quote,content:quote,truncated:true,genre};
       db.prepare('INSERT OR IGNORE INTO public_documents VALUES(?,?,?,?)').run(row.id,JSON.stringify(payload),JSON.stringify(news),row.created_at);
     }
-    const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id LIMIT 100').all();
+    const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id').all();
+    if(!documents.length)throw Error('PUBLIC_EXPORT_EMPTY: previous public files retained');
     let operation:unknown=null;
     if(config.operation){const store=new WeeklyStore(file);try{const state=store.snapshot(config.operation);operation={...state,days:state.days.map(d=>({...d,collection:undefined,articles:d.articles.map(a=>({...a,error:a.error?'処理失敗。ローカルログに詳細を記録。':null}))}))};}finally{store.close();}}
     const latest=documents[0]?.created_at??config.operation?.startsAt??new Date(0).toISOString();
@@ -61,13 +67,23 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       }),memories:[],interests:[],operation,
       system:{readAt:latest,supervisorActive:true,pollSeconds:config.pollSeconds,maxJobsPerCycle:config.maxJobsPerCycle,provider:config.ai.provider,model:config.ai.model,access:'read-only'}};
     const files:Record<string,string>={'public/research/snapshot.json':JSON.stringify(snapshot,null,2)+'\n'};
-    for(const row of documents){const payload=JSON.parse(String(row.payload_json));files[`public/research/notes/${row.article_id}.json`]=String(row.payload_json)+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;}
+    for(const row of documents){
+      const payload=JSON.parse(String(row.payload_json));
+      const analysisRow=db.prepare("SELECT c.data_json FROM checkpoints c JOIN articles a ON a.job_id=c.job_id WHERE a.id=? AND c.stage='analyze'").get(row.article_id);
+      const analysis=analysisRow?JSON.parse(String(analysisRow.data_json)) as AnalysisResult:null;
+      const model=analysis?.research?.model;
+      const generation={origin:analysis?.quality?.reflection?.origin??'rules',requested:model?.requested??null,used:model?.used??null,elapsedMs:model?.elapsedMs??null,
+        issues:(model?.error??'').split(';').map(s=>s.trim()).filter(Boolean).map(s=>/^[A-Z][A-Z_]+$/.test(s)?s:s.includes('Timeout')?'MODEL_TIMEOUT':'MODEL_UNAVAILABLE')};
+      const news=JSON.parse(String(row.news_json));
+      files[`public/research/notes/${row.article_id}.json`]=JSON.stringify({...payload,generation,sources:[{title:news.title,url:news.url}]})+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;
+    }
+    db.exec('COMMIT');
     const directory=path.join(config.dataDirectory,'Publishing','export');
     for(const [relative,contents]of Object.entries(files)){
       const target=path.join(directory,relative);await mkdir(path.dirname(target),{recursive:true});
-      if(relative!=='public/research/snapshot.json')try{if(await readFile(target,'utf8')!==contents)throw Error('PUBLIC_ARTIFACT_CONFLICT: '+relative);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
-      const temp=target+'.tmp';await writeFile(temp,contents);await rename(temp,target);
+      if(relative.endsWith('.md'))try{if(await readFile(target,'utf8')!==contents)throw Error('PUBLIC_ARTIFACT_CONFLICT: '+relative);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
+      const temp=target+`.${randomUUID()}.tmp`;await writeFile(temp,contents);await rename(temp,target);
     }
     return {files,directory,digest:hash(JSON.stringify(files)),notes:documents.length,operation};
-  }finally{db.close();}
+  }finally{if(db.isTransaction)db.exec('ROLLBACK');db.close();}
 }

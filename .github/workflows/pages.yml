@@ -44,6 +44,13 @@ jobs:
       - run: node scripts/verify-pages-artifact.mjs
       - run: npx playwright install --with-deps chromium
       - run: npm run test:pages
+      - uses: actions/upload-artifact@v5
+        if: failure()
+        with:
+          name: research-build-browser
+          path: |
+            tmp/research-browser
+            tmp/research-browser-report
       - uses: actions/upload-pages-artifact@v4
         with:
           path: out
