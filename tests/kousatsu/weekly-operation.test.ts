@@ -17,6 +17,7 @@ import type {fetchFeed} from '../../src/lib/kousatsu/ingest';
 import {DatabaseSync} from 'node:sqlite';
 const op=()=>parseWeeklyOperation({id:'fixture-week',startsAt:'2026-10-26T20:00:00+09:00',endsAt:'2026-11-02T20:00:00+09:00',runTimes:['06:00','18:00','22:00'],maxArticles:1,genres:['ai','pc']});
 const at=Date.parse('2026-10-26T20:01:00+09:00');
+const publicBundle=(digest:string)=>({digest,files:{'public/research/snapshot.json':JSON.stringify({notes:[{id:'a-b'}]}),'public/research/notes/a-b.json':JSON.stringify({id:'a-b',markdown:'# Saved research'}),'public/research/notes/a-b.md':'# Saved research'}});
 test('novel research ideas do not select the literary adaptation lens and publication cannot address private files',async()=>{
  assert.doesNotMatch(reflectionQuestion('LitPivot develops novel research ideas','Participants rated ideas as more novel and useful'),/作品|媒体|映像/);
  await assert.rejects(publishResearch('unused.sqlite',{enabled:true,repository:'yumirima1/houkago-no-chishikibako',branch:'main'},{digest:'test',files:{'Memory/kousatsu.sqlite':'private'}}),/PATH_REJECTED/);
@@ -79,6 +80,25 @@ test('one feed failure leaves the other genre runnable and records the actual fa
  try{const state=store.snapshot(op(),at);assert.equal(state.days[0].articles[0].genre,'pc');assert.ok(JSON.stringify(state.days[0].collection).includes('NETWORK_FIXTURE_FAILURE'));}finally{store.close();}
  }finally{f.close();}
 });
+
+test('all distinct eligible historical notes are exported beyond the old three-note cap; repeated exports retain their identity',async()=>{
+ const f=await fixture();try{
+ let edition=0;
+ const titles=['','Agent evaluation reveals deployment limits','Laptop repair design reduces component waste','Satellite observation identifies changing ocean current patterns','Museum collection preserves handwritten historical letters','Energy storage compares industrial battery recycling techniques'];
+ const transport:typeof fetchFeed=async(url,options)=>{
+   const result=await f.transport(url,options);
+   return {...result,text:result.text.replaceAll('Agent evaluation reveals deployment limits',titles[edition]).replaceAll('/agent',`/agent-${edition}`).replaceAll('Laptop repair design reduces component waste',titles[edition]).replaceAll('/laptop',`/laptop-${edition}`).replaceAll('engineering methods',`engineering methods for edition ${edition}`)};
+ };
+ const slots=weeklySlots(op()).slice(0,5);
+ for(const slot of slots){edition++;await planWeekly(f.config,f.runtime,f.sources,transport,Math.max(at,Date.parse(slot.dueAt)));const tick=await f.runtime.tick({schedule:false,queuePrefix:`weekly:${op().id}:`});assert.equal(tick.status,'completed',slot.day);}
+ const config={...f.config,dataDirectory:path.join(f.directory,'historical-store')};await mkdir(path.join(config.dataDirectory,'Memory'),{recursive:true});
+ const file=path.join(config.dataDirectory,'Memory','kousatsu.sqlite');await f.runtime.database.backupTo(file);
+ const db=new DatabaseSync(file);try{db.exec('DELETE FROM weekly_articles');}finally{db.close();}
+ const first=await exportPublicResearch(config,f.sources);assert.equal(first.notes,5);
+ const repeated=await exportPublicResearch(config,f.sources);assert.equal(repeated.digest,first.digest);
+ assert.equal(new Set(JSON.parse(first.files['public/research/snapshot.json']).notes.map((n:{id:string})=>n.id)).size,5);
+ }finally{f.close();}
+});
 test('expiry enqueues nothing, missed previous days remain visible, and repeated process failures stop after three attempts',async()=>{
  const f=await fixture();const store=new WeeklyStore(f.runtime.database.filePath);try{
  store.register(op(),at);const due=store.due(op(),at)!;
@@ -93,7 +113,7 @@ test('publication failure backs off, stops at three attempts and never logs a cr
  const f=await fixture(),db=new DatabaseSync(f.runtime.database.filePath);try{
  db.exec('CREATE TABLE public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER,next_at TEXT,status TEXT,error TEXT,commit_sha TEXT)');
  let requests=0;const adapters={credential:async()=>'fixture-secret',fetch:async()=>{requests++;return new Response('{}',{status:503});}};
- const bundle={digest:'immutable-fixture',files:{'public/research/snapshot.json':'{}'}},pub={enabled:true,repository:'yumirima1/houkago-no-chishikibako' as const,branch:'main'};
+ const bundle=publicBundle('immutable-fixture'),pub={enabled:true,repository:'yumirima1/houkago-no-chishikibako' as const,branch:'main'};
  await publishResearch(f.runtime.database.filePath,pub,bundle,at,adapters);await publishResearch(f.runtime.database.filePath,pub,bundle,at+1,adapters);assert.equal(requests,1);
  await publishResearch(f.runtime.database.filePath,pub,bundle,at+301000,adapters);await publishResearch(f.runtime.database.filePath,pub,bundle,at+602000,adapters);await publishResearch(f.runtime.database.filePath,pub,bundle,at+903000,adapters);
  assert.equal(requests,3);const row=db.prepare('SELECT * FROM public_publish_state').get()!;assert.equal(row.status,'failed');assert.ok(!String(row.error).includes('fixture-secret'));
@@ -104,11 +124,42 @@ test('public Git updates are fast-forward only and a concurrent push remains a v
  db.exec('CREATE TABLE public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER,next_at TEXT,status TEXT,error TEXT,commit_sha TEXT)');
  const adapters={credential:async()=>'fixture-secret',fetch:async(url:Parameters<typeof fetch>[0],options?:Parameters<typeof fetch>[1])=>{
    const p=new URL(String(url)).pathname;
+   if(p.includes('/contents/'))return new Response('{}',{status:404});
    if(options?.method==='PATCH'){assert.equal(JSON.parse(String(options.body)).force,false);return new Response('{}',{status:422});}
    const value=p.includes('/git/ref/')?{object:{sha:'base'}}:p.endsWith('/git/commits/base')?{tree:{sha:'base-tree'}}:p.endsWith('/git/trees')?{sha:'new-tree'}:{sha:'blob-or-commit'};
    return Response.json(value);
  }};
- const result=await publishResearch(f.runtime.database.filePath,{enabled:true,repository:'yumirima1/houkago-no-chishikibako',branch:'main'},{digest:'race',files:{'public/research/snapshot.json':'{}'}},at,adapters);
+ const result=await publishResearch(f.runtime.database.filePath,{enabled:true,repository:'yumirima1/houkago-no-chishikibako',branch:'main'},publicBundle('race'),at,adapters);
  assert.equal(result.status,'retry_wait');assert.match(String(result.error),/422/);
+ }finally{db.close();f.close();}
+});
+
+test('empty or incomplete exports cannot replace a public archive',async()=>{
+ const pub={enabled:true,repository:'yumirima1/houkago-no-chishikibako' as const,branch:'main'};
+ await assert.rejects(publishResearch('unused',pub,{digest:'empty',files:{'public/research/snapshot.json':'{"notes":[]}'}}),/EMPTY_ARCHIVE/);
+ const bundle=publicBundle('missing');delete (bundle.files as Record<string,string>)['public/research/notes/a-b.md'];
+ await assert.rejects(publishResearch('unused',pub,bundle),/NOTE_MISSING/);
+ const f=await fixture();try{
+   const config={...f.config,dataDirectory:path.join(f.directory,'empty-store')};await mkdir(path.join(config.dataDirectory,'Memory'),{recursive:true});
+   await f.runtime.database.backupTo(path.join(config.dataDirectory,'Memory','kousatsu.sqlite'));
+   await assert.rejects(exportPublicResearch(config,f.sources),/PUBLIC_EXPORT_EMPTY/);
+ }finally{f.close();}
+});
+
+test('a stale archive cannot drop remote notes and simultaneous publishers share a lease',async()=>{
+ const f=await fixture(),db=new DatabaseSync(f.runtime.database.filePath);try{
+ db.exec('CREATE TABLE public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER,next_at TEXT,status TEXT,error TEXT,commit_sha TEXT)');
+ let entered!:()=>void,release!:()=>void;
+ const started=new Promise<void>(resolve=>entered=resolve),held=new Promise<void>(resolve=>release=resolve);
+ const pub={enabled:true,repository:'yumirima1/houkago-no-chishikibako' as const,branch:'main'};
+ const adapters={credential:async()=>{entered();await held;return 'fixture-secret';},fetch:async(url:Parameters<typeof fetch>[0],options?:Parameters<typeof fetch>[1])=>{
+   assert.ok(!options?.method||options.method==='GET','stale data must never write remote objects');
+   const p=new URL(String(url)).pathname;
+   return Response.json(p.includes('/contents/')?{content:Buffer.from('{"notes":[{"id":"newer"}]}').toString('base64')}:p.includes('/git/ref/')?{object:{sha:'base'}}:{tree:{sha:'tree'}});
+ }};
+ const first=publishResearch(f.runtime.database.filePath,pub,publicBundle('stale'),at,adapters);await started;
+ assert.equal((await publishResearch(f.runtime.database.filePath,pub,publicBundle('other'),at,adapters)).status,'busy');
+ release();const result=await first;assert.match(String(result.error),/STALE_ARCHIVE/);
+ assert.equal(db.prepare('SELECT count(*) n FROM public_publish_lease').get()?.n,0);
  }finally{db.close();f.close();}
 });

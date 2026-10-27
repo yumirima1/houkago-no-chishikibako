@@ -14,6 +14,12 @@ test('the real public archive opens in the CRT, displays saved research and sour
  await page.screenshot({path:info.outputPath('archive.png')});await page.getByRole('button',{name:'再読込',exact:true}).click();await expect(page.getByText(snapshot.notes[0].title,{exact:true}).first()).toBeVisible();
  await page.getByRole('button',{name:'収集ニュース',exact:true}).click();await page.getByRole('button',{name:new RegExp(snapshot.news[0].title.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'))}).click();await expect(page.getByRole('link',{name:'元の記事を開く'})).toHaveAttribute('href',snapshot.news[0].url);
  await page.getByRole('button',{name:'システム',exact:true}).click();await expect(page.getByText('06:00 / 18:00 / 22:00',{exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('system.png')});
+ await page.keyboard.press('Escape');await expect(page.locator('dialog')).toHaveCount(0);
+ await page.reload({waitUntil:'networkidle'});
+ await page.getByRole('button',{name:'CRTモニターを開く'}).focus();await page.keyboard.press('Enter');await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
+ await page.getByRole('button',{name:'考察アーカイブ',exact:true}).click();
+ await page.getByRole('button').filter({has:page.getByText(snapshot.notes[0].title,{exact:true})}).click();await expect(page.locator('pre')).toContainText(note.markdown);
+ for(const source of note.sources??[])await expect(page.getByRole('link',{name:`出典: ${source.title} ↗`,exact:true})).toHaveAttribute('href',source.url);
  expect(api).toEqual([]);expect(failed).toEqual([]);expect(errors).toEqual([]);
  await info.attach('research-render',{body:JSON.stringify({url:page.url(),notes:snapshot.notes.map((n:{id:string;title:string})=>({id:n.id,title:n.title})),assets:assets.size,api,errors,failed}),contentType:'application/json'});
 });

@@ -19,14 +19,15 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   return null;
 }
 
-export function ObserverStudyScene({ onOpen, interactive, focused, reducedMotion, weather }: {
-  onOpen: () => void; interactive: boolean; focused: boolean; reducedMotion: boolean; weather: NightWeather;
+export function ObserverStudyScene({ onOpen, interactive, focused, paused, reducedMotion, weather }: {
+  onOpen: () => void; interactive: boolean; focused: boolean; paused: boolean; reducedMotion: boolean; weather: NightWeather;
 }) {
   const visible = useSyncExternalStore(subscribeVisibility, () => !document.hidden, () => true);
   const [hovered, setHovered] = useState(false);
   const [ready, setReady] = useState(false);
   const handleReady = useCallback(() => setReady(true), []);
-  return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} frameloop={visible ? "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
+  // The modal covers the scene. Resume rendering for the closing animation.
+  return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} frameloop={visible && !paused ? "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
     camera={{ position: [...ROOM_CAMERA.position], fov: 42, near: 0.1, far: 100 }}
     gl={{ antialias: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
     onCreated={({ camera, gl }) => {

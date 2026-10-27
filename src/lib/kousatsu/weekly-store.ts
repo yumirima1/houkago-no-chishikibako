@@ -76,7 +76,7 @@ export class WeeklyStore {
   attach(key:string,jobId:string){this.db.prepare('UPDATE weekly_articles SET job_id=? WHERE article_key=? AND (job_id IS NULL OR job_id=?)').run(jobId,key,jobId);}
   snapshot(op:WeeklyOperation,now=Date.now()) {
     const days=this.db.prepare('SELECT * FROM weekly_days WHERE operation_id=? ORDER BY day').all(op.id);
-    const articles=this.db.prepare(`SELECT a.day,a.genre,a.job_id,a.item_json,j.status,j.attempts,q.decision,q.next_attempt_at,q.error,
+    const articles=this.db.prepare(`SELECT a.day,a.genre,a.job_id,a.item_json,j.status,j.attempts,j.finished_at,q.decision,q.next_attempt_at,q.error,
       (SELECT data_json FROM checkpoints WHERE job_id=j.id AND stage='analyze') analysis_json FROM weekly_articles a
       LEFT JOIN jobs j ON j.id=a.job_id LEFT JOIN research_queue q ON q.job_id=j.id WHERE a.operation_id=? ORDER BY a.day,a.rowid`).all(op.id);
     const results=days.map(d=>{
@@ -88,7 +88,8 @@ export class WeeklyStore {
       const sourceFailures=Array.isArray(collection)?collection.filter(c=>c.status==='failed').length:0;
       if(state==='planned')state=pending ? (items.some(a=>a.status==='running')?'running':items.some(a=>a.status==='retry_wait')?'retry_wait':'pending') : success ? ((failed||sourceFailures)?'partial_success':'succeeded') : 'failed';
       if(now>=Date.parse(op.endsAt) && (pending || ['pending','collecting','retry_wait'].includes(state)))state='expired';
-      return {day:d.day,dueAt:d.due_at,state,collection,sourceFailures,success,failed,pending,startedAt:d.started_at,finishedAt:d.finished_at,
+      const finishedAt=items.length?(pending?null:items.map(a=>a.finished_at).filter(Boolean).sort().at(-1)??d.finished_at):d.finished_at;
+      return {day:d.day,dueAt:d.due_at,state,collection,sourceFailures,success,failed,pending,startedAt:d.started_at,finishedAt,
         articles:items.map(a=>{const analysis=a.analysis_json?JSON.parse(String(a.analysis_json)):null;return {jobId:a.job_id,genre:a.genre,title:JSON.parse(String(a.item_json)).title,status:a.status,queue:a.decision,error:a.error,attempts:a.attempts,nextAttemptAt:a.next_attempt_at,model:analysis?.research?.model??null};})};
     });
     return {operation:op,timezone:'Asia/Tokyo',state:now>=Date.parse(op.endsAt)?'ended':now<Date.parse(op.startsAt)?'scheduled':'active',

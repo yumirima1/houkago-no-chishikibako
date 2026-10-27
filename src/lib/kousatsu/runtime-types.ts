@@ -39,6 +39,8 @@ export type ResearchSnapshot = {
 };
 
 export type ResearchNote = {
+  sources?: Array<{title:string;url:string}>;
+  generation?: {origin:string;requested:string|null;used:string|null;elapsedMs:number|null;issues:string[]};
   id: string;
   title: string;
   markdown: string;
