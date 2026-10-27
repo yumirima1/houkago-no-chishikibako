@@ -67,7 +67,7 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id').all();
     if(!documents.length)throw Error('PUBLIC_EXPORT_EMPTY: previous public files retained');
     let operation:unknown=null;
-    if(config.operation){const store=new WeeklyStore(file);try{const state=store.snapshot(config.operation);operation={...state,days:state.days.map(d=>({...d,collection:undefined,articles:d.articles.map(a=>({...a,error:a.error?'処理失敗。ローカルログに詳細を記録。':null}))}))};}finally{store.close();}}
+    if(config.operation){const store=new WeeklyStore(file);try{const state=store.snapshot(config.operation);operation={...state,days:state.days.map(d=>({...d,collection:undefined,articles:d.articles.map(a=>({...a,error:a.error?'処理失敗。ローカルログに詳細を記録。':null,model:a.model?{...a.model,error:a.model.error?'MODEL_FAILED_OR_LIMITED':null}:null}))}))};}finally{store.close();}}
     const latest=documents[0]?.created_at??config.operation?.startsAt??new Date(0).toISOString();
     let research:unknown=undefined;
     if(db.prepare("SELECT name FROM sqlite_master WHERE name='research_interests'").get()){

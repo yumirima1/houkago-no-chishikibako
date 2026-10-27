@@ -64,11 +64,19 @@ test('a stored article reaches a readable note with source bindings; the public 
  const result=await f.runtime.tick({schedule:false,queuePrefix:`weekly:${op().id}:`});assert.equal(result.status,'completed');
  assert.ok(result.status==='completed');assert.equal(result.result.collectedCount,1);
  assert.ok((await readFile(result.result.articlePath!,'utf8')).includes('見解'));
+ // Diagnostics belong to the private checkpoint, including when a model reports
+ // its runner's local path. Public status exposes the failure without the log.
+ const diagnostic=new DatabaseSync(f.runtime.database.filePath);try{
+   const row=diagnostic.prepare("SELECT job_id,data_json FROM checkpoints WHERE stage='analyze'").get()!,analysis=JSON.parse(String(row.data_json));
+   analysis.research.model.error='PRIVATE_RUNNER_DIAGNOSTIC D:/private-runner';
+   diagnostic.prepare("UPDATE checkpoints SET data_json=? WHERE job_id=? AND stage='analyze'").run(JSON.stringify(analysis),row.job_id);
+ }finally{diagnostic.close();}
  // Use the same DB path in the public projection while preserving the fixture's notes.
  const publicConfig={...f.config,dataDirectory:path.join(f.directory,'public-store')};await mkdir(path.join(publicConfig.dataDirectory,'Memory'),{recursive:true});
  await f.runtime.database.backupTo(path.join(publicConfig.dataDirectory,'Memory','kousatsu.sqlite'));
  const bundle=await exportPublicResearch(publicConfig,f.sources);assert.equal(bundle.notes,1);
  const json=bundle.files['public/research/snapshot.json'];assert.ok(!json.includes(f.directory.replaceAll('\\','\\\\')));assert.ok(!json.includes('Evaluation requires comparing measurements'.repeat(2)));
+ assert.ok(!JSON.stringify(bundle.files).includes('PRIVATE_RUNNER_DIAGNOSTIC'));assert.ok(!JSON.stringify(bundle.files).includes('D:/private-runner'));
  assert.ok(Object.keys(bundle.files).every(p=>p.startsWith('public/research/')));
  const note=Object.entries(bundle.files).find(([p])=>p.endsWith('.md'))![1];assert.match(note,/推論/);assert.match(note,/修正する条件/);assert.ok(!note.includes('Evaluation requires comparing measurements'.repeat(2)));
  }finally{f.close();}
