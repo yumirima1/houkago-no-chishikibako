@@ -46,7 +46,7 @@ export async function planWeekly(config:AutonomousConfig,runtime:ResearchRuntime
       for(const source of enabled){
         assertLease();runtime.database.upsertSource(source);const fetchId=runtime.database.beginFetch(source.id);
         try{
-          const fetched=await transport(source.feedUrl,{allowedHosts:[new URL(source.feedUrl).hostname],timeoutMs:15000,retries:1});assertLease();
+          const fetched=await transport(source.feedUrl,{allowedHosts:[new URL(source.feedUrl).hostname],allowCompression:true,timeoutMs:15000,retries:1});assertLease();
           const collected=collectFeedXml(runtime.database,source,fetched.text,fetched.httpStatus,fetchId);
           const budget=researchPlan.sources.find(b=>b.id===source.id)!;
           const items=collected.itemIds.map(id=>runtime.database.getItem(id)!).filter(Boolean)

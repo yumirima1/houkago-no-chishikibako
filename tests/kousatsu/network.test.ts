@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import type { ClientRequest, IncomingMessage } from "node:http";
 import { Readable } from "node:stream";
 import test from "node:test";
+import {gzipSync,deflateSync,brotliCompressSync} from 'node:zlib';
 
 import { fetchFeed, type FeedFetchOptions } from "../../src/lib/kousatsu/ingest";
 
@@ -196,6 +197,19 @@ test("native transport enforces declared and streamed 2MiB limits and rejects un
     }), expected);
     assert.equal(requests, 1, "policy failures do not repeatedly download unsafe payloads");
   }
+});
+
+test('configured sources can decode gzip, deflate and Brotli while retaining the decoded size limit',async()=>{
+ const text='<rss><channel><title>Actual bounded stream</title></channel></rss>';
+ for(const [encoding,compress] of [['gzip',gzipSync],['deflate',deflateSync],['br',brotliCompressSync]] as const){
+  const result=await fetchFeed(`https://compressed-${encoding}.example.invalid/feed`,{allowCompression:true,retries:0,resolveHostname:publicResolver,requestImpl:transport({headers:{'content-encoding':encoding},chunks:[compress(text)]})});assert.equal(result.text,text);
+ }
+ await assert.rejects(fetchFeed('https://decompression-limit.example.invalid/feed',{allowCompression:true,retries:2,resolveHostname:publicResolver,requestImpl:transport({headers:{'content-encoding':'gzip'},chunks:[gzipSync(Buffer.alloc(2*1024*1024+1,65))]})}),/byte limit/);
+});
+
+test('compressed streams still enforce deadlines and reject unsupported encodings',async()=>{
+ await assert.rejects(fetchFeed('https://compressed-stall.example.invalid/feed',{allowCompression:true,timeoutMs:50,retries:0,resolveHostname:publicResolver,requestImpl:transport({headers:{'content-encoding':'gzip'},stalled:true})}),/timed out|timeout|abort/i);
+ await assert.rejects(fetchFeed('https://unsupported-compression.example.invalid/feed',{allowCompression:true,retries:0,resolveHostname:publicResolver,requestImpl:transport({headers:{'content-encoding':'unknown'}})}),/Compressed feed/);
 });
 
 test("each redirect revalidates its destination and the fourth redirect stops the request", async () => {

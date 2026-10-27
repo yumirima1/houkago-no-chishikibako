@@ -23,6 +23,8 @@ type ResolveHostname = (hostname: string) => Promise<LookupAddress[]>;
 type FeedRequest = (url: URL, options: RequestOptions, callback: (response: IncomingMessage) => void) => ClientRequest;
 
 export type FeedFetchOptions = {
+  /** Configured sources only; encoded and decoded streams keep the same limit. */
+  allowCompression?: boolean;
   accept?: string;
   includeMetadata?: boolean;
   /** Trusted test adapters only; the application never accepts these from HTTP. */
@@ -291,9 +293,10 @@ async function enforceHostRateLimit(hostname: string, signal: AbortSignal) {
   lastRequestAtByHost.set(hostname, Date.now());
 }
 
-async function readBoundedText(response: Response, signal: AbortSignal) {
+async function readBoundedText(response: Response, signal: AbortSignal,allowCompression=false) {
   const encoding = response.headers.get("content-encoding")?.trim().toLowerCase();
-  if (encoding && encoding !== "identity") {
+  const compressed=Boolean(encoding&&encoding!=='identity');
+  if (compressed&&(!allowCompression||!['gzip','deflate','br'].includes(encoding!))) {
     void response.body?.cancel().catch(() => {});
     throw policyError("Compressed feed responses are not accepted; the reader requests identity encoding.");
   }
@@ -304,7 +307,13 @@ async function readBoundedText(response: Response, signal: AbortSignal) {
   }
   if (!response.body) return "";
 
-  const reader = response.body.getReader();
+  let bodyStream=response.body;
+  if(compressed){
+    let encodedSize=0;
+    bodyStream=bodyStream.pipeThrough(new TransformStream<Uint8Array,BufferSource>({transform(chunk,controller){encodedSize+=chunk.byteLength;if(encodedSize>MAX_FEED_BYTES)throw policyError(`Feed exceeds the ${MAX_FEED_BYTES}-byte limit.`);controller.enqueue(new Uint8Array(chunk).buffer);}}))
+      .pipeThrough(new DecompressionStream((encoding==='br'?'brotli':encoding) as CompressionFormat));
+  }
+  const reader = bodyStream.getReader();
   const chunks: Uint8Array[] = [];
   let size = 0;
 
@@ -432,7 +441,7 @@ async function fetchOnce(
         throw error;
       }
 
-      return { httpStatus: response.status, text: await readBoundedText(response, signal),
+      return { httpStatus: response.status, text: await readBoundedText(response, signal,options.allowCompression),
         ...(options.includeMetadata ? {finalUrl:url.href,contentType:response.headers.get('content-type') ?? ''} : {}) };
     }
 

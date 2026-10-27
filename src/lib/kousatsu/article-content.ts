@@ -102,7 +102,7 @@ export class ArticleContentStore {
     }
     if(attemptsToday>=3)return {status:'failed',error:'ARTICLE_DAILY_ATTEMPT_LIMIT',cached:true};
     const id=randomUUID();this.db.prepare("INSERT INTO research_page_attempts(id,url,started_at,status) VALUES(?,?,?,'running')").run(id,url.href,now());
-    const options={allowedHosts:policy.allowedHosts,timeoutMs:15000,retries:1,includeMetadata:true};
+    const options={allowedHosts:policy.allowedHosts,allowCompression:true,timeoutMs:15000,retries:1,includeMetadata:true};
     let result:PageResult,httpStatus:number|null=null;
     try {
       await this.robots(url,options);
