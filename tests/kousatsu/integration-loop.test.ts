@@ -21,8 +21,8 @@ import type {StoredItem} from '../../src/lib/kousatsu/types';
 import type {AnalysisContext} from '../../src/lib/kousatsu/ai';
 import type {QualityAnalysis} from '../../src/lib/kousatsu/quality-types';
 
-const now=Date.parse('2026-10-27T06:00:00+09:00');
-const operation=()=>parseWeeklyOperation({id:'continuous-test',startsAt:'2026-10-27T00:00:00+09:00',endsAt:null,continuous:true,runTimes:['06:00','18:00','22:00'],maxArticles:1,genres:['science','culture']});
+const now=Date.parse(`${jstDay(Date.now())}T06:00:00+09:00`);
+const operation=()=>parseWeeklyOperation({id:'continuous-test',startsAt:`${jstDay(now)}T00:00:00+09:00`,endsAt:null,continuous:true,runTimes:['06:00','18:00','22:00'],maxArticles:1,genres:['science','culture']});
 async function fixture(){
   await mkdir('tmp',{recursive:true});const root=await mkdtemp(path.resolve('tmp','integration-loop-'));
   const sources=parseResearchSources({sources:['science','culture'].map(genre=>({id:genre,name:genre,genre,feedUrl:`https://example.org/${genre}.xml`,topic:'Artemis radiation shielding measurements',enabled:true,intervalMinutes:1440,contentPolicy:'metadata-only',articlePolicy:{enabled:true,allowedHosts:['example.org'],maxArticles:1,cacheMinutes:15,followLinks:0}}))});
@@ -32,14 +32,14 @@ async function fixture(){
   const history=new TopicHistory(runtime.database.filePath);
   let edition=1,bodyEdition=1;
   const titles=['','Artemis radiation shielding measurements compare astronaut exposure','Artemis radiation shielding experiments assess instrument calibration'];
-  const transport:typeof fetchFeed=async url=>({httpStatus:200,contentType:url.endsWith('.xml')?'application/rss+xml':'text/html',text:url.endsWith('robots.txt')?'User-agent: *\nAllow: /':url.endsWith('.xml')?`<rss version="2.0"><channel><title>fixture</title><item><title>${titles[edition]}</title><link>https://example.org/artemis-${edition}</link><pubDate>Tue, 27 Oct 2026 00:00:00 GMT</pubDate></item></channel></rss>`:`<html><body><article><p>Artemis radiation shielding measurements reduced astronaut exposure by ${bodyEdition===1?20:35} percent in a controlled instrument experiment.</p><p>Document edition ${edition}. ${'Researchers compared instrument calibration and radiation shielding measurements across different astronaut exposure conditions. Independent confirmation requires additional measurements and cannot be inferred from this experiment alone. '.repeat(8)}</p></article></body></html>`});
+  const transport:typeof fetchFeed=async url=>({httpStatus:200,contentType:url.endsWith('.xml')?'application/rss+xml':'text/html',text:url.endsWith('robots.txt')?'User-agent: *\nAllow: /':url.endsWith('.xml')?`<rss version="2.0"><channel><title>fixture</title><item><title>${titles[edition]}</title><link>https://example.org/artemis-${edition}</link><pubDate>${new Date(now).toUTCString()}</pubDate></item></channel></rss>`:`<html><body><article><p>Artemis radiation shielding measurements reduced astronaut exposure by ${bodyEdition===1?20:35} percent in a controlled instrument experiment.</p><p>Document edition ${edition}. ${'Researchers compared instrument calibration and radiation shielding measurements across different astronaut exposure conditions. Independent confirmation requires additional measurements and cannot be inferred from this experiment alone. '.repeat(8)}</p></article></body></html>`});
   return {root,sources,config,runtime,history,transport,setEdition:(v:number)=>{edition=v;},setBody:(v:number)=>{bodyEdition=v;},close(){history.close();runtime.close();}};
 }
 
 test('continuous scheduling rolls beyond the former deadline and records offline gaps without unbounded catch-up',async()=>{
   const f=await fixture(),s=new WeeklyStore(f.runtime.database.filePath);try{
     s.register(operation(),now);const first=Number(s.db.prepare('SELECT count(*) n FROM weekly_days').get()?.n);assert.ok(first<=24);
-    const later=Date.parse('2027-02-10T18:00:00+09:00');s.register(operation(),later);
+    const later=now+106*86400000+12*3600000;s.register(operation(),later);
     assert.ok(s.due(operation(),later));assert.equal(s.snapshot(operation(),later).state,'active');
     assert.ok(Number(s.db.prepare('SELECT untracked_days FROM weekly_schedule_gaps').get()?.untracked_days)>80);
     assert.ok(Number(s.db.prepare('SELECT count(*) n FROM weekly_days').get()?.n)<=48);
@@ -96,7 +96,10 @@ test('a saved inquiry selects a distinct follow-up, reuses memory, journals revi
     const analysis=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(String(queued.id),'analyze')!;
     assert.ok(analysis.research!.memories.length>0);assert.ok(analysis.quality!.viewReviews!.length>0);assert.equal(analysis.research!.model.status,'not-requested');assert.equal(analysis.quality!.sourceVerification!.independentVerification,'unverified');
     agenda.reconcile(f.sources);assert.ok(Number(agenda.db.prepare('SELECT count(*) n FROM research_inquiry_attempts').get()?.n)>0);assert.equal(await readFile(first.result.articlePath!,'utf8'),original);
-    const bundle=await exportPublicResearch(f.config,f.sources);assert.equal(bundle.notes,2);assert.ok(!bundle.files['public/research/snapshot.json'].includes('origin_job'));
+    // Low-interest genres must remain visible even after many stronger themes.
+    agenda.db.prepare("UPDATE research_interests SET score=1 WHERE key='genre:science'").run();
+    for(let i=0;i<25;i++)agenda.db.prepare("INSERT INTO research_interests VALUES(?,'theme',?,100,0,NULL,?)").run(`test-theme-${i}`,`theme ${i}`,new Date(now).toISOString());
+    const bundle=await exportPublicResearch(f.config,f.sources);assert.equal(bundle.notes,2);assert.ok(!bundle.files['public/research/snapshot.json'].includes('origin_job'));assert.equal(JSON.parse(bundle.files['public/research/snapshot.json']).research.interestScores.find((g:{genre:string})=>g.genre==='science').score,1);
   }finally{agenda.close();f.close();}
 });
 
