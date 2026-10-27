@@ -6,6 +6,8 @@ import * as THREE from "three";
 import { RoomModel } from "./RoomAssets";
 import { trainPosition } from "./roomMotion";
 import type { NightWeather } from "@/lib/observer-weather";
+import { WINDOW_OPENING } from "./roomLayout";
+import { exteriorStencil } from "./windowStencil";
 
 const BLOCKS: [string, number, number, number][] = [
   ["low-detail-building-a", -14, -23, 10], ["building-skyscraper-b", -8, -26, 15],
@@ -24,13 +26,13 @@ function Train({ reducedMotion }: { reducedMotion: boolean }) {
   });
   return <group ref={train} position={[trainPosition(0), 0.65, -8.2]} name="night-train">
     {[0, 1, 2, 3].map((car) => <group key={car} position={[-car * 1.55, 0, 0]}>
-      <mesh><boxGeometry args={[1.48, 0.32, 0.36]} /><meshStandardMaterial color="#819195" roughness={0.55} /></mesh>
-      <mesh position={[0, -0.07, 0.185]}><boxGeometry args={[1.47, 0.035, 0.009]} /><meshStandardMaterial color="#688f86" /></mesh>
+      <mesh><boxGeometry args={[1.48, 0.32, 0.36]} /><meshStandardMaterial {...exteriorStencil} color="#819195" roughness={0.55} /></mesh>
+      <mesh position={[0, -0.07, 0.185]}><boxGeometry args={[1.47, 0.035, 0.009]} /><meshStandardMaterial {...exteriorStencil} color="#688f86" /></mesh>
       {[0, 1, 2, 3, 4].map((window) => <mesh key={window} position={[-0.56 + window * 0.28, 0.055, 0.187]}>
-        <planeGeometry args={[0.18, 0.12]} /><meshBasicMaterial color={window % 3 === 0 ? "#8eabaf" : "#e3c88b"} toneMapped={false} />
+        <planeGeometry args={[0.18, 0.12]} /><meshBasicMaterial {...exteriorStencil} color={window % 3 === 0 ? "#8eabaf" : "#e3c88b"} toneMapped={false} />
       </mesh>)}
     </group>)}
-    <mesh position={[0.75, 0, 0.15]}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial color="#fff1c6" /></mesh>
+    <mesh position={[0.75, 0, 0.15]}><sphereGeometry args={[0.035, 8, 8]} /><meshBasicMaterial {...exteriorStencil} color="#fff1c6" /></mesh>
   </group>;
 }
 
@@ -74,9 +76,9 @@ function CityWindows({ rainy }: { rainy: boolean }) {
     }
   }, [windows]);
   return <group><instancedMesh ref={instances} args={[undefined, undefined, windows.length]}>
-    <planeGeometry args={[0.22, 0.18]} /><meshBasicMaterial toneMapped={false} />
+    <planeGeometry args={[0.22, 0.18]} /><meshBasicMaterial {...exteriorStencil} toneMapped={false} />
   </instancedMesh><instancedMesh ref={halos} args={[undefined, undefined, windows.length]} visible={rainy}>
-    <planeGeometry args={[1.1, 0.85]} /><meshBasicMaterial map={glow} transparent opacity={0.38} depthWrite={false} toneMapped={false} />
+    <planeGeometry args={[1.1, 0.85]} /><meshBasicMaterial {...exteriorStencil} map={glow} transparent opacity={0.38} depthWrite={false} toneMapped={false} />
   </instancedMesh></group>;
 }
 
@@ -91,17 +93,21 @@ export function NightCity({ reducedMotion, weather }: { reducedMotion: boolean; 
     if (litWindows.current) litWindows.current.color.setRGB(0.56 + Math.sin(elapsed.current * 0.17) * 0.06, 0.52, 0.34);
   });
   return <group name="exterior-only">
-    <mesh position={[0, 3, -40]}><planeGeometry args={[110, 65]} /><meshBasicMaterial color={weather === "rain" ? "#0b1626" : "#101e30"} /></mesh>
-    <mesh position={[-19, 8, -39]} visible={weather === "clear"}><circleGeometry args={[0.62, 32]} /><meshBasicMaterial color="#7d8c9b" /></mesh>
+    <mesh name="exterior-window-mask" renderOrder={-100} position={[(WINDOW_OPENING.left + WINDOW_OPENING.right) / 2, (WINDOW_OPENING.top + WINDOW_OPENING.bottom) / 2, -1.95]}>
+      <planeGeometry args={[WINDOW_OPENING.right - WINDOW_OPENING.left, WINDOW_OPENING.top - WINDOW_OPENING.bottom]} />
+      <meshBasicMaterial colorWrite={false} depthWrite={false} depthTest={false} stencilWrite stencilRef={1} stencilFunc={THREE.AlwaysStencilFunc} stencilZPass={THREE.ReplaceStencilOp} />
+    </mesh>
+    <mesh position={[0, 3, -40]}><planeGeometry args={[110, 65]} /><meshBasicMaterial {...exteriorStencil} color={weather === "rain" ? "#0b1626" : "#101e30"} /></mesh>
+    <mesh position={[-19, 8, -39]} visible={weather === "clear"}><circleGeometry args={[0.62, 32]} /><meshBasicMaterial {...exteriorStencil} color="#7d8c9b" /></mesh>
     {BLOCKS.map(([name, x, z, height], index) => <RoomModel key={index} position={[x, -3.8, z]} name={name} kind="city"
       size={[height > 11 ? 3 : 3.8, height, height > 11 ? 3 : 3.5]} finish="city" />)}
     <CityWindows rainy={weather === "rain"} />
-    <mesh position={[-14, 6.28, -23]}><sphereGeometry args={[0.075, 8, 8]} /><meshBasicMaterial ref={beacon} color="#c78069" transparent /></mesh>
-    <mesh position={[-10, 0.5, -11.225]}><planeGeometry args={[1.8, 0.14]} /><meshBasicMaterial ref={litWindows} color="#b3a079" /></mesh>
+    <mesh position={[-14, 6.28, -23]}><sphereGeometry args={[0.075, 8, 8]} /><meshBasicMaterial {...exteriorStencil} ref={beacon} color="#c78069" transparent /></mesh>
+    <mesh position={[-10, 0.5, -11.225]}><planeGeometry args={[1.8, 0.14]} /><meshBasicMaterial {...exteriorStencil} ref={litWindows} color="#b3a079" /></mesh>
     <group position={[0, 0.38, -8.2]}>
-      <mesh><boxGeometry args={[65, 0.16, 0.9]} /><meshStandardMaterial color="#25343f" /></mesh>
-      <mesh position={[0, 0.17, 0.45]}><boxGeometry args={[65, 0.045, 0.045]} /><meshStandardMaterial color="#637280" /></mesh>
-      {[-15, -9, -3, 3, 9, 15].map((x) => <mesh key={x} position={[x, -1.8, 0]}><boxGeometry args={[0.28, 3.6, 0.5]} /><meshStandardMaterial color="#2a3946" /></mesh>)}
+      <mesh><boxGeometry args={[65, 0.16, 0.9]} /><meshStandardMaterial {...exteriorStencil} color="#25343f" /></mesh>
+      <mesh position={[0, 0.17, 0.45]}><boxGeometry args={[65, 0.045, 0.045]} /><meshStandardMaterial {...exteriorStencil} color="#637280" /></mesh>
+      {[-15, -9, -3, 3, 9, 15].map((x) => <mesh key={x} position={[x, -1.8, 0]}><boxGeometry args={[0.28, 3.6, 0.5]} /><meshStandardMaterial {...exteriorStencil} color="#2a3946" /></mesh>)}
     </group>
     <Train reducedMotion={reducedMotion} />
   </group>;

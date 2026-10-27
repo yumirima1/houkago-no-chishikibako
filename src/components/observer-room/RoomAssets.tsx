@@ -5,6 +5,7 @@ import { useEffect, useMemo } from "react";
 import * as THREE from "three";
 import { clipCRTFront } from "./crtGeometry";
 import { siteAsset } from "@/lib/site-url";
+import { exteriorStencil } from "./windowStencil";
 
 type ModelProps = {
   name: string;
@@ -52,6 +53,7 @@ export function RoomModel({ name, kind = "furniture", position, rotation, size, 
           material.color.set(original.name === "lamp" ? "#b4a071" : "#344438");
         } else if (finish === "city") material.color.set("#64758b");
         else if (finish === "crt") { material.color.set("#c3b69b"); material.roughness = 0.65; }
+        if (kind === "city") Object.assign(material, exteriorStencil);
         return material;
       };
       node.material = Array.isArray(node.material) ? node.material.map(apply) : apply(node.material);

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { Component, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ObserverDesktop } from "./ObserverDesktop";
 import { useRoomWeather } from "./useRoomWeather";
+import { RoomControls } from "./RoomControls";
 import styles from "./observer-room.module.css";
 
 const ObserverStudyScene = dynamic(() => import("./ObserverStudyScene").then((module) => module.ObserverStudyScene), {
@@ -33,6 +34,7 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 export function ObserverStudyRoot() {
+  const [windowOpen, setWindowOpen] = useState(false);
   const [phase, setPhase] = useState<"room" | "opening" | "desktop" | "closing">("room");
   const phaseRef = useRef(phase);
   const monitorButton = useRef<HTMLButtonElement>(null);
@@ -58,12 +60,13 @@ export function ObserverStudyRoot() {
   }
   const openDesktop = phase !== "room";
   const fallback = <div className={styles.unavailable}><p>この環境では3Dの部屋を表示できません。</p><button type="button" onClick={open}>端末を開く</button><button type="button" onClick={() => window.location.reload()}>再試行</button></div>;
-  return <div className={styles.room} data-phase={phase} data-weather={weather.mode} data-weather-status={weather.status}>
+  return <div className={styles.room} data-phase={phase} data-weather={weather.mode} data-weather-status={weather.status} data-window={windowOpen ? "open" : "closed"}>
     <div inert={openDesktop} className={styles.scene}>
       {webGL === null ? <RoomLoading /> : webGL ? <SceneBoundary fallback={fallback}>
-        <ObserverStudyScene onOpen={open} interactive={!openDesktop} focused={phase === "opening" || phase === "desktop"} reducedMotion={reducedMotion} weather={weather.mode} />
+        <ObserverStudyScene onOpen={open} interactive={!openDesktop} focused={phase === "opening" || phase === "desktop"} reducedMotion={reducedMotion} weather={weather.mode} windowOpen={windowOpen} onWindowToggle={() => setWindowOpen(value => !value)} />
       </SceneBoundary> : fallback}
       <button ref={monitorButton} type="button" className={styles.keyboardEntry} onClick={open} aria-haspopup="dialog">CRTモニターを開く</button>
+      <RoomControls windowOpen={windowOpen} onWindowChange={() => setWindowOpen(value => !value)} />
     </div>
     {openDesktop && <ObserverDesktop onClose={close} phase={phase} weather={weather} />}
   </div>;
