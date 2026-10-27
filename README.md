@@ -108,7 +108,7 @@ VOICEVOX_BUNKEI_SPEAKER_ID=8
 
 ## 考察箱
 
-2026-10-26追加の独立バックグラウンドは `npm.cmd run kousatsu:backend -- status` で確認できます。公式RSS3件を1時間ごとに収集し、`D:\AI\KousatsuData` へ記事・考察・仮説・記憶を保存します。現在ユーザーのタスク `KousatsuBackend-3B15A24B0D` を登録しました。起動・停止・設定・バックアップ・残る制約は [自律バックグラウンドの運用](docs/AUTONOMOUS_BACKEND.md) を参照してください。以下の既存ローカルCLI/UI設定は互換性のため別に維持しています。
+独立バックグラウンドは `npm.cmd run kousatsu:backend -- health` と `audit` で確認できます。現在は公式RSS7件から関心・未解決の問いに応じて対象を選び、日本時間06:00・18:00・22:00、1日最大3枠で期限なく運転します。`D:\AI\KousatsuData` に記事・考察・仮説・記憶・次の調査計画を保存します。現在ユーザーのタスクは `KousatsuBackend-3B15A24B0D`。起動・停止・バックアップ・公開検証と残る制約は [継続運転と検証](docs/BACKGROUND_OPERATION.md) を参照してください。以下の既存ローカルCLI/UI設定は互換性のため別に維持しています。
 
 本文取得・引用検査を維持し、情報が不完全でも「見解・理由・別の説明・修正条件」を残すように変更しました。見解は事実と分けて保存します。NASA・国連・文化記事の比較と限界は [考察生成の修正報告](docs/REFLECTION_GENERATION_REVISION.md) を参照してください。前段階の記録は [研究品質の改善報告](docs/RESEARCH_QUALITY_IMPROVEMENT.md) に保持しています。
 
@@ -155,4 +155,4 @@ KOUSATSU_OLLAMA_MODEL=<installed-model-name>
 
 自律処理で保存された公開対象の考察は、公開用JSON・Markdownだけを `main` へ自動反映し、GitHub Actionsの検証後に [GitHub Pages](https://yumirima1.github.io/houkago-no-chishikibako/) へ配信します。部屋のCRTから「考察アーカイブ」を開いて読めます。SQLite・取得本文・内部ログ・認証情報は配信しません。公開対象は根拠参照と構造検査を通った見解で、同じ出典の過去の試行を重複掲載しません。モデル・ルール分析・併用を区別して表示します。
 
-実行は日本時間06:00・18:00・22:00の最大3枠です。現在の運用期間と終了日時、停止・再開方法は [自律運用](docs/WEEK_AUTONOMOUS_OPERATION.md) を参照してください。設計と安全条件は `docs/KOUSATSU_ARCHITECTURE.md` にあります。
+実行は日本時間06:00・18:00・22:00の最大3枠です。現在の設定は `continuous: true / endsAt: null` で、停止するまで継続します。停止・再開方法と検証手順は [継続運転と検証](docs/BACKGROUND_OPERATION.md) を参照してください。設計と安全条件は `docs/KOUSATSU_ARCHITECTURE.md` にあります。
