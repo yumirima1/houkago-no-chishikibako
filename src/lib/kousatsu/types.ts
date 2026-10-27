@@ -121,6 +121,7 @@ export type AnalysisResult = {
   provider: string;
   summary: string;
   research?: {
+    interests?:import('./interest-evaluation').InterestAssessment;
     topic: string;
     reason: string;
     candidates: string[];

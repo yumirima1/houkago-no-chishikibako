@@ -11,6 +11,8 @@ import type { MemoryContext } from "./runtime-types";
 import type { DocumentCoverage, GroundedModelProposal } from './quality-types';
 
 export type AnalysisContext = {
+  interestCandidates?:import('./interest-evaluation').InterestCandidate[];
+  interestBasis?:import('./interest-evaluation').InterestBasis[];
   claims: ClaimRecord[];
   items: StoredItem[];
   relations: RelationRecord[];
@@ -111,10 +113,10 @@ export class OllamaProvider implements KousatsuAiProvider {
         model: this.model,
         temperature: 0.2,
         groundedTemperature: 0.3,
-        promptVersion: 10,
+        promptVersion: 11,
         think: false,
         contextWindow: 4096,
-        outputLimit: 1000,
+        outputLimit: 1600,
       }))
       .digest("hex");
   }
@@ -139,7 +141,15 @@ export class OllamaProvider implements KousatsuAiProvider {
 
   async proposeGrounded(context:AnalysisContext):Promise<GroundedModelProposal> {
     const strings={type:'array',items:{type:'string'},maxItems:4};
-    const schema={type:'object',required:['考察'],additionalProperties:false,properties:{
+    const boundIds=(values:string[],max:number)=>({type:'array',maxItems:Math.min(max,values.length),items:{type:'string',...(values.length?{enum:values}:{})}});
+    const appraisal=context.interestCandidates?.length?{興味評価:{type:'array',minItems:context.interestCandidates.length,maxItems:context.interestCandidates.length,items:{
+      type:'object',additionalProperties:false,required:['candidateId','theme','impact','reason','confidence','direction','relatedInterestKeys','memoryIds'],properties:{
+        candidateId:{type:'string',enum:context.interestCandidates.map(c=>c.id)},theme:{type:'string',enum:[...new Set([...context.interestCandidates.map(c=>c.term),...(context.interestBasis??[]).filter(i=>i.key.startsWith('theme:')).map(i=>i.label)])]},
+        impact:{type:'integer',minimum:-10,maximum:10},reason:{type:'string',minLength:8,maxLength:100},confidence:{type:'number',minimum:0,maximum:1},direction:{type:'string',enum:['strengthen','weaken','aversion','neutral']},
+        relatedInterestKeys:boundIds((context.interestBasis??[]).map(i=>i.key),4),memoryIds:boundIds((context.memories??[]).map(m=>m.id),2),
+      },
+    }}}:{};
+    const schema={type:'object',required:['考察',...(context.interestCandidates?.length?['興味評価']:[])],additionalProperties:false,properties:{...appraisal,
       考察:{type:'object',additionalProperties:false,required:['重要な問題','私の見解','理由','別の説明','見解を変える条件','前提ID','仮定','確信度'],properties:{
         重要な問題:{type:'string',maxLength:140},私の見解:{type:'string',maxLength:180},理由:{type:'string',maxLength:320},別の説明:{type:'string',maxLength:200},見解を変える条件:{type:'string',maxLength:200},
         前提ID:strings,仮定:strings,確信度:{type:'number'},過去の見解ID:strings}},
@@ -170,12 +180,19 @@ export class OllamaProvider implements KousatsuAiProvider {
       '原文の個別内容から、何を優先するか、どんなトレードオフがあるかを自分で考える。不足の列挙だけに戻さない。回答の文章はすべて日本語で書く。',
       '次は過去の見解であり事実ではない。資料との対応があるものだけ比較し、維持・修正する理由を考える。使った場合のみmemoryIdsへIDを書く。',
       '<UNTRUSTED_HISTORICAL_VIEWS>',JSON.stringify((context.memories??[]).filter(m=>m.quality?.reflection).slice(0,2).map(m=>({id:m.id,view:m.quality!.reflection,recordedAt:m.createdAt}))),'</UNTRUSTED_HISTORICAL_VIEWS>',
+      ...(context.interestCandidates?.length?[
+        '「興味評価」は下の候補IDごとに1件。調査関心への影響impactを-10〜10、理由reasonを日本語で簡潔に、主観評価のconfidenceを0〜1で記す。テーマの現在値0〜100や事実の真偽とは別の数値である。',
+        '新規性や記憶との接続で関心を増すならstrengthenと正数、既知で価値が薄いならweakenと負数、嫌悪や調査回避ならaversionと負数、変化なしはneutralと0。同じ単語も記事の文脈で評価する。',
+        'themeは候補のtermまたは既存のtheme:に属するlabelだけを使う。relatedInterestKeysとmemoryIdsは下に実在するIDのみ、無関係なら空配列。根拠なく既知・危険と決めつけず不確実性を理由に残す。',
+        '<UNTRUSTED_INTEREST_TARGETS>',JSON.stringify(context.interestCandidates),'</UNTRUSTED_INTEREST_TARGETS>',
+        '既存の関心（事実の確信度ではない）:',JSON.stringify(context.interestBasis??[]),
+      ]:[]),
     ].join('\n');
     const parsed=JSON.parse(await this.generate(prompt,schema,true));
     if(parsed?.考察){const view=parsed.考察;parsed.reflection={issue:view.重要な問題,position:view.私の見解,reasoning:view.理由,alternative:view.別の説明,
       revisionCondition:view.見解を変える条件,premiseClaimIds:view.前提ID,assumptions:view.仮定,confidence:view.確信度,memoryIds:view.過去の見解ID};}
     if(!parsed || (!parsed.reflection && (!Array.isArray(parsed.observations) || !Array.isArray(parsed.conclusions) || !Array.isArray(parsed.hypotheses))))throw new Error('GROUNDED_OUTPUT_SCHEMA_INVALID');
-    return {...parsed,observations:Array.isArray(parsed.observations)?parsed.observations:[],conclusions:Array.isArray(parsed.conclusions)?parsed.conclusions:[],hypotheses:Array.isArray(parsed.hypotheses)?parsed.hypotheses:[]};
+    return {...parsed,interestEvaluations:parsed.興味評価??parsed.interestEvaluations,observations:Array.isArray(parsed.observations)?parsed.observations:[],conclusions:Array.isArray(parsed.conclusions)?parsed.conclusions:[],hypotheses:Array.isArray(parsed.hypotheses)?parsed.hypotheses:[]};
   }
 
   private async generate(prompt:string,format:unknown,grounded=false):Promise<string> {
@@ -184,7 +201,7 @@ export class OllamaProvider implements KousatsuAiProvider {
       body: JSON.stringify({
         format,
         model: this.model,
-        options: { temperature: grounded ? 0.3 : 0.2, num_ctx: 4096, num_predict: 1000 },
+        options: { temperature: grounded ? 0.3 : 0.2, num_ctx: 4096, num_predict: 1600 },
         keep_alive: 0,
         prompt,
         stream: false,

@@ -7,6 +7,7 @@ import {reflectionQuestion} from './reflection';
 import type { KousatsuDatabase } from './database';
 import type { AnalysisResult } from './types';
 import {verifySourceBindings} from './source-verification';
+import {extractInterestCandidates,readInterestBasis,assessInterests} from './interest-evaluation';
 
 const stopwords = new Set('about after again also and are before being can comes could first for from has have into its more nasa news not now that the their there these they this through today united was were what when which who will with would library congress'.split(' '));
 
@@ -112,11 +113,11 @@ export function safeDiagnostic(error: unknown) {
 /** A stable provider identity keeps retries compatible even if Ollama is offline. */
 export class ResearchEngine implements KousatsuAiProvider {
   readonly id='autonomous';
-  readonly model='research-v4';
+  readonly model='research-v5';
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:4,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:5,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
     const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
@@ -135,7 +136,7 @@ export class ResearchEngine implements KousatsuAiProvider {
     let proposal:unknown;
     let used='deterministic/reflection-v3';
     let error: string|null=null;
-    const selected={...context,topic:decision.topic,items:focus,claims:context.claims.filter(c=>focusIds.includes(c.itemId!)),
+    const selected={...context,topic:decision.topic,items:focus,claims:context.claims.filter(c=>focusIds.includes(c.itemId!)),interestCandidates:extractInterestCandidates(focus),interestBasis:readInterestBasis(this.options.database.filePath),
       memories:(context.memories??[]).filter(m=>m.quality?.reflection&&m.references.some(ref=>{
         if(focusIds.includes(ref.itemId))return true;
         const old=this.options.database.getItemVersion(ref.versionId);
@@ -176,6 +177,7 @@ export class ResearchEngine implements KousatsuAiProvider {
     const analysis:AnalysisResult={quality,summary,provider:used.split('/')[0],model:used.split('/')[1],hypotheses:quality.hypotheses.map(h=>({text:h.text,
       rationale:`前提: ${h.premiseClaimIds.join(', ')} / 予測: ${h.prediction} / 反証: ${h.falsification} / 代替説明: ${h.alternative} / 必要資料: ${h.requiredEvidence}`}))};
     const research: NonNullable<AnalysisResult['research']>={
+      interests:assessInterests(proposal,selected,`${this.options.provider.id}/${this.options.provider.model}`),
       topic:decision.topic,reason:decision.reason,candidates:decision.candidates,
       memories:selected.memories.map(m=>({id:m.id,jobId:m.jobId,text:m.text})),
       evidence:selected.claims.filter(claim => claim.itemId && claim.versionId).slice(0,8).map(claim => ({

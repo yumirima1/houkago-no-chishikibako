@@ -116,6 +116,12 @@ export async function exportKnowledge(config: AutonomousConfig, history: TopicHi
         ...references.slice(0,12).map(r=>`- ${line(r.sourceId)} → 記述 → ${line(r.title)} / [文書版](../Articles/${r.id}-${r.versionId}.md)`),
       ],job);
     }
+    if(db.prepare("SELECT name FROM sqlite_master WHERE name='research_interest_appraisals'").get())for(const appraisal of db.prepare('SELECT * FROM research_interest_appraisals ORDER BY created_at,id').all())remember(path.join(paths.memory,`interest-appraisal-${appraisal.id}.md`),[
+      '# 単語・概念のAI関心評価','',`記録: ${appraisal.created_at}`,`ジョブ: ${appraisal.job_id}`,'',
+      `単語・概念: ${appraisal.term}`,`影響: ${appraisal.impact} / 確信度: ${appraisal.confidence} / 方向: ${appraisal.direction}`,
+      `重み付き変化候補: ${appraisal.weighted_delta} / 適用: ${appraisal.applied}`,'',String(appraisal.evaluation_json),'',
+      '個人的な調査関心の評価。事実の真偽やテーマの現在値とは別。実際の集約変化は interest-event を参照。',
+    ],String(appraisal.job_id));
     // Immutable event files make evolving plans and interests inspectable while
     // preserving every prior decision and any user-edited artifact.
     for(const [table,prefix] of [['research_interest_events','interest-event'],['research_inquiry_events','inquiry-event']] as const){

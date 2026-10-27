@@ -34,6 +34,7 @@ export type QualityAnalysis = {
   followUp: Array<{url: string; status: string; reason: string}>;
 };
 export type GroundedModelProposal = {
+  interestEvaluations?:unknown;
   reflection?:Omit<Reflection,'origin'|'scope'>;
   observations: Array<{claimId: string; quote: string}>;
   conclusions: Array<{text: string; premiseClaimIds: string[]; reasoning: string; alternative: string}>;

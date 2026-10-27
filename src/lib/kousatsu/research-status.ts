@@ -27,11 +27,13 @@ export function inspectBackend(config:AutonomousConfig,now=Date.now()){
     const last=cycles[0],stalled=!!last&&last.status==='running'&&now-Date.parse(String(last.startedAt))>deadline;
     const publication=has('public_publish_state')?db.prepare('SELECT digest,status,attempts,error,commit_sha FROM public_publish_state ORDER BY rowid DESC LIMIT 5').all():[];
     const delivery=has('public_delivery_checks')?db.prepare('SELECT digest,status,attempts,error,expected_commit,deployed_commit,checked_at FROM public_delivery_checks ORDER BY rowid DESC LIMIT 5').all():[];
+    const publicationHistory=has('public_attempt_events')?db.prepare('SELECT * FROM public_attempt_events ORDER BY id DESC LIMIT 20').all():[];
+    const interestAppraisals=has('research_interest_appraisals')?db.prepare('SELECT job_id,term,impact,confidence,direction,evaluation_json,applied,created_at FROM research_interest_appraisals ORDER BY rowid DESC LIMIT 12').all():[];
     const decisions=auditPublicArticles(db);
     const unfinished=has('research_queue')?db.prepare("SELECT j.id,j.status,j.attempts,j.max_attempts,q.decision,q.next_attempt_at FROM research_queue q JOIN jobs j ON j.id=q.job_id WHERE q.decision<>'done' ORDER BY j.created_at LIMIT 50").all():[];
     const sourceHealth=has('fetch_runs')?db.prepare('SELECT s.id,s.name,f.status,f.completed_at,f.item_count,f.new_item_count FROM sources s LEFT JOIN fetch_runs f ON f.id=(SELECT id FROM fetch_runs WHERE source_id=s.id ORDER BY started_at DESC LIMIT 1)').all():[];
     let planning:unknown=null;if(has('research_interests')){const agenda=new ResearchAgenda(file,config.agenda,{readOnly:true});try{planning=agenda.summary();}finally{agenda.close();}}
     const health={status:stalled?'stalled':!active?'not-running':last?.status==='failed'||last?.status==='attention'||publication[0]?.status==='failed'||delivery[0]?.status==='failed'?'attention':'healthy',supervisorActive:active,lastCycleId:last?.id??null,lastCycleStatus:last?.status??null,readAt:new Date(now).toISOString()};
-    return {health,counts,publication,delivery,publicationCounts:publicDecisionCounts(decisions),publicationDecisions:decisions,unfinished,sourceHealth,planning,cycles};
+    return {health,counts,publication,delivery,publicationHistory,interestAppraisals,publicationCounts:publicDecisionCounts(decisions),publicationDecisions:decisions,unfinished,sourceHealth,planning,cycles};
   }finally{db.close();}
 }

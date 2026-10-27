@@ -6,7 +6,6 @@ import os from "node:os";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import test, { type TestContext } from "node:test";
-import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
 import { DeterministicProvider, OllamaProvider } from "../../src/lib/kousatsu/ai";
@@ -254,6 +253,9 @@ test("resume refuses persisted job input changes and document revisions", async 
 });
 
 test("another connection cannot run a leased job while heartbeat preserves ownership", async (t) => {
+  // Exercise expiry and renewal with a controlled clock. A real 300 ms lease
+  // makes this assertion depend on unrelated CPU/GPU load during the suite.
+  t.mock.timers.enable({apis:['Date','setInterval'],now:Date.now()});
   const { database, input, connect } = await setup(t);
   const other = connect();
   const jobId = database.createJob(input);
@@ -267,7 +269,7 @@ test("another connection cannot run a leased job while heartbeat preserves owner
   const running = worker.resume(jobId);
   try {
     await started;
-    await delay(450); // Beyond the initial lease; heartbeat must still exclude the peer.
+    for(let i=0;i<5;i++)t.mock.timers.tick(100); // Beyond the initial lease, renewing each interval.
     await assert.rejects(new KousatsuPipeline(other).resume(jobId), /already leased/);
     assert.equal(other.getJob(jobId)!.attempts, 1);
   } finally { release(); }

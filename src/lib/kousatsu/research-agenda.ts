@@ -3,6 +3,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {meaningfulTerms} from './relevance';
 import type {ResearchSource} from './runtime-types';
 import type {AnalysisResult,StoredItem} from './types';
+import {interestDelta,type InterestAssessment} from './interest-evaluation';
 
 const day=86400000,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
 const clamp=(n:number)=>Math.max(0,Math.min(100,n));
@@ -41,11 +42,14 @@ export class ResearchAgenda {
       CREATE TABLE IF NOT EXISTS research_inquiry_events(id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,job_id TEXT,kind TEXT NOT NULL,details_json TEXT NOT NULL,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS research_inquiry_attempts(inquiry_id TEXT NOT NULL,job_id TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(inquiry_id,job_id));
       CREATE TABLE IF NOT EXISTS research_slot_plans(operation_id TEXT NOT NULL,slot TEXT NOT NULL,plan_json TEXT NOT NULL,PRIMARY KEY(operation_id,slot));
+      CREATE TABLE IF NOT EXISTS research_interest_assessments(job_id TEXT PRIMARY KEY,status TEXT NOT NULL,provider TEXT NOT NULL,issues_json TEXT NOT NULL,candidate_count INTEGER NOT NULL,applied INTEGER NOT NULL,created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS research_interest_activity(interest_key TEXT PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN (0,1)),updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS research_interest_appraisals(id TEXT PRIMARY KEY,receipt_id TEXT NOT NULL,job_id TEXT NOT NULL,interest_key TEXT NOT NULL,genre TEXT NOT NULL,term TEXT NOT NULL,impact REAL NOT NULL,confidence REAL NOT NULL,direction TEXT NOT NULL,weighted_delta REAL NOT NULL,evaluation_json TEXT NOT NULL,applied INTEGER NOT NULL,created_at TEXT NOT NULL,UNIQUE(receipt_id,interest_key,term));
     `);
   }
   close(){this.db.close();}
   private atomic<T>(fn:()=>T){this.db.exec('BEGIN IMMEDIATE');try{const value=fn();this.db.exec('COMMIT');return value;}catch(e){this.db.exec('ROLLBACK');throw e;}}
-  private change(key:string,label:string,kind:string,boost:number,reason:string,receipt:string,now:number,job?:string){
+  private change(key:string,label:string,kind:string,boost:number,reason:string,receipt:string,now:number,job?:string,seen=boost>0){
     const at=new Date(now).toISOString();
     const initial=this.settings.initialScores[label]??(kind==='genre'?50:30);
     this.db.prepare('INSERT OR IGNORE INTO research_interests VALUES(?,?,?,?,0,NULL,?)').run(key,kind,label,initial,at);
@@ -54,7 +58,7 @@ export class ResearchAgenda {
     const score=clamp(Number(previous.score)+boost);
     this.db.prepare('INSERT INTO research_interest_events VALUES(?,?,?,?,?,?,?)').run(receipt,key,job??null,previous.score,score,reason,at);
     this.db.prepare('UPDATE research_interests SET score=?,observations=observations+?,last_seen_at=CASE WHEN ?>0 THEN ? ELSE last_seen_at END,decay_at=? WHERE key=?')
-      .run(score,boost>0?1:0,boost,at,at,key);
+      .run(score,seen?1:0,seen?1:0,at,at,key);
   }
   private decay(now:number){
     for(const row of this.db.prepare('SELECT * FROM research_interests').all()){
@@ -80,14 +84,16 @@ export class ResearchAgenda {
           const version=primary.versionId??primary.contentHash;
           const novelty=hash(`${primary.id}:${(primary.content??primary.summary??primary.title).normalize('NFKC').replace(/\s+/g,' ')}`);
           const novel=this.db.prepare('INSERT OR IGNORE INTO research_interest_observations VALUES(?,?)').run(novelty,row.id).changes;
-          if(novel){
+          const assessment=analysis.research?.interests;
+          if(assessment)this.recordAssessment(assessment,primary,genre,novelty,String(row.id),Boolean(novel),Math.min(now,Date.parse(String(row.created_at))));
+          if(novel&&(!assessment||assessment.status==='not-requested')){
             const observedAt=Math.min(now,Date.parse(String(row.created_at))),boost=quality.status==='grounded'?this.settings.discoveryBoost:this.settings.discoveryBoost/2;
-            this.change(`genre:${genre}`,genre,'genre',boost,'NEW_SOURCE_BOUND_OBSERVATION',hash(`${novelty}:genre`),observedAt,String(row.id));
+            this.change(`genre:${genre}`,genre,'genre',boost,'RULE_SOURCE_BOUND_OBSERVATION; AI_EVALUATION_NOT_REQUESTED',hash(`${novelty}:genre`),observedAt,String(row.id));
             for(const term of [...meaningfulTerms(primary.title)].slice(0,3)){
               const key=`theme:${term}`;
               const exists=this.db.prepare('SELECT key FROM research_interests WHERE key=?').get(key);
               if(!exists&&Number(this.db.prepare("SELECT count(*) n FROM research_interests WHERE kind='theme'").get()?.n)>=this.settings.maxTopics)continue;
-              this.change(key,term,'theme',boost,'THEME_FROM_SOURCE_HEADLINE',hash(`${novelty}:${key}`),observedAt,String(row.id));
+              this.change(key,term,'theme',boost,'RULE_THEME_FROM_SOURCE_HEADLINE; AI_EVALUATION_NOT_REQUESTED',hash(`${novelty}:${key}`),observedAt,String(row.id));
             }
           }
           const terms=[...meaningfulTerms(primary.title)].slice(0,12);
@@ -130,7 +136,37 @@ export class ResearchAgenda {
   private event(id:string,job:string|null,kind:string,details:unknown,now:number,receipt=hash(`${id}:${job}:${kind}`)){
     this.db.prepare('INSERT OR IGNORE INTO research_inquiry_events VALUES(?,?,?,?,?,?)').run(receipt,id,job,kind,JSON.stringify(details),new Date(now).toISOString());
   }
-  interests(){return this.db.prepare('SELECT * FROM research_interests ORDER BY score DESC,key').all() as unknown as Interest[];}
+  private recordAssessment(report:InterestAssessment,primary:StoredItem,genre:string,receipt:string,job:string,novel:boolean,now:number){
+    const evaluations=Array.isArray(report.evaluations)?report.evaluations:[];
+    const sound=report.status==='succeeded'&&evaluations.length>0&&evaluations.every(e=>e&&Number.isFinite(e.impact)&&Math.abs(e.impact)<=10&&Number.isFinite(e.confidence)&&e.confidence>=0&&e.confidence<=1&&e.reference?.itemId===primary.id&&e.reference.versionId===primary.versionId&&typeof e.theme==='string'&&e.theme.length<=80&&typeof e.reason==='string'&&e.reason.length>=8);
+    const status=report.status==='succeeded'&&!sound?'failed':report.status;
+    const issues=Array.isArray(report.issues)?report.issues:[];
+    this.db.prepare('INSERT OR IGNORE INTO research_interest_assessments VALUES(?,?,?,?,?,?,?)').run(job,status,typeof report.provider==='string'?report.provider:'unknown',JSON.stringify([...issues,...(!sound&&report.status==='succeeded'?['INTEREST_PERSISTENCE_INVALID']:[])]),Array.isArray(report.candidates)?report.candidates.length:0,sound&&novel?1:0,new Date(now).toISOString());
+    if(!sound||!novel)return;
+    const themes=new Map<string,{label:string;delta:number;ids:string[]}>();
+    for(const evaluation of evaluations){
+      const key=`theme:${evaluation.theme.normalize('NFKC').toLowerCase()}`,id=hash(`${receipt}:${key}:${evaluation.term}`),delta=interestDelta(evaluation);
+      this.db.prepare('INSERT OR IGNORE INTO research_interest_appraisals VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(id,receipt,job,key,genre,evaluation.term,evaluation.impact,evaluation.confidence,evaluation.direction,delta,JSON.stringify(evaluation),0,new Date(now).toISOString());
+      const group=themes.get(key)??{label:evaluation.theme,delta:0,ids:[]};group.delta+=delta;group.ids.push(id);themes.set(key,group);
+    }
+    for(const [key,value] of themes){
+      if(!this.activateTheme(key,new Set(themes.keys()),receipt,now,job))continue;
+      this.change(key,value.label,'theme',Math.max(-this.settings.discoveryBoost,Math.min(this.settings.discoveryBoost,value.delta)),`AI_CONTEXT_APPRAISAL: ${value.ids.join(',')}`,hash(`${receipt}:${key}:ai`),now,job,true);
+      for(const id of value.ids)this.db.prepare('UPDATE research_interest_appraisals SET applied=1 WHERE id=?').run(id);
+    }
+    const delta=Math.round(evaluations.reduce((sum,e)=>sum+interestDelta(e),0)/evaluations.length*2)/2;
+    this.change(`genre:${genre}`,genre,'genre',Math.max(-this.settings.discoveryBoost,Math.min(this.settings.discoveryBoost,delta)),`AI_APPRAISAL_AGGREGATE: ${evaluations.map(e=>`${e.term}:${e.direction}`).join('; ')}`,hash(`${receipt}:genre`),now,job,true);
+  }
+  private activateTheme(key:string,protectedKeys:Set<string>,receipt:string,now:number,job:string){
+    if(this.interests().some(i=>i.key===key))return true;
+    while(this.interests().filter(i=>i.kind==='theme').length>=this.settings.maxTopics){
+      const old=this.interests().filter(i=>i.kind==='theme'&&!protectedKeys.has(i.key)).sort((a,b)=>a.score-b.score||a.decay_at.localeCompare(b.decay_at)||a.key.localeCompare(b.key))[0];if(!old)return false;
+      this.db.prepare('INSERT INTO research_interest_activity VALUES(?,0,?) ON CONFLICT(interest_key) DO UPDATE SET active=0,updated_at=excluded.updated_at').run(old.key,new Date(now).toISOString());
+      this.db.prepare('INSERT OR IGNORE INTO research_interest_events VALUES(?,?,?,?,?,?,?)').run(hash(`${receipt}:${old.key}:archive`),old.key,job,old.score,old.score,`THEME_ARCHIVED_FOR_NEW_DISCOVERY: ${key}; ORIGINAL_AND_HISTORY_RETAINED`,new Date(now).toISOString());
+    }
+    this.db.prepare('INSERT INTO research_interest_activity VALUES(?,1,?) ON CONFLICT(interest_key) DO UPDATE SET active=1,updated_at=excluded.updated_at').run(key,new Date(now).toISOString());return true;
+  }
+  interests(){const tracked=this.db.prepare("SELECT name FROM sqlite_master WHERE name='research_interest_activity'").get();return this.db.prepare(`SELECT * FROM research_interests ${tracked?"WHERE key NOT IN(SELECT interest_key FROM research_interest_activity WHERE active=0)":''} ORDER BY score DESC,key`).all() as unknown as Interest[];}
   inquiries(limit=100):Inquiry[]{return this.db.prepare("SELECT * FROM research_inquiries ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'selected' THEN 1 ELSE 2 END,priority DESC,created_at LIMIT ?").all(limit).map(r=>({id:String(r.id),origin_job:String(r.origin_job),question:String(r.question),genre:String(r.genre),terms:JSON.parse(String(r.terms_json)),references:JSON.parse(String(r.references_json)),priority:Number(r.priority),attempts:Number(r.attempts),status:String(r.status),created_at:String(r.created_at),updated_at:String(r.updated_at)}));}
   plan(operation:string,slot:string,sources:ResearchSource[],exploration:number,now=Date.now(),draw=randomInt(1_000_000)/1_000_000):SlotResearchPlan{
     const old=this.db.prepare('SELECT plan_json FROM research_slot_plans WHERE operation_id=? AND slot=?').get(operation,slot);if(old)return JSON.parse(String(old.plan_json));
@@ -150,7 +186,8 @@ export class ResearchAgenda {
     const terms=meaningfulTerms(item.title),open=this.inquiries().filter(q=>q.status==='open'&&q.attempts<this.settings.maxInquiryAttempts&&q.genre===genre);
     const match=open.map(q=>({q,overlap:q.terms.filter(t=>terms.has(t)).length})).filter(v=>v.overlap>=2).sort((a,b)=>b.overlap-a.overlap||b.q.priority-a.q.priority)[0];
     const interest=this.interests().find(i=>i.key===`genre:${genre}`)?.score??50;
-    const theme=Math.max(0,...this.interests().filter(i=>i.kind==='theme'&&terms.has(i.label)).map(i=>i.score));
+    const matched=this.interests().filter(i=>i.kind==='theme'&&(terms.has(i.label)||((i.label.includes(' ')||/[\p{Script=Han}\p{Script=Katakana}]/u.test(i.label))&&item.title.normalize('NFKC').toLowerCase().includes(i.label))));
+    const theme=matched.length?matched.reduce((sum,i)=>sum+i.score,0)/matched.length:0;
     const age=item.publishedAt?Math.max(0,(now-Date.parse(item.publishedAt))/day):this.settings.freshDays;
     return {score:interest/20+theme/50+1/(1+age)+(match?3+match.overlap/3:0),inquiry:match?.q??null};
   }
@@ -172,6 +209,7 @@ export class ResearchAgenda {
   }
   summary(){
     const interests=this.interests();const states=this.db.prepare('SELECT status,count(*) n FROM research_inquiries GROUP BY status').all();
-    return {interests:interests.slice(0,20).map(i=>({topic:i.label,kind:i.kind,score:i.score,observations:i.observations,lastSeenAt:i.last_seen_at})),inquiries:this.inquiries(12),inquiryCounts:Object.fromEntries(states.map(r=>[String(r.status),Number(r.n)])),lastPlan:(()=>{const r=this.db.prepare('SELECT plan_json FROM research_slot_plans ORDER BY rowid DESC LIMIT 1').get();return r?JSON.parse(String(r.plan_json)) as SlotResearchPlan:null;})()};
+    const assessmentCounts=this.db.prepare("SELECT name FROM sqlite_master WHERE name='research_interest_assessments'").get()?Object.fromEntries(this.db.prepare('SELECT status,count(*) n FROM research_interest_assessments GROUP BY status').all().map(r=>[String(r.status),Number(r.n)])):{};
+    return {interests:interests.slice(0,20).map(i=>({topic:i.label,kind:i.kind,score:i.score,observations:i.observations,lastSeenAt:i.last_seen_at})),assessmentCounts,inquiries:this.inquiries(12),inquiryCounts:Object.fromEntries(states.map(r=>[String(r.status),Number(r.n)])),lastPlan:(()=>{const r=this.db.prepare('SELECT plan_json FROM research_slot_plans ORDER BY rowid DESC LIMIT 1').get();return r?JSON.parse(String(r.plan_json)) as SlotResearchPlan:null;})()};
   }
 }
