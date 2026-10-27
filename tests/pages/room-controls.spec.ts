@@ -42,6 +42,9 @@ test("room window, real audio output, independent gain and CRT survive the publi
   await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
   await page.waitForTimeout(1000); await page.screenshot({ path: info.outputPath("room-open.png") });
   await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
+  await page.mouse.click(700, 790); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
+  // Also exercise a live OS motion-preference change; static rendering then saves GPU work.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.getByText("部屋の音と窓", { exact: true }).click();
   const read = () => page.evaluate(() => {
     const t = window.__roomAudioTest;
@@ -77,9 +80,13 @@ test("room window, real audio output, independent gain and CRT survive the publi
   await page.getByRole("button", { name: "雨音を停止", exact: true }).click();
   await page.getByRole("button", { name: "街の遠音を停止", exact: true }).click();
   await page.getByText("部屋の音と窓", { exact: true }).click();
-  await page.getByRole("button", { name: "CRTモニターを開く", exact: true }).focus(); await page.keyboard.press("Enter");
+  const crt = new Vector3(0.12, 1.57, -0.44).project(camera);
+  await page.mouse.click((crt.x + 1) * 720, (1 - crt.y) * 450);
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   await page.keyboard.press("Escape"); await expect(page.locator("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "CRTモニターを開く", exact: true }).focus(); await page.keyboard.press("Enter");
+  await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
+  await page.getByRole("button", { name: "モニターを閉じて部屋に戻る" }).click(); await expect(page.locator("dialog")).toHaveCount(0);
   await page.reload(); await expect(page.locator("canvas")).toBeVisible();
   expect(await page.evaluate(() => window.__roomAudioTest.contexts.length)).toBe(0);
   expect(errors).toEqual([]); expect(failures).toEqual([]);

@@ -23,8 +23,11 @@ export function CameraController({ active, focused, reducedMotion }: { active: b
     destination.set(x, y, z);
     const [tx, ty, tz] = zoom ? MONITOR_CAMERA.target : ROOM_CAMERA.target;
     target.set(tx, ty, tz);
-    camera.position.lerp(destination, 1 - Math.exp(-5 * Math.min(delta, 0.05)));
-    lookAt.lerp(target, 1 - Math.exp(-5 * Math.min(delta, 0.05)));
+    if (reducedMotion) { camera.position.copy(destination); lookAt.copy(target); }
+    else {
+      camera.position.lerp(destination, 1 - Math.exp(-5 * Math.min(delta, 0.05)));
+      lookAt.lerp(target, 1 - Math.exp(-5 * Math.min(delta, 0.05)));
+    }
     camera.lookAt(lookAt);
   });
   return null;
