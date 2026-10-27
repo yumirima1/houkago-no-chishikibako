@@ -13,6 +13,7 @@ import {parseResearchSources} from '../../src/lib/kousatsu/runtime-config';
 import {parseAutonomousConfig} from '../../src/lib/kousatsu/autonomous-config';
 import {planWeekly} from '../../src/lib/kousatsu/weekly-service';
 import {verifyPublicDelivery} from '../../src/lib/kousatsu/public-delivery';
+import {publishResearch} from '../../src/lib/kousatsu/public-publisher';
 import {verifySourceBindings} from '../../src/lib/kousatsu/source-verification';
 import {readResearchSummary} from '../../src/lib/kousatsu/research-status';
 import {exportPublicResearch} from '../../src/lib/kousatsu/public-export';
@@ -144,5 +145,21 @@ test('delivery checks back off at three attempts and verify actual hashes even a
 test('read-only planning inspection neither creates tables nor changes existing SQLite rows',async()=>{
   const f=await fixture();try{
     const db=new DatabaseSync(f.runtime.database.filePath);try{const before=JSON.stringify(db.prepare('SELECT name FROM sqlite_master ORDER BY name').all());readResearchSummary(f.runtime.database.filePath);assert.equal(JSON.stringify(db.prepare('SELECT name FROM sqlite_master ORDER BY name').all()),before);}finally{db.close();}
+  }finally{f.close();}
+});
+
+test('a killed final publication or delivery attempt becomes failed after its lease expires',async()=>{
+  const f=await fixture();try{
+    const bundle={digest:'interrupted-final',files:{'public/research/snapshot.json':'{"notes":[{"id":"a-b"}]}','public/research/notes/a-b.json':'{"id":"a-b","markdown":"actual"}','public/research/notes/a-b.md':'actual'}};
+    const db=new DatabaseSync(f.runtime.database.filePath);try{
+      db.exec('CREATE TABLE public_publish_state(digest TEXT PRIMARY KEY,attempts INTEGER,next_at TEXT,status TEXT,error TEXT,commit_sha TEXT)');
+      db.prepare("INSERT INTO public_publish_state VALUES(?,3,?,'running',NULL,NULL)").run(bundle.digest,new Date(0).toISOString());
+      const p=await publishResearch(f.runtime.database.filePath,{enabled:true,repository:'yumirima1/houkago-no-chishikibako',branch:'main'},bundle,Date.now(),{credential:async()=>{throw Error('MUST_NOT_REQUEST_CREDENTIAL');}});assert.equal(p.status,'failed');
+      assert.equal(db.prepare('SELECT error FROM public_publish_state').get()?.error,'PUBLICATION_INTERRUPTED');
+      await verifyPublicDelivery(f.runtime.database.filePath,bundle,'commit',{fetch:async()=>new Response('',{status:503})});
+      db.exec("UPDATE public_delivery_checks SET attempts=3,status='running'");
+      const d=await verifyPublicDelivery(f.runtime.database.filePath,bundle,'commit',{fetch:async()=>{throw Error('MUST_NOT_REQUEST_NETWORK');}});assert.equal(d.status,'failed');assert.equal(d.attempts,3);
+      assert.equal(db.prepare('SELECT error FROM public_delivery_checks').get()?.error,'PUBLIC_DELIVERY_INTERRUPTED');
+    }finally{db.close();}
   }finally{f.close();}
 });

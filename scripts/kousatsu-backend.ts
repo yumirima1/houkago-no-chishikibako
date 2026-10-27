@@ -14,6 +14,7 @@ import {operationEnd} from '../src/lib/kousatsu/weekly-config';
 import {inspectBackend} from '../src/lib/kousatsu/research-status';
 import {publishResearch} from '../src/lib/kousatsu/public-publisher';
 import {verifyPublicDelivery} from '../src/lib/kousatsu/public-delivery';
+import {resetPublicationAttempts} from '../src/lib/kousatsu/publication-history';
 
 async function main() {
   const [command='status',...args]=process.argv.slice(2);
@@ -33,12 +34,7 @@ async function main() {
     if(!config.publication?.enabled)throw Error('PUBLICATION_DISABLED');
     const bundle=await exportPublicResearch(config,await loadResearchSources(config.sourcesPath));
     if(command==='public-retry'){
-      const db=new DatabaseSync(paths.database);try{db.exec('BEGIN IMMEDIATE');
-        const active=db.prepare("SELECT status FROM public_publish_state WHERE digest=?").get(bundle.digest);if(active?.status==='running')throw Error('PUBLICATION_RUNNING');
-        db.prepare("UPDATE public_publish_state SET attempts=0,status='retry_wait',next_at=?,error=NULL WHERE digest=? AND status<>'succeeded'").run(new Date().toISOString(),bundle.digest);
-        if(db.prepare("SELECT name FROM sqlite_master WHERE name='public_delivery_checks'").get())db.prepare("UPDATE public_delivery_checks SET attempts=0,status='retry_wait',next_at=?,error=NULL WHERE digest=? AND status<>'succeeded'").run(new Date().toISOString(),bundle.digest);
-        db.exec('COMMIT');
-      }finally{if(db.isTransaction)db.exec('ROLLBACK');db.close();}
+      const db=new DatabaseSync(paths.database);try{resetPublicationAttempts(db,bundle.digest);}finally{db.close();}
     }
     const publication=await publishResearch(paths.database,config.publication,bundle);
     const delivery=publication.status==='succeeded'&&typeof publication.commit==='string'?await verifyPublicDelivery(paths.database,bundle,publication.commit,{force:true}):{status:'not-attempted'};

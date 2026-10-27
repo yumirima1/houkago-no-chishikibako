@@ -2,6 +2,7 @@ import {execFile} from 'node:child_process';
 import {DatabaseSync} from 'node:sqlite';
 import {safeDiagnostic} from './research-engine';
 import {randomUUID} from 'node:crypto';
+import {publicationEvent} from './publication-history';
 type Publication={repository:'yumirima1/houkago-no-chishikibako';branch:string;enabled:boolean};
 function archiveNotes(files:Record<string,string>){
   const snapshot=JSON.parse(files['public/research/snapshot.json']??'null');
@@ -29,9 +30,19 @@ export async function publishResearch(file:string,publication:Publication,bundle
       .run(owner,now+300000,now);
     if(!lease.changes)return {status:'busy'};
     const previous=db.prepare('SELECT * FROM public_publish_state WHERE digest=?').get(bundle.digest);
+    // Owning this lease means a prior running attempt lost its process/lease.
+    // A killed final attempt must become a visible terminal failure.
+    if(previous?.status==='running'){
+      previous.status=Number(previous.attempts)>=3?'failed':'retry_wait';
+      previous.error='PUBLICATION_INTERRUPTED';
+      db.prepare('UPDATE public_publish_state SET status=?,error=? WHERE digest=?').run(previous.status,previous.error,bundle.digest);
+      publicationEvent(db,'transport',bundle.digest,Number(previous.attempts),String(previous.status),now,String(previous.error));
+    }
     if(previous&&(previous.status==='succeeded'||Number(previous.attempts)>=3||String(previous.next_at)>new Date(now).toISOString()))return {status:String(previous.status),commit:previous.commit_sha};
     db.prepare(`INSERT INTO public_publish_state VALUES(?,1,?,'running',NULL,NULL) ON CONFLICT(digest) DO UPDATE SET attempts=attempts+1,status='running',next_at=excluded.next_at`)
       .run(bundle.digest,new Date(now+300000).toISOString());
+    const attempt=Number(db.prepare('SELECT attempts FROM public_publish_state WHERE digest=?').get(bundle.digest)!.attempts);
+    publicationEvent(db,'transport',bundle.digest,attempt,'running',now);
     try{
       // No token is stored in source, arguments, environment, logs, or public artifacts.
       const credential=async()=>{
@@ -63,7 +74,8 @@ export async function publishResearch(file:string,publication:Publication,bundle
         await api(`/git/refs/heads/${publication.branch}`,'PATCH',{sha:created.sha,force:false});commit=created.sha;
       }
       db.prepare("UPDATE public_publish_state SET status='succeeded',error=NULL,commit_sha=? WHERE digest=?").run(commit,bundle.digest);
+      publicationEvent(db,'transport',bundle.digest,attempt,'succeeded',Date.now(),null,commit);
       return {status:'succeeded',commit};
-    }catch(e){const error=safeDiagnostic(e);db.prepare("UPDATE public_publish_state SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'retry_wait' END,error=? WHERE digest=?").run(error,bundle.digest);const state=db.prepare('SELECT status FROM public_publish_state WHERE digest=?').get(bundle.digest)!;return {status:String(state.status),error};}
+    }catch(e){const error=safeDiagnostic(e);db.prepare("UPDATE public_publish_state SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'retry_wait' END,error=? WHERE digest=?").run(error,bundle.digest);const state=db.prepare('SELECT status FROM public_publish_state WHERE digest=?').get(bundle.digest)!;publicationEvent(db,'transport',bundle.digest,attempt,String(state.status),Date.now(),error);return {status:String(state.status),error};}
   }finally{db.prepare('DELETE FROM public_publish_lease WHERE id=1 AND owner=?').run(owner);db.close();}
 }
