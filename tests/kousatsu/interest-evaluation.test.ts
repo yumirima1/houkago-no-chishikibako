@@ -55,6 +55,7 @@ test('AI appraisals persist reasons and change actual RSS choice, scan quota and
   const calls:string[]=[];const future=Date.parse(new Date(Date.now()+86400000+9*3600000).toISOString().slice(0,10)+'T18:00:00+09:00');
   await planWeekly(config,f.runtime,f.sources,async url=>{calls.push(url);return {httpStatus:200,text:f.feed(2)};},future);
   assert.deepEqual(calls,['https://example.org/science.xml']);const row=f.agenda.db.prepare('SELECT input_json FROM jobs ORDER BY rowid DESC LIMIT 1').get()!,input=JSON.parse(String(row.input_json));assert.equal(input.source.id,'science');assert.equal(input.researchPlan.sourceBudget.candidateLimit,7);assert.equal(input.researchPlan.reason,'FOLLOW_UP_FROM_SAVED_QUESTION');
+  const followed=await f.runtime.tick({schedule:false,dailyMaxJobs:3});assert.equal(followed.status,'completed');assert.ok('jobId' in followed);const next=f.runtime.database.getCheckpoint<AnalysisResult>(followed.jobId!,'analyze')!;assert.ok(next.research!.questions[0].includes('Beta'));assert.ok(!next.research!.questions[0].includes('「「'));assert.ok(next.research!.memories.length>0);
   assert.ok(f.agenda.db.prepare('SELECT evaluation_json FROM research_interest_appraisals').all().every(r=>JSON.parse(String(r.evaluation_json)).reason.length>8));
   f.agenda.db.prepare("UPDATE research_interests SET score=0 WHERE key='genre:culture'").run();assert.equal(f.agenda.plan('exploration','slot',f.sources,1,Date.now(),.99).explorationSource,'culture');
  }finally{f.close();}

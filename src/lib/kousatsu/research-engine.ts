@@ -113,11 +113,11 @@ export function safeDiagnostic(error: unknown) {
 /** A stable provider identity keeps retries compatible even if Ollama is offline. */
 export class ResearchEngine implements KousatsuAiProvider {
   readonly id='autonomous';
-  readonly model='research-v5';
+  readonly model='research-v6';
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:5,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:6,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
     const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
@@ -184,8 +184,8 @@ export class ResearchEngine implements KousatsuAiProvider {
         claimId:claim.id,itemId:claim.itemId!,versionId:claim.versionId!,excerpt:claim.text.slice(0,300),
         url:context.items.find(item => item.id===claim.itemId)!.url,
       })),counterSearch,
-      questions:[`「${decision.topic}」の記述は別の独立した情報源でも確認できるか。`,
-        `「${decision.topic}」に関する過去の仮説は、文書版の更新によって維持できなくなるか。`,
+      questions:[`「${focus[0]?.title??decision.topic}」の記述は別の独立した情報源でも確認できるか。`,
+        `「${focus[0]?.title??decision.topic}」に関する過去の仮説は、文書版の更新によって維持できなくなるか。`,
         '継続的な現象という解釈と、配信元の選択・報道頻度の偏りという解釈を、時系列と異なる配信元で比較する。'],
       model:{requested:`${this.options.provider.id}/${this.options.provider.model}`,used:`${analysis.provider}/${analysis.model}`,elapsedMs:Date.now()-started,error,status:modelStatus,responseReceived,method},
     };
