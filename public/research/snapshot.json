@@ -60,9 +60,20 @@
   ],
   "worker": {
     "active": false,
-    "lastSeenAt": "2026-10-27T13:01:25.047Z"
+    "lastSeenAt": "2026-10-27T21:01:37.647Z"
   },
   "notes": [
+    {
+      "id": "b45b5429-0c97-4bcf-8640-ee8d2437f0b1",
+      "jobId": "b45b5429-0c97-4bcf-8640-ee8d2437f0b1",
+      "title": "「Some of the Spookiest Specters in the Library&#8217;s Archives」を手掛かりに、資料を残すことを、将来の読み直しにつながる価値へどう変えるか。",
+      "createdAt": "2026-10-27T21:01:37.647Z",
+      "genre": "culture",
+      "status": "generated",
+      "provider": "ollama",
+      "model": "qwen3:4b-q4_K_M",
+      "published": true
+    },
     {
       "id": "f9badd81-f25c-457d-ae9a-95b887119869",
       "jobId": "f9badd81-f25c-457d-ae9a-95b887119869",
@@ -153,6 +164,18 @@
     }
   ],
   "news": [
+    {
+      "id": "ea5689de-2e7c-4a75-a377-a0d0b256125b",
+      "title": "Some of the Spookiest Specters in the Library&#8217;s Archives",
+      "source": "Library of Congress: Timeless",
+      "url": "https://blogs.loc.gov/loc/2026/10/some-of-the-spookiest-specters-in-the-librarys-archives/",
+      "publishedAt": "2026-10-26T14:08:52.000Z",
+      "fetchedAt": "2026-10-27T21:00:40.155Z",
+      "summary": "In the Prints and Photographs Division, spirit photography in the 19th century reflected how grief and loss fueled a spiritualism",
+      "content": "In the Prints and Photographs Division, spirit photography in the 19th century reflected how grief and loss fueled a spiritualism",
+      "truncated": true,
+      "genre": "culture"
+    },
     {
       "id": "8aec006d-b00a-4c81-b44c-e5a9562adbf3",
       "title": "Federal Reserve Board announces enforcement action against American Express Company to address, among other things, the firm’s failure to sufficiently detect and report certain suspicious activity related to money laundering",
@@ -251,6 +274,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "8c91eaf5-2de3-4128-ba8f-3c02157a8537",
+      "topic": "「Some of the Spookiest Specters in the Library&#8217;s Archives」を手掛かりに、資料を残すことを、将来の読み直しにつながる価値へどう変えるか。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-27T21:00:40.479Z"
+    },
     {
       "id": "b6c17464-c6a3-4740-9384-5e69767d9aaf",
       "topic": "「「Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank」を手掛かりに、個別の監督措置の終了から、どこまで金融機関や制度全体を評価してよいか。」の記述は別の独立した情報源でも確認できるか。",
@@ -352,8 +384,8 @@
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
-    "nextRunAt": "2026-10-27T21:00:00.000Z",
-    "lastRunAt": "2026-10-27T13:00:37.187Z",
+    "nextRunAt": "2026-10-28T09:00:00.000Z",
+    "lastRunAt": "2026-10-27T21:00:35.534Z",
     "days": [
       {
         "day": "2026-10-27@22:00",
@@ -390,14 +422,34 @@
       {
         "day": "2026-10-28@06:00",
         "dueAt": "2026-10-27T21:00:00.000Z",
-        "state": "pending",
+        "state": "succeeded",
         "sourceFailures": 0,
-        "success": 0,
+        "success": 1,
         "failed": 0,
         "pending": 0,
-        "startedAt": null,
-        "finishedAt": null,
-        "articles": []
+        "startedAt": "2026-10-27T21:00:35.534Z",
+        "finishedAt": "2026-10-27T21:01:38.721Z",
+        "articles": [
+          {
+            "jobId": "8c91eaf5-2de3-4128-ba8f-3c02157a8537",
+            "genre": "culture",
+            "title": "Some of the Spookiest Specters in the Library&#8217;s Archives",
+            "status": "succeeded",
+            "queue": "done",
+            "error": null,
+            "attempts": 1,
+            "nextAttemptAt": "2026-10-27T21:00:40.479Z",
+            "model": {
+              "requested": "ollama/qwen3:4b-q4_K_M",
+              "used": "ollama/qwen3:4b-q4_K_M",
+              "elapsedMs": 56935,
+              "error": null,
+              "status": "succeeded",
+              "responseReceived": true,
+              "method": "model"
+            }
+          }
+        ]
       },
       {
         "day": "2026-10-28@18:00",
@@ -678,7 +730,7 @@
     ]
   },
   "research": {
-    "openInquiries": 31,
+    "openInquiries": 34,
     "exhaustedInquiries": 0,
     "interestScores": [
       {
@@ -694,16 +746,16 @@
         "score": 62
       },
       {
+        "genre": "culture",
+        "score": 59
+      },
+      {
         "genre": "ai",
         "score": 56
       },
       {
         "genre": "pc",
         "score": 56
-      },
-      {
-        "genre": "culture",
-        "score": 53
       },
       {
         "genre": "environment",
@@ -718,33 +770,33 @@
           "candidateLimit": 8
         },
         {
+          "id": "fed-economy",
+          "score": 62,
+          "candidateLimit": 8
+        },
+        {
           "id": "un-society",
           "score": 62,
           "candidateLimit": 8
         },
         {
-          "id": "fed-economy",
-          "score": 56,
-          "candidateLimit": 7
-        },
-        {
-          "id": "windows-pc",
-          "score": 56,
+          "id": "loc-culture",
+          "score": 53,
           "candidateLimit": 7
         }
       ]
     }
   },
   "archive": {
-    "saved": 28,
-    "selected": 8,
+    "saved": 29,
+    "selected": 9,
     "excluded": {
       "duplicate": 7,
       "legacy": 13
     }
   },
   "system": {
-    "readAt": "2026-10-27T13:01:25.047Z",
+    "readAt": "2026-10-27T21:01:37.647Z",
     "supervisorActive": false,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
