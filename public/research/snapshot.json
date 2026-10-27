@@ -296,10 +296,10 @@
   "interests": [],
   "operation": {
     "operation": {
-      "id": "week-20261026",
-      "startsAt": "2026-10-26T11:56:19.622Z",
-      "endsAt": "2026-11-02T11:56:19.622Z",
-      "dailyAt": "20:56",
+      "id": "continuous-20261027",
+      "startsAt": "2026-10-27T11:00:00.000Z",
+      "endsAt": null,
+      "dailyAt": "20:00",
       "runTimes": [
         "06:00",
         "18:00",
@@ -315,129 +315,14 @@
         "science",
         "culture",
         "environment"
-      ]
+      ],
+      "continuous": true
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
     "nextRunAt": "2026-10-27T13:00:00.000Z",
-    "lastRunAt": "2026-10-27T09:38:39.027Z",
+    "lastRunAt": null,
     "days": [
-      {
-        "day": "2026-10-26@18:00",
-        "dueAt": "2026-10-26T09:00:00.000Z",
-        "state": "succeeded",
-        "sourceFailures": 0,
-        "success": 1,
-        "failed": 0,
-        "pending": 0,
-        "startedAt": "2026-10-26T12:06:13.356Z",
-        "finishedAt": "2026-10-26T12:09:22.403Z",
-        "articles": [
-          {
-            "jobId": "c964098a-d1da-464f-bbca-6bd6e1aca8ea",
-            "genre": "ai",
-            "title": "LitPivot: Developing research ideas through dynamic contextualization within the literature landscape",
-            "status": "succeeded",
-            "queue": "done",
-            "error": null,
-            "attempts": 1,
-            "nextAttemptAt": "2026-10-26T12:06:19.880Z",
-            "model": {
-              "requested": "ollama/qwen3:4b-q4_K_M",
-              "used": "deterministic/reflection-v3",
-              "elapsedMs": 180066,
-              "error": "TimeoutError: The operation was aborted due to timeout"
-            }
-          }
-        ]
-      },
-      {
-        "day": "2026-10-26@22:00",
-        "dueAt": "2026-10-26T13:00:00.000Z",
-        "state": "succeeded",
-        "sourceFailures": 0,
-        "success": 1,
-        "failed": 0,
-        "pending": 0,
-        "startedAt": "2026-10-26T13:00:01.104Z",
-        "finishedAt": "2026-10-26T13:03:13.540Z",
-        "articles": [
-          {
-            "jobId": "c71c1eaa-d7a5-44aa-bb84-6436cec92e91",
-            "genre": "pc",
-            "title": "Meet the new Photos app on Windows 11",
-            "status": "succeeded",
-            "queue": "done",
-            "error": null,
-            "attempts": 1,
-            "nextAttemptAt": "2026-10-26T13:00:12.299Z",
-            "model": {
-              "requested": "ollama/qwen3:4b-q4_K_M",
-              "used": "deterministic/reflection-v3",
-              "elapsedMs": 180321,
-              "error": "TimeoutError: The operation was aborted due to timeout"
-            }
-          }
-        ]
-      },
-      {
-        "day": "2026-10-27@06:00",
-        "dueAt": "2026-10-26T21:00:00.000Z",
-        "state": "succeeded",
-        "sourceFailures": 0,
-        "success": 1,
-        "failed": 0,
-        "pending": 0,
-        "startedAt": "2026-10-27T09:36:26.918Z",
-        "finishedAt": "2026-10-27T09:36:59.209Z",
-        "articles": [
-          {
-            "jobId": "ccd67c8c-0310-4f0f-a7e8-1b4e4e22866d",
-            "genre": "economy",
-            "title": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
-            "status": "succeeded",
-            "queue": "done",
-            "error": null,
-            "attempts": 1,
-            "nextAttemptAt": "2026-10-27T09:36:57.282Z",
-            "model": {
-              "requested": "ollama/qwen3:4b-q4_K_M",
-              "used": "deterministic/reflection-v3",
-              "elapsedMs": 74,
-              "error": "TypeError: fetch failed"
-            }
-          }
-        ]
-      },
-      {
-        "day": "2026-10-27@18:00",
-        "dueAt": "2026-10-27T09:00:00.000Z",
-        "state": "succeeded",
-        "sourceFailures": 0,
-        "success": 1,
-        "failed": 0,
-        "pending": 0,
-        "startedAt": "2026-10-27T09:38:39.027Z",
-        "finishedAt": "2026-10-27T09:41:39.285Z",
-        "articles": [
-          {
-            "jobId": "94a7f2d4-f7c3-4ea0-a073-af7ad989c189",
-            "genre": "world",
-            "title": "World News in Brief: Ethiopians flee to Kenya amidst renewed conflict, new head of UN’s food programme, UN mission in Somalia concludes",
-            "status": "succeeded",
-            "queue": "done",
-            "error": null,
-            "attempts": 1,
-            "nextAttemptAt": "2026-10-27T09:39:19.479Z",
-            "model": {
-              "requested": "ollama/qwen3:4b-q4_K_M",
-              "used": "ollama/qwen3:4b-q4_K_M",
-              "elapsedMs": 138682,
-              "error": "REFLECTION_NONANSWER"
-            }
-          }
-        ]
-      },
       {
         "day": "2026-10-27@22:00",
         "dueAt": "2026-10-27T13:00:00.000Z",
@@ -653,12 +538,127 @@
         "startedAt": null,
         "finishedAt": null,
         "articles": []
+      },
+      {
+        "day": "2026-11-02@22:00",
+        "dueAt": "2026-11-02T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-03@06:00",
+        "dueAt": "2026-11-02T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-03@18:00",
+        "dueAt": "2026-11-03T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-03@22:00",
+        "dueAt": "2026-11-03T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-04@06:00",
+        "dueAt": "2026-11-03T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-04@18:00",
+        "dueAt": "2026-11-04T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
       }
     ]
   },
+  "research": {
+    "openInquiries": 28,
+    "exhaustedInquiries": 0,
+    "interestScores": [
+      {
+        "genre": "science",
+        "score": 66
+      },
+      {
+        "genre": "world",
+        "score": 62
+      },
+      {
+        "genre": "ai",
+        "score": 56
+      },
+      {
+        "genre": "economy",
+        "score": 56
+      },
+      {
+        "genre": "pc",
+        "score": 56
+      },
+      {
+        "genre": "culture",
+        "score": 53
+      },
+      {
+        "genre": "environment",
+        "score": 50
+      }
+    ],
+    "lastSelection": null
+  },
+  "archive": {
+    "saved": 27,
+    "selected": 7,
+    "excluded": {
+      "duplicate": 7,
+      "legacy": 13
+    }
+  },
   "system": {
     "readAt": "2026-10-27T09:41:39.089Z",
-    "supervisorActive": true,
+    "supervisorActive": false,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
     "provider": "ollama",
