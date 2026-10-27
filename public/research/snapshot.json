@@ -60,9 +60,20 @@
   ],
   "worker": {
     "active": false,
-    "lastSeenAt": "2026-10-26T13:03:13.341Z"
+    "lastSeenAt": "2026-10-27T09:36:58.993Z"
   },
   "notes": [
+    {
+      "id": "1c6034e7-e80c-43cb-b3b8-3580c2347e9b",
+      "jobId": "1c6034e7-e80c-43cb-b3b8-3580c2347e9b",
+      "title": "「Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank」を手掛かりに、個別の監督措置の終了から、どこまで金融機関や制度全体を評価してよいか。",
+      "createdAt": "2026-10-27T09:36:58.993Z",
+      "genre": "economy",
+      "status": "generated",
+      "provider": "deterministic",
+      "model": "reflection-v3",
+      "published": true
+    },
     {
       "id": "7e67fade-c711-40bb-8baf-5779f6f8a6de",
       "jobId": "7e67fade-c711-40bb-8baf-5779f6f8a6de",
@@ -109,6 +120,18 @@
     }
   ],
   "news": [
+    {
+      "id": "e96ec0dc-8a88-42d8-b3aa-a226bcd6795b",
+      "title": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+      "source": "Federal Reserve",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/enforcement20261016a.htm",
+      "publishedAt": "2026-10-16T15:00:00.000Z",
+      "fetchedAt": "2026-10-27T09:36:57.142Z",
+      "summary": "The Federal Reserve Board on Friday announced the termination of the enforcement actions listed below:",
+      "content": "The Federal Reserve Board on Friday announced the termination of the enforcement actions listed below:",
+      "truncated": true,
+      "genre": "economy"
+    },
     {
       "id": "fed298ef-7b09-4c0f-acb4-406048b62bc1",
       "title": "Meet the new Photos app on Windows 11",
@@ -159,6 +182,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "ccd67c8c-0310-4f0f-a7e8-1b4e4e22866d",
+      "topic": "「Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank」を手掛かりに、個別の監督措置の終了から、どこまで金融機関や制度全体を評価してよいか。",
+      "status": "succeeded",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-10-27T09:36:57.282Z"
+    },
     {
       "id": "c71c1eaa-d7a5-44aa-bb84-6436cec92e91",
       "topic": "「Meet the new Photos app on Windows 11」を手掛かりに、機能が増える価値を、普段の操作の速さや互換性とどう比較するか。",
@@ -223,8 +255,8 @@
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
-    "nextRunAt": "2026-10-26T21:00:00.000Z",
-    "lastRunAt": "2026-10-26T13:00:01.104Z",
+    "nextRunAt": "2026-10-27T09:00:00.000Z",
+    "lastRunAt": "2026-10-27T09:36:26.918Z",
     "days": [
       {
         "day": "2026-10-26@18:00",
@@ -287,14 +319,31 @@
       {
         "day": "2026-10-27@06:00",
         "dueAt": "2026-10-26T21:00:00.000Z",
-        "state": "pending",
+        "state": "succeeded",
         "sourceFailures": 0,
-        "success": 0,
+        "success": 1,
         "failed": 0,
         "pending": 0,
-        "startedAt": null,
-        "finishedAt": null,
-        "articles": []
+        "startedAt": "2026-10-27T09:36:26.918Z",
+        "finishedAt": "2026-10-27T09:36:26.918Z",
+        "articles": [
+          {
+            "jobId": "ccd67c8c-0310-4f0f-a7e8-1b4e4e22866d",
+            "genre": "economy",
+            "title": "Federal Reserve Board announces termination of enforcement actions with Gardner Bancshares, Inc. and Small Business Bank",
+            "status": "succeeded",
+            "queue": "done",
+            "error": null,
+            "attempts": 1,
+            "nextAttemptAt": "2026-10-27T09:36:57.282Z",
+            "model": {
+              "requested": "ollama/qwen3:4b-q4_K_M",
+              "used": "deterministic/reflection-v3",
+              "elapsedMs": 74,
+              "error": "TypeError: fetch failed"
+            }
+          }
+        ]
       },
       {
         "day": "2026-10-27@18:00",
@@ -527,7 +576,7 @@
     ]
   },
   "system": {
-    "readAt": "2026-10-26T13:03:13.341Z",
+    "readAt": "2026-10-27T09:36:58.993Z",
     "supervisorActive": true,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
