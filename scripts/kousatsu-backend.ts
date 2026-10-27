@@ -10,10 +10,14 @@ import { ResearchRuntime } from '../src/lib/kousatsu/runtime-service';
 import { loadResearchSources } from '../src/lib/kousatsu/runtime-config';
 import { safeDiagnostic, TopicHistory } from '../src/lib/kousatsu/research-engine';
 import {exportPublicResearch} from '../src/lib/kousatsu/public-export';
+import {operationEnd} from '../src/lib/kousatsu/weekly-config';
+import {inspectBackend} from '../src/lib/kousatsu/research-status';
+import {publishResearch} from '../src/lib/kousatsu/public-publisher';
+import {verifyPublicDelivery} from '../src/lib/kousatsu/public-delivery';
 
 async function main() {
   const [command='status',...args]=process.argv.slice(2);
-  if(command==='help' || command==='--help') {console.log('Commands: status, run, daemon, doctor, export, backup, retry --job ID, cancel --job ID, enqueue --source ID. All accept --config PATH.');return;}
+  if(command==='help' || command==='--help') {console.log('Commands: status, audit, health, run, daemon, doctor, export, public-export, public-verify, public-retry, backup, retry --job ID, cancel --job ID, enqueue --source ID. All accept --config PATH.');return;}
   const options=new Map<string,string>();
   for(let i=0;i<args.length;i+=2) {
     const key=args[i],value=args[i+1];
@@ -24,6 +28,22 @@ async function main() {
   const configFile=options.get('--config') ?? 'config/kousatsu-backend.json';
   const config=await loadAutonomousConfig(configFile);
   const paths=autonomousPaths(config);
+  if(command==='audit'||command==='health'){const inspection=inspectBackend(config);console.log(JSON.stringify(inspection,null,2));if(command==='health'&&inspection.health.status!=='healthy')process.exitCode=1;return;}
+  if(command==='public-verify'||command==='public-retry'){
+    if(!config.publication?.enabled)throw Error('PUBLICATION_DISABLED');
+    const bundle=await exportPublicResearch(config,await loadResearchSources(config.sourcesPath));
+    if(command==='public-retry'){
+      const db=new DatabaseSync(paths.database);try{db.exec('BEGIN IMMEDIATE');
+        const active=db.prepare("SELECT status FROM public_publish_state WHERE digest=?").get(bundle.digest);if(active?.status==='running')throw Error('PUBLICATION_RUNNING');
+        db.prepare("UPDATE public_publish_state SET attempts=0,status='retry_wait',next_at=?,error=NULL WHERE digest=? AND status<>'succeeded'").run(new Date().toISOString(),bundle.digest);
+        if(db.prepare("SELECT name FROM sqlite_master WHERE name='public_delivery_checks'").get())db.prepare("UPDATE public_delivery_checks SET attempts=0,status='retry_wait',next_at=?,error=NULL WHERE digest=? AND status<>'succeeded'").run(new Date().toISOString(),bundle.digest);
+        db.exec('COMMIT');
+      }finally{if(db.isTransaction)db.exec('ROLLBACK');db.close();}
+    }
+    const publication=await publishResearch(paths.database,config.publication,bundle);
+    const delivery=publication.status==='succeeded'&&typeof publication.commit==='string'?await verifyPublicDelivery(paths.database,bundle,publication.commit,{force:true}):{status:'not-attempted'};
+    console.log(JSON.stringify({publication,delivery}));if(delivery.status!=='succeeded')process.exitCode=1;return;
+  }
   if(['retry','cancel','enqueue'].includes(command)) {
     const job=options.get('--job');
     if(command!=='enqueue' && (!job || !/^[0-9a-f-]{36}$/i.test(job))) throw new Error('BACKEND_JOB_ID_INVALID');
@@ -37,7 +57,7 @@ async function main() {
   }
   if (command==='status') {console.log(JSON.stringify(await backendStatus(config),null,2));return;}
   if(command==='public-export'){const bundle=await exportPublicResearch(config,await loadResearchSources(config.sourcesPath));console.log(JSON.stringify({directory:bundle.directory,notes:bundle.notes,digest:bundle.digest}));return;}
-  if (command==='run') {const result=await runAutonomousCycle(config);if (result.status!=='succeeded') process.exitCode=1;return;}
+  if (command==='run') {const result=await runAutonomousCycle(config);if (!['succeeded','busy'].includes(result.status)) process.exitCode=1;return;}
   if (command==='export') {
     const runtime=await ResearchRuntime.open({databasePath:paths.database,outputDirectory:paths.notes,sources:[]});
     const history=new TopicHistory(paths.database);
@@ -63,7 +83,7 @@ async function main() {
       if (config.ai.provider==='ollama' && !installed) process.exitCode=1;
     } catch(e) {console.log(JSON.stringify({ollama:'unavailable',error:safeDiagnostic(e),ms:Date.now()-start}));process.exitCode=1;}return;
   }
-  if (command!=='daemon') throw new Error('Commands: status, run, daemon, doctor, export, backup');
+  if (command!=='daemon') throw new Error('Commands: status, audit, health, run, daemon, doctor, export, backup, public-verify, public-retry');
   await ensureDataDirectories(config);
   const init=await ResearchRuntime.open({databasePath:paths.database,outputDirectory:paths.notes,sources:[]});init.close();
   const supervisor=new TopicHistory(paths.database);
@@ -79,7 +99,7 @@ async function main() {
   await backendLog(config,{type:'supervisor-start',pid:process.pid,config:configFile});
   try {
     while (!stopping && !existsSync(marker)) {
-      if(config.operation && Date.now()>=Date.parse(config.operation.endsAt)){
+      if(config.operation && Date.now()>=operationEnd(config.operation)){
         await runAutonomousCycle(config);
         await backendLog(config,{type:'operation-ended',endsAt:config.operation.endsAt});break;
       }

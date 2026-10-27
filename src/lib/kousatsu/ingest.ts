@@ -500,6 +500,12 @@ export function collectFeedXml(
             source.contentPolicy === "metadata-only" ? undefined : entry.summary,
           url: entry.url,
         };
+          // A metadata refresh is not a retraction of a previously fetched body.
+          // Preserve its content/version when the feed's document metadata agrees.
+          const existing=database.getItemByCanonicalUrl(canonicalUrl);
+          if(source.contentPolicy==='metadata-only'&&source.articlePolicy?.enabled&&existing?.content&&existing.sourceId===source.id&&existing.title===entry.title&&existing.publishedAt===entry.publishedAt&&database.documentCoverage(existing.versionId!)?.kind==='article-body'){
+            stored.content=existing.content;stored.summary=existing.summary;stored.author=entry.author??existing.author;
+          }
         const result = database.upsertItem(stored);
         itemIds.push(result.id);
         if (result.inserted) newItemCount += 1;

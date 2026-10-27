@@ -6,6 +6,7 @@ import { compareRecords, meaningfulTerms } from './relevance';
 import {reflectionQuestion} from './reflection';
 import type { KousatsuDatabase } from './database';
 import type { AnalysisResult } from './types';
+import {verifySourceBindings} from './source-verification';
 
 const stopwords = new Set('about after again also and are before being can comes could first for from has have into its more nasa news not now that the their there these they this through today united was were what when which who will with would library congress'.split(' '));
 
@@ -48,6 +49,7 @@ export class TopicHistory {
       CREATE TABLE IF NOT EXISTS autonomy_artifacts(path TEXT PRIMARY KEY, contents TEXT NOT NULL, digest TEXT NOT NULL, job_id TEXT, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS autonomy_repairs(id INTEGER PRIMARY KEY, path TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS autonomy_supervisor(id INTEGER PRIMARY KEY CHECK(id=1),token TEXT NOT NULL,expires_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS autonomy_cycle_lock(id INTEGER PRIMARY KEY CHECK(id=1),token TEXT NOT NULL,expires_at TEXT NOT NULL,run_id INTEGER);
     `);
   }
   close() {this.db.close();}
@@ -65,13 +67,24 @@ export class TopicHistory {
     if (!result.changes) throw new Error('SUPERVISOR_LEASE_LOST');
   }
   releaseSupervisor(token: string) {this.db.prepare('UPDATE autonomy_supervisor SET expires_at=? WHERE token=?').run(new Date(0).toISOString(),token);}
-  recoverRuns() {this.db.prepare("UPDATE autonomy_runs SET status='interrupted',finished_at=? WHERE status='running'").run(new Date().toISOString());}
-  decision(jobId: string, context: AnalysisContext, exploration: number) {
+  acquireCycle(now=Date.now()){
+    const token=randomUUID(),at=new Date(now).toISOString();const changed=this.db.prepare(`INSERT INTO autonomy_cycle_lock VALUES(1,?,?,NULL) ON CONFLICT(id) DO UPDATE SET token=excluded.token,expires_at=excluded.expires_at,run_id=NULL WHERE autonomy_cycle_lock.expires_at<=?`)
+      .run(token,new Date(now+90000).toISOString(),at);return changed.changes?token:null;
+  }
+  renewCycle(token:string,now=Date.now()){
+    const changed=this.db.prepare('UPDATE autonomy_cycle_lock SET expires_at=? WHERE id=1 AND token=? AND expires_at>?').run(new Date(now+90000).toISOString(),token,new Date(now).toISOString());
+    if(!changed.changes)throw Error('CYCLE_LEASE_LOST');
+  }
+  bindCycle(token:string,runId:number){this.db.prepare('UPDATE autonomy_cycle_lock SET run_id=? WHERE id=1 AND token=?').run(runId,token);}
+  releaseCycle(token:string){this.db.prepare('UPDATE autonomy_cycle_lock SET expires_at=? WHERE id=1 AND token=?').run(new Date(0).toISOString(),token);}
+  recoverRuns() {const at=new Date().toISOString();this.db.prepare("UPDATE autonomy_runs SET status='interrupted',finished_at=? WHERE status='running' AND id NOT IN(SELECT run_id FROM autonomy_cycle_lock WHERE expires_at>? AND run_id IS NOT NULL)").run(at,at);}
+  decision(jobId: string, context: AnalysisContext, exploration: number,preferredQuestion?:string) {
     const old=this.db.prepare('SELECT decision_json FROM autonomy_decisions WHERE job_id=?').get(jobId);
     if (old) return JSON.parse(String(old.decision_json)) as TopicDecision;
     const history=this.db.prepare('SELECT decision_json FROM autonomy_decisions ORDER BY created_at DESC,rowid DESC LIMIT 20').all()
       .map(row => (JSON.parse(String(row.decision_json)) as TopicDecision).topic);
     const decision=selectResearchTopic(context,history,exploration);
+    if(preferredQuestion?.trim()){decision.topic=preferredQuestion.trim().slice(0,200);decision.reason='未解決課題と新しい関連資料に基づく次回調査。'+decision.reason;decision.candidates.unshift(decision.topic);}
     this.db.prepare('INSERT OR IGNORE INTO autonomy_decisions VALUES(?,?,?)').run(jobId,JSON.stringify(decision),new Date().toISOString());
     return JSON.parse(String(this.db.prepare('SELECT decision_json FROM autonomy_decisions WHERE job_id=?').get(jobId)!.decision_json)) as TopicDecision;
   }
@@ -99,14 +112,15 @@ export function safeDiagnostic(error: unknown) {
 /** A stable provider identity keeps retries compatible even if Ollama is offline. */
 export class ResearchEngine implements KousatsuAiProvider {
   readonly id='autonomous';
-  readonly model='research-v3';
+  readonly model='research-v4';
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:3,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:4,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
-    const decision=this.options.history.decision(this.options.jobId,context,this.options.exploration);
+    const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
+    const decision=this.options.history.decision(this.options.jobId,context,this.options.exploration,plan?.inquiryIds.length?plan.question:undefined);
     // Search previously fetched documents only. Match is a lead, not semantic refutation.
     const focusIds=decision.focusItemIds ?? context.items.slice(0,1).map(item=>item.id);
     const focus=context.items.filter(item=>focusIds.includes(item.id));
@@ -132,6 +146,10 @@ export class ResearchEngine implements KousatsuAiProvider {
       else if(this.options.provider.id!=='deterministic') {await this.options.provider.analyze(selected);error='MODEL_SOURCE_BINDINGS_REQUIRED';}
     } catch(e) {error=safeDiagnostic(e);}
     const quality=buildQualityAnalysis(context,decision.topic,focusIds,proposal);
+    quality.sourceVerification=verifySourceBindings(context,quality,[...context.items,...matches]);
+    const sourceConflicts=quality.sourceVerification.claims.filter(c=>c.result==='conflict-candidate');
+    if(sourceConflicts.length){quality.unresolved.push(`保存済みの別資料と数値が異なる主張が${sourceConflicts.length}件ある。観測条件と独立性の確認が必要。`);quality.reflection!.confidence=Math.min(.25,quality.reflection!.confidence);}
+    else quality.unresolved.push('保存済み資料の照合では、独立性を確定した別ソースの裏付けは得られていない。未照合は反証ではない。');
     for(const entry of quality.priorMemory.filter(m=>m.decision==='excluded')) {
       const memory=context.memories?.find(m=>m.id===entry.id);
       if(!memory?.quality)continue;
@@ -144,13 +162,22 @@ export class ResearchEngine implements KousatsuAiProvider {
         break;
       }
     }
+    for(const memory of selected.memories.filter(m=>m.kind==='interpretation'&&m.quality?.reflection)){
+      if(quality.viewReviews?.some(r=>r.memoryId===memory.id))continue;
+      const old=memory.quality!.reflection!;
+      const changed=old.position!==quality.reflection!.position||sourceConflicts.length>0;
+      quality.viewReviews??=[];quality.viewReviews.push({memoryId:memory.id,action:changed?'revise':'maintain',previousConfidence:old.confidence,confidence:quality.reflection!.confidence,counterClaimIds:[],reason:sourceConflicts.length?'関連する別資料に数値の食い違い候補があるため判断を再検討する。矛盾成立と情報源の独立性は未確認。':'同じ問題の別資料を参照した再検討。旧判断の誤り・反証成立は未確認。過去の文章を根拠となる事実としては扱わない。'});
+    }
     if(quality.modelIssues.length)error=[error,...quality.modelIssues].filter(Boolean).join('; ');
+    const method=quality.reflection?.origin??'rules',responseReceived=proposal!==undefined;
+    if(method==='rules'&&!quality.conclusions.length&&!quality.hypotheses.length)used='deterministic/reflection-v3';
+    const modelStatus=this.options.provider.id==='deterministic'?'not-requested':!responseReceived?'failed':method==='model'&&!error?'succeeded':used.startsWith('deterministic/')?'failed':'partial';
     const summary=`${quality.reflection!.position} 理由: ${quality.reflection!.reasoning}`;
     const analysis:AnalysisResult={quality,summary,provider:used.split('/')[0],model:used.split('/')[1],hypotheses:quality.hypotheses.map(h=>({text:h.text,
       rationale:`前提: ${h.premiseClaimIds.join(', ')} / 予測: ${h.prediction} / 反証: ${h.falsification} / 代替説明: ${h.alternative} / 必要資料: ${h.requiredEvidence}`}))};
     const research: NonNullable<AnalysisResult['research']>={
       topic:decision.topic,reason:decision.reason,candidates:decision.candidates,
-      memories:[],
+      memories:selected.memories.map(m=>({id:m.id,jobId:m.jobId,text:m.text})),
       evidence:selected.claims.filter(claim => claim.itemId && claim.versionId).slice(0,8).map(claim => ({
         claimId:claim.id,itemId:claim.itemId!,versionId:claim.versionId!,excerpt:claim.text.slice(0,300),
         url:context.items.find(item => item.id===claim.itemId)!.url,
@@ -158,7 +185,7 @@ export class ResearchEngine implements KousatsuAiProvider {
       questions:[`「${decision.topic}」の記述は別の独立した情報源でも確認できるか。`,
         `「${decision.topic}」に関する過去の仮説は、文書版の更新によって維持できなくなるか。`,
         '継続的な現象という解釈と、配信元の選択・報道頻度の偏りという解釈を、時系列と異なる配信元で比較する。'],
-      model:{requested:`${this.options.provider.id}/${this.options.provider.model}`,used:`${analysis.provider}/${analysis.model}`,elapsedMs:Date.now()-started,error},
+      model:{requested:`${this.options.provider.id}/${this.options.provider.model}`,used:`${analysis.provider}/${analysis.model}`,elapsedMs:Date.now()-started,error,status:modelStatus,responseReceived,method},
     };
     return {...analysis,research};
   }

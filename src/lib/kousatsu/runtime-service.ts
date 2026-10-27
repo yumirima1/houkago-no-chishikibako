@@ -85,7 +85,7 @@ export class ResearchRuntime {
   /** Trusted CLI/test input only; HTTP never accepts fixture or output paths. */
   enqueueInput(input: PipelineInput) { return this.store.enqueue({...input,outputDirectory:input.outputDirectory ?? this.outputDirectory}); }
 
-  async tick(options: { schedule?: boolean; maxScheduledJobs?: number; queuePrefix?:string } = {}) {
+  async tick(options: { schedule?: boolean; maxScheduledJobs?: number; queuePrefix?:string;dailyMaxJobs?:number } = {}) {
     const token=this.store.acquireWorker();
     if (!token) return {status:"busy" as const};
     let leaseError: unknown;
@@ -99,6 +99,7 @@ export class ResearchRuntime {
       if (!next) return {status:"idle" as const};
       const job=this.database.getJob(next.jobId);
       if (!job) throw new Error("QUEUE_JOB_MISSING");
+      if(options.dailyMaxJobs!==undefined&&!this.store.reserveDailyExecution(job.id,token,options.dailyMaxJobs))return {status:'daily_budget' as const};
       try {
         if (job.status==='cancelled' || job.status==='failed') throw new Error("JOB_NOT_RETRYABLE");
         if (next.sourceConfig && !['succeeded','needs_review'].includes(job.status)) {

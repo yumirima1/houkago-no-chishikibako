@@ -80,7 +80,7 @@ test('revised source evidence appends a correction history and excludes supersed
   assert((await readdir(f.paths.hypotheses)).some(file=>file.startsWith('revision-')));
 });
 
-test('Ollama outage falls back, persists timing/error, and the same provider succeeds after recovery',async t=>{
+test('Ollama transport recovers, but an empty model answer is still recorded as alternative analysis',async t=>{
   let healthy=false;
   const server=createServer((req,res)=>{req.resume();res.setHeader('content-type','application/json');if(!healthy){res.statusCode=503;res.end('{}');return;}
     res.end(JSON.stringify({response:JSON.stringify({observations:[],conclusions:[],hypotheses:[]})}));});
@@ -93,7 +93,8 @@ test('Ollama outage falls back, persists timing/error, and the same provider suc
   assert.equal(failed.provider,'deterministic');assert.match(failed.research!.model.error!,/503/);assert(failed.research!.model.elapsedMs>=0);
   healthy=true;
   const second=f.runtime.enqueueInput(f.input);assert.equal((await f.runtime.tick({schedule:false})).status,'completed');
-  assert.equal(f.runtime.database.getCheckpoint<{provider:string}>(second,'analyze')?.provider,'ollama');
+  const recovered=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(second,'analyze')!;
+  assert.equal(recovered.provider,'deterministic');assert.equal(recovered.research?.model.responseReceived,true);assert.equal(recovered.research?.model.status,'failed');
   assert.equal(f.runtime.snapshot().notes.length,2);
 });
 

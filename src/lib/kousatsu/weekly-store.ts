@@ -3,11 +3,12 @@ import {DatabaseSync} from 'node:sqlite';
 import type {PipelineInput,StoredItem} from './types';
 import type {ResearchSource} from './runtime-types';
 import type {WeeklyOperation} from './weekly-config';
-import {weeklySlots} from './weekly-config';
+import {weeklySlots,operationEnd,jstDay,jstDayStart} from './weekly-config';
 import {meaningfulTerms} from './relevance';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
-export function articleIdentity(item:StoredItem){return hash(item.canonicalUrl);}
+export function articleIdentity(item:StoredItem){return hash(`${item.canonicalUrl}:${item.versionId??item.contentHash}`);}
 function normalized(s:string){return s.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');}
+export function updatedArticle(a:StoredItem,b:StoredItem){return a.canonicalUrl===b.canonicalUrl&&!!a.content&&!!b.content&&normalized(a.content).length>=160&&normalized(b.content).length>=160&&normalized(a.content)!==normalized(b.content);}
 export function sameArticle(a:Pick<StoredItem,'canonicalUrl'|'title'|'content'|'summary'>,b:Pick<StoredItem,'canonicalUrl'|'title'|'content'|'summary'>) {
   if(a.canonicalUrl===b.canonicalUrl || normalized(a.title)===normalized(b.title))return true;
   const at=meaningfulTerms(a.title),bt=meaningfulTerms(b.title),common=[...at].filter(t=>bt.has(t)).length;
@@ -28,6 +29,7 @@ export class WeeklyStore {
       CREATE TABLE IF NOT EXISTS weekly_articles(article_key TEXT PRIMARY KEY,operation_id TEXT NOT NULL,day TEXT NOT NULL,genre TEXT NOT NULL,
         item_json TEXT NOT NULL,input_json TEXT NOT NULL,source_json TEXT NOT NULL,job_id TEXT UNIQUE REFERENCES jobs(id),
         FOREIGN KEY(operation_id,day) REFERENCES weekly_days(operation_id,day));`);
+    this.db.exec('CREATE TABLE IF NOT EXISTS weekly_schedule_gaps(operation_id TEXT NOT NULL,after_at TEXT NOT NULL,before_at TEXT NOT NULL,untracked_days INTEGER NOT NULL,recorded_at TEXT NOT NULL,PRIMARY KEY(operation_id,after_at,before_at))');
   }
   close(){this.db.close();}
   private atomic<T>(fn:()=>T){this.db.exec('BEGIN IMMEDIATE');try{const r=fn();this.db.exec('COMMIT');return r;}catch(e){this.db.exec('ROLLBACK');throw e;}}
@@ -36,16 +38,28 @@ export class WeeklyStore {
       const previous=this.db.prepare('SELECT config_json FROM weekly_operations WHERE id=?').get(op.id);
       if(previous && previous.config_json!==JSON.stringify(op))throw Error('WEEKLY_OPERATION_CONFIG_CHANGED: use a new operation id; history stays immutable');
       this.db.prepare('INSERT OR IGNORE INTO weekly_operations VALUES(?,?,?)').run(op.id,JSON.stringify(op),new Date(now).toISOString());
-      for(const s of weeklySlots(op))this.db.prepare('INSERT OR IGNORE INTO weekly_days(operation_id,day,due_at,next_attempt_at) VALUES(?,?,?,?)').run(op.id,s.day,s.dueAt,s.dueAt);
+      if(op.continuous){
+        const last=this.db.prepare('SELECT max(due_at) last FROM weekly_days WHERE operation_id=?').get(op.id)?.last;
+        if(last){const after=Date.parse(`${jstDay(Date.parse(String(last)))}T00:00:00+09:00`)+86400000,before=Date.parse(jstDayStart(now)),days=Math.floor((before-after)/86400000);
+          if(days>0)this.db.prepare('INSERT OR IGNORE INTO weekly_schedule_gaps VALUES(?,?,?,?,?)').run(op.id,new Date(after).toISOString(),new Date(before).toISOString(),days,new Date(now).toISOString());}
+      }
+      for(const s of weeklySlots(op,now))this.db.prepare('INSERT OR IGNORE INTO weekly_days(operation_id,day,due_at,next_attempt_at) VALUES(?,?,?,?)').run(op.id,s.day,s.dueAt,s.dueAt);
+      // Switching configuration preserves completed history and retires unstarted
+      // future slots of the previous operation, instead of running both schedules.
+      if(op.continuous)this.db.prepare("UPDATE weekly_days SET state='superseded',finished_at=?,collection_json=? WHERE operation_id<>? AND due_at>=? AND state='pending'")
+        .run(new Date(now).toISOString(),JSON.stringify({reason:'OPERATION_REPLACED',replacement:op.id}),op.id,op.startsAt);
     });
   }
   due(op:WeeklyOperation,now=Date.now()) {
-    if(now<Date.parse(op.startsAt) || now>=Date.parse(op.endsAt))return null;
-    const date=new Date(now+9*3600000).toISOString().slice(0,10);
+    if(now<Date.parse(op.startsAt) || now>=operationEnd(op))return null;
+    const date=jstDay(now);
     this.db.prepare("UPDATE weekly_days SET state='missed',finished_at=? WHERE operation_id=? AND substr(day,1,10)<? AND state IN ('pending','collecting','retry_wait')")
       .run(new Date(now).toISOString(),op.id,date);
     this.db.prepare("UPDATE weekly_days SET state='failed',finished_at=? WHERE operation_id=? AND attempts>=3 AND state IN ('collecting','retry_wait')").run(new Date(now).toISOString(),op.id);
-    return this.db.prepare("SELECT day,attempts FROM weekly_days WHERE operation_id=? AND state IN ('pending','collecting','retry_wait') AND attempts<3 AND due_at<=? AND next_attempt_at<=? ORDER BY day LIMIT 1").get(op.id,new Date(now).toISOString(),new Date(now).toISOString()) as {day:string;attempts:number}|undefined;
+    const budget=Number(this.db.prepare('SELECT count(*) n FROM jobs WHERE created_at>=? AND created_at<?').get(jstDayStart(now),new Date(Date.parse(jstDayStart(now))+86400000).toISOString())?.n);
+    if(op.continuous&&budget>=3){this.db.prepare("UPDATE weekly_days SET state='budget_exhausted',finished_at=?,collection_json=? WHERE operation_id=? AND substr(day,1,10)=? AND state='pending' AND due_at<=?")
+      .run(new Date(now).toISOString(),JSON.stringify({reason:'DAILY_JOB_BUDGET',jobs:budget}),op.id,date,new Date(now).toISOString());return null;}
+    return this.db.prepare("SELECT day,attempts FROM weekly_days d WHERE operation_id=? AND state IN ('pending','collecting','retry_wait') AND attempts<3 AND due_at<=? AND next_attempt_at<=? AND NOT EXISTS(SELECT 1 FROM weekly_articles a WHERE a.day=d.day) ORDER BY day LIMIT 1").get(op.id,new Date(now).toISOString(),new Date(now).toISOString()) as {day:string;attempts:number}|undefined;
   }
   begin(op:WeeklyOperation,day:string,now=Date.now()){
     this.db.prepare("UPDATE weekly_days SET state='collecting',attempts=attempts+1,started_at=COALESCE(started_at,?),next_attempt_at=? WHERE operation_id=? AND day=?")
@@ -63,7 +77,7 @@ export class WeeklyStore {
       if(!slot || slot.state!=='collecting')throw Error('WEEKLY_SLOT_NOT_COLLECTING');
       const previous=this.history();let added=0;
       for(const e of entries){if(count+added>=op.maxArticles)break;
-        if(previous.some(p=>sameArticle(p.item,e.item)))continue;
+        if(previous.some(p=>sameArticle(p.item,e.item)&&!updatedArticle(e.item,p.item)))continue;
         const result=this.db.prepare('INSERT OR IGNORE INTO weekly_articles(article_key,operation_id,day,genre,item_json,input_json,source_json) VALUES(?,?,?,?,?,?,?)')
           .run(articleIdentity(e.item),op.id,day,e.genre,JSON.stringify(e.item),JSON.stringify(e.input),JSON.stringify(e.source));
         if(result.changes){added++;previous.push({genre:e.genre,item:e.item});}
@@ -75,7 +89,7 @@ export class WeeklyStore {
   outbox(op:WeeklyOperation){return this.db.prepare('SELECT * FROM weekly_articles WHERE operation_id=? AND job_id IS NULL ORDER BY rowid').all(op.id).map(r=>({key:String(r.article_key),input:JSON.parse(String(r.input_json)) as PipelineInput,source:JSON.parse(String(r.source_json)) as ResearchSource}));}
   attach(key:string,jobId:string){this.db.prepare('UPDATE weekly_articles SET job_id=? WHERE article_key=? AND (job_id IS NULL OR job_id=?)').run(jobId,key,jobId);}
   snapshot(op:WeeklyOperation,now=Date.now()) {
-    const days=this.db.prepare('SELECT * FROM weekly_days WHERE operation_id=? ORDER BY day').all(op.id);
+    const days=this.db.prepare('SELECT * FROM weekly_days WHERE operation_id=? AND day>=? ORDER BY day').all(op.id,op.continuous?jstDay(now-14*86400000):'');
     const articles=this.db.prepare(`SELECT a.day,a.genre,a.job_id,a.item_json,j.status,j.attempts,j.finished_at,q.decision,q.next_attempt_at,q.error,
       (SELECT data_json FROM checkpoints WHERE job_id=j.id AND stage='analyze') analysis_json FROM weekly_articles a
       LEFT JOIN jobs j ON j.id=a.job_id LEFT JOIN research_queue q ON q.job_id=j.id WHERE a.operation_id=? ORDER BY a.day,a.rowid`).all(op.id);
@@ -87,13 +101,13 @@ export class WeeklyStore {
       const collection=d.collection_json?JSON.parse(String(d.collection_json)):null;
       const sourceFailures=Array.isArray(collection)?collection.filter(c=>c.status==='failed').length:0;
       if(state==='planned')state=pending ? (items.some(a=>a.status==='running')?'running':items.some(a=>a.status==='retry_wait')?'retry_wait':'pending') : success ? ((failed||sourceFailures)?'partial_success':'succeeded') : 'failed';
-      if(now>=Date.parse(op.endsAt) && (pending || ['pending','collecting','retry_wait'].includes(state)))state='expired';
+      if(now>=operationEnd(op) && (pending || ['pending','collecting','retry_wait'].includes(state)))state='expired';
       const finishedAt=items.length?(pending?null:items.map(a=>a.finished_at).filter(Boolean).sort().at(-1)??d.finished_at):d.finished_at;
       return {day:d.day,dueAt:d.due_at,state,collection,sourceFailures,success,failed,pending,startedAt:d.started_at,finishedAt,
         articles:items.map(a=>{const analysis=a.analysis_json?JSON.parse(String(a.analysis_json)):null;return {jobId:a.job_id,genre:a.genre,title:JSON.parse(String(a.item_json)).title,status:a.status,queue:a.decision,error:a.error,attempts:a.attempts,nextAttemptAt:a.next_attempt_at,model:analysis?.research?.model??null};})};
     });
-    return {operation:op,timezone:'Asia/Tokyo',state:now>=Date.parse(op.endsAt)?'ended':now<Date.parse(op.startsAt)?'scheduled':'active',
-      nextRunAt:now>=Date.parse(op.endsAt)?null:(()=>{const value=days.find(d=>['pending','collecting','retry_wait'].includes(String(d.state)))?.next_attempt_at;return value?String(value):null;})(),
+    return {operation:op,timezone:'Asia/Tokyo',state:now>=operationEnd(op)?'ended':now<Date.parse(op.startsAt)?'scheduled':'active',
+      nextRunAt:now>=operationEnd(op)?null:(()=>{const value=days.find(d=>['pending','collecting','retry_wait'].includes(String(d.state)))?.next_attempt_at;return value?String(value):null;})(),
       lastRunAt:(()=>{const value=[...days].reverse().find(d=>d.started_at)?.started_at;return value?String(value):null;})(),days:results};
   }
 }

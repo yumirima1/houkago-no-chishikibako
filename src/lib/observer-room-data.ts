@@ -5,11 +5,13 @@ import { autonomousPaths, loadAutonomousConfig, type AutonomousConfig } from "./
 import { loadResearchSources } from "./kousatsu/runtime-config";
 import { researchNote, researchSnapshot } from "./kousatsu/runtime-service";
 import {WeeklyStore} from './kousatsu/weekly-store';
+import {readResearchSummary} from './kousatsu/research-status';
 
 /** Reads the existing daemon's store without starting it or initializing a DB. */
 export async function observerDesktopSnapshot(config: AutonomousConfig): Promise<ObserverDesktopSnapshot> {
   const database = autonomousPaths(config).database;
   const snapshot = await researchSnapshot({ databasePath: database, sources: await loadResearchSources(config.sourcesPath) });
+  const research=readResearchSummary(database,config.agenda);
   const news: CollectedNews[] = [];
   let supervisorActive = false;
   let operation:ObserverDesktopSnapshot['operation']=null;
@@ -39,7 +41,7 @@ export async function observerDesktopSnapshot(config: AutonomousConfig): Promise
       }
     } finally { reader.close(); }
   }
-  return { ...snapshot, news, operation, system: {
+  return { ...snapshot, news, operation,...(research?{research}:{}), system: {
     readAt: new Date().toISOString(), supervisorActive, pollSeconds: config.pollSeconds,
     maxJobsPerCycle: config.maxJobsPerCycle, provider: config.ai.provider, model: config.ai.model, access: "read-only",
   } };

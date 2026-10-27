@@ -121,6 +121,7 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                       {note.generation && <p className={styles.documentNotice}>生成方式: {note.generation.origin === 'model' ? 'モデルによる考察' : note.generation.origin === 'mixed' ? 'モデルとルール分析の併用' : '根拠に基づくルール分析'}{note.generation.issues.length > 0 && <>。モデルの制約・エラー: {note.generation.issues.join(' / ')}</>}</p>}
                       {note.artifact === "conflict" && <p className={styles.documentNotice}>保存先に編集された内容があります。この画面ではDB内の記録を表示し、保存先を変更しません。</p>}
                       <pre className={styles.markdown} tabIndex={0}>{note.markdown}</pre>
+                      {note.revisionOf&&<p><button type="button" onClick={()=>setNoteId(note.revisionOf!)}>前の考察を開く</button></p>}
                       {note.sources?.map(source=>safeSourceUrl(source.url)&&<p key={source.url}><a href={safeSourceUrl(source.url)!} target="_blank" rel="noopener noreferrer">出典: {source.title} ↗</a></p>)}
                       <a href={downloadUrl(note.id)} download>Markdownをダウンロード ↓</a></>}
                 </article>
@@ -151,7 +152,8 @@ export function ObserverDesktop({ onClose, phase, weather }: { onClose: () => vo
                   <dt>1サイクルの上限</dt><dd>{snapshot.system.maxJobsPerCycle} ジョブ</dd>
                   <dt>生成方式 / モデル</dt><dd>{snapshot.system.provider} / {snapshot.system.model}</dd>
                   <dt>端末のアクセス</dt><dd>読み取り専用</dd>
-                  {snapshot.operation&&<><dt>実行時刻（日本時間）</dt><dd>{snapshot.operation.operation.runTimes?.join(' / ')}</dd><dt>次回の実行枠</dt><dd>{date(snapshot.operation.nextRunAt)}</dd><dt>直近の実行開始</dt><dd>{date(snapshot.operation.lastRunAt)}</dd><dt>自動運用の終了</dt><dd>{date(snapshot.operation.operation.endsAt)}</dd></>}
+                  {snapshot.operation&&<><dt>実行時刻（日本時間）</dt><dd>{snapshot.operation.operation.runTimes?.join(' / ')}</dd><dt>次回の実行枠</dt><dd>{date(snapshot.operation.nextRunAt)}</dd><dt>直近の実行開始</dt><dd>{date(snapshot.operation.lastRunAt)}</dd><dt>自動運用の終了</dt><dd>{snapshot.operation.operation.continuous?'停止するまで継続':date(snapshot.operation.operation.endsAt)}</dd></>}
+                  {snapshot.research&&<><dt>次の調査へ引き継ぐ問い</dt><dd>{snapshot.research.openInquiries} 件</dd><dt>追加資料を待つ問い</dt><dd>{snapshot.research.exhaustedInquiries} 件</dd><dt>ジャンルへの関心</dt><dd>{snapshot.research.interestScores.map(i=>`${genreName(i.genre)} ${i.score}`).join(' / ')}</dd></>}
                 </dl>
                 <h3>設定された出典</h3><ul className={styles.sources}>{snapshot.sources.map((source) => <li key={source.id}><strong>{source.name}</strong><span>{source.enabled ? "収集対象" : "無効"} · {snapshot.operation?'日次枠で取得':`${source.intervalMinutes} 分間隔`}</span></li>)}</ul>
                 {!snapshot.sources.length && <p>出典は設定されていません。</p>}

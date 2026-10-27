@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp,mkdir,readFile} from 'node:fs/promises';
 import path from 'node:path';
-import {parseWeeklyOperation,weeklySlots} from '../../src/lib/kousatsu/weekly-config';
+import {parseWeeklyOperation,weeklySlots,operationEnd} from '../../src/lib/kousatsu/weekly-config';
 import {WeeklyStore,sameArticle} from '../../src/lib/kousatsu/weekly-store';
 import {planWeekly} from '../../src/lib/kousatsu/weekly-service';
 import {parseAutonomousConfig} from '../../src/lib/kousatsu/autonomous-config';
@@ -25,7 +25,7 @@ test('novel research ideas do not select the literary adaptation lens and public
 test('JST slots retain the mandatory 18:00 slot, catch up once on first startup and never exceed three per date',()=>{
  const slots=weeklySlots(op());assert.equal(slots[0].day,'2026-10-26@18:00');
  for(const date of new Set(slots.map(s=>s.day.slice(0,10))))assert.ok(slots.filter(s=>s.day.startsWith(date)).length<=3);
- assert.ok(slots.every(s=>Date.parse(s.dueAt)<Date.parse(op().endsAt)));
+ assert.ok(slots.every(s=>Date.parse(s.dueAt)<operationEnd(op())));
  assert.throws(()=>parseWeeklyOperation({...op(),runTimes:['06:00','22:00']}),/18:00/);
  assert.throws(()=>parseWeeklyOperation({...op(),runTimes:['06:00','12:00','18:00','22:00']}));
 });
@@ -90,7 +90,7 @@ test('all distinct eligible historical notes are exported beyond the old three-n
    return {...result,text:result.text.replaceAll('Agent evaluation reveals deployment limits',titles[edition]).replaceAll('/agent',`/agent-${edition}`).replaceAll('Laptop repair design reduces component waste',titles[edition]).replaceAll('/laptop',`/laptop-${edition}`).replaceAll('engineering methods',`engineering methods for edition ${edition}`)};
  };
  const slots=weeklySlots(op()).slice(0,5);
- for(const slot of slots){edition++;await planWeekly(f.config,f.runtime,f.sources,transport,Math.max(at,Date.parse(slot.dueAt)));const tick=await f.runtime.tick({schedule:false,queuePrefix:`weekly:${op().id}:`});assert.equal(tick.status,'completed',slot.day);}
+ for(const slot of slots){edition++;await planWeekly(f.config,f.runtime,f.sources,transport,Math.max(at,Date.parse(slot.dueAt)));const tick=await f.runtime.tick({schedule:false,queuePrefix:`weekly:${op().id}:`});assert.equal(tick.status,'completed',slot.day+': '+JSON.stringify(tick));}
  const config={...f.config,dataDirectory:path.join(f.directory,'historical-store')};await mkdir(path.join(config.dataDirectory,'Memory'),{recursive:true});
  const file=path.join(config.dataDirectory,'Memory','kousatsu.sqlite');await f.runtime.database.backupTo(file);
  const db=new DatabaseSync(file);try{db.exec('DELETE FROM weekly_articles');}finally{db.close();}
@@ -104,9 +104,9 @@ test('expiry enqueues nothing, missed previous days remain visible, and repeated
  store.register(op(),at);const due=store.due(op(),at)!;
  for(let n=0;n<3;n++){store.begin(op(),due.day,at+n*61000);store.fail(op(),due.day,'injected failure',at+n*61000);}
  assert.equal(store.snapshot(op(),at+180000).days[0].state,'failed');
- assert.equal(store.due(op(),Date.parse(op().endsAt)),null);
+ assert.equal(store.due(op(),operationEnd(op())),null);
  store.due(op(),at+86400000);assert.ok(store.snapshot(op(),at+86400000).days.some(d=>d.state==='missed'));
- await planWeekly(f.config,f.runtime,f.sources,f.transport,Date.parse(op().endsAt));assert.equal(store.db.prepare('SELECT count(*) n FROM jobs').get()?.n,0);
+ await planWeekly(f.config,f.runtime,f.sources,f.transport,operationEnd(op()));assert.equal(store.db.prepare('SELECT count(*) n FROM jobs').get()?.n,0);
  }finally{store.close();f.close();}
 });
 test('publication failure backs off, stops at three attempts and never logs a credential',async()=>{

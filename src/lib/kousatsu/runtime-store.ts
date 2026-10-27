@@ -3,6 +3,8 @@ import { DatabaseSync } from "node:sqlite";
 
 import type { AnalysisResult, PipelineInput, StoredItem } from "./types";
 import type { MemoryContext, ResearchSnapshot, ResearchSource } from "./runtime-types";
+import {meaningfulTerms} from './relevance';
+import {jstDay,jstDayStart} from './weekly-config';
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const timestamp = (milliseconds = Date.now()) => new Date(milliseconds).toISOString();
@@ -60,6 +62,7 @@ export class ResearchStore {
           CREATE TABLE IF NOT EXISTS research_quality_reviews(job_id TEXT PRIMARY KEY REFERENCES jobs(id),quality_json TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS research_hypothesis_reviews(memory_id TEXT NOT NULL REFERENCES research_memory_events(id),
             job_id TEXT NOT NULL REFERENCES jobs(id),review_json TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(memory_id,job_id));
+          CREATE TABLE IF NOT EXISTS research_day_executions(day TEXT NOT NULL,job_id TEXT NOT NULL REFERENCES jobs(id),started_at TEXT NOT NULL,PRIMARY KEY(day,job_id));
         `);
         const versions = this.db.prepare("SELECT version FROM research_schema").all() as Array<{version: number}>;
         if (versions.some((row) => row.version !== 1)) throw new Error("RUNTIME_SCHEMA_UNSUPPORTED");
@@ -103,6 +106,17 @@ export class ResearchStore {
 
   releaseWorker(token: string) {
     this.db.prepare("UPDATE research_worker SET expires_at=? WHERE id=1 AND token=?").run(timestamp(0), token);
+  }
+  reserveDailyExecution(jobId:string,token:string,limit:number,now=Date.now()){
+    return this.transaction(()=>{
+      this.assertWorker(token);
+      const date=jstDay(now),start=jstDayStart(now),end=new Date(Date.parse(start)+86400000).toISOString();
+      if(this.db.prepare('SELECT job_id FROM research_day_executions WHERE day=? AND job_id=?').get(date,jobId))return true;
+      const already=this.db.prepare('SELECT id FROM jobs WHERE id=? AND started_at>=? AND started_at<?').get(jobId,start,end);
+      const count=Number(this.db.prepare('SELECT count(*) n FROM (SELECT id FROM jobs WHERE started_at>=? AND started_at<? UNION SELECT job_id FROM research_day_executions WHERE day=?)').get(start,end,date)?.n);
+      if(!already&&count>=limit)return false;
+      this.db.prepare('INSERT INTO research_day_executions VALUES(?,?,?)').run(date,jobId,timestamp(now));return true;
+    });
   }
 
   private enqueueInside(input: PipelineInput, memories: MemoryContext[], key: string | null, now: number, sourceConfig: ResearchSource|null = null) {
@@ -238,9 +252,9 @@ export class ResearchStore {
         // invalidate its context, not necessarily the hypothesis itself.
         const pinned = this.db.prepare('SELECT memory_json FROM research_queue WHERE job_id=?').get(jobId) as Row;
         const previous = JSON.parse(String(pinned.memory_json)) as MemoryContext[];
-        for(const review of analysis.quality?.viewReviews??[])if(review.action==='withdraw') {
+        for(const review of analysis.quality?.viewReviews??[])if(review.action!=='maintain') {
           this.db.prepare('INSERT OR IGNORE INTO research_memory_revisions(old_memory_id,new_job_id,reason,created_at) VALUES(?,?,?,?)')
-            .run(review.memoryId,jobId,review.reason,timestamp());
+            .run(review.memoryId,jobId,review.action==='revise'?`旧判断の誤り・反証成立は未確認。${review.reason}`:review.reason,timestamp());
         }
         for (const memory of previous) {
           const changes = memory.references.flatMap(old => references.filter(current =>
@@ -263,7 +277,7 @@ export class ResearchStore {
 
   retrieveMemories(topic: string, limit = 8): MemoryContext[] {
     const normalized = topic.normalize("NFKC").toLowerCase().trim();
-    const tokens = [...new Set(normalized.split(/\s+/).filter(Boolean))];
+    const tokens = [...new Set([normalized,...meaningfulTerms(topic),...normalized.split(/\s+/).filter(Boolean)])].slice(0,24);
     const patterns = tokens.map((token)=>`%${token.replace(/[\\%_]/g,'\\$&')}%`);
     // Search the full history before limiting candidates; unrelated recent events
     // must not evict an older matching interpretation from long-term retrieval.

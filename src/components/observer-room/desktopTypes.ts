@@ -14,7 +14,8 @@ export type CollectedNews = {
 };
 
 export type ObserverDesktopSnapshot = ResearchSnapshot & {
-  operation?: {state:string;nextRunAt:string|null;lastRunAt:string|null;operation:{startsAt:string;endsAt:string;runTimes?:string[]}} | null;
+  research?:{openInquiries:number;exhaustedInquiries:number;interestScores:Array<{genre:string;score:number}>;lastSelection?:{sources:Array<{id:string;score:number;candidateLimit:number}>}|null};
+  operation?: {state:string;nextRunAt:string|null;lastRunAt:string|null;operation:{startsAt:string;endsAt:string|null;runTimes?:string[];continuous?:boolean}} | null;
   news: CollectedNews[];
   system: {
     readAt: string;

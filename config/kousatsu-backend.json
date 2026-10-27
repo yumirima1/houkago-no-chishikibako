@@ -8,15 +8,21 @@
   "minFreeMiB": 1024,
   "maxKnowledgeFiles": 50000,
   "exploration": 0.25,
+  "agenda": {
+    "initialScores": {"ai":50,"pc":50,"economy":50,"world":50,"science":60,"culture":50,"environment":50},
+    "decayDays":7,"decayPoints":5,"discoveryBoost":6,
+    "maxSources":4,"maxTopics":50,"maxInquiryAttempts":3,"freshDays":90
+  },
   "ai": {
     "provider": "ollama",
     "model": "qwen3:4b-q4_K_M",
     "timeoutMs": 180000
   },
   "operation": {
-    "id": "week-20261026",
-    "startsAt": "2026-10-26T11:56:19.622Z",
-    "endsAt": "2026-11-02T11:56:19.622Z",
+    "id": "continuous-20261027",
+    "startsAt": "2026-10-27T11:00:00.000Z",
+    "continuous": true,
+    "endsAt": null,
     "runTimes": [
       "06:00",
       "18:00",

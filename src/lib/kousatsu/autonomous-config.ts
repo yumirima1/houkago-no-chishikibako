@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import {parseWeeklyOperation,type WeeklyOperation} from './weekly-config';
+import {parseAgendaSettings,type AgendaSettings} from './research-agenda';
 
 export type AutonomousConfig = {
   dataDirectory: string;
@@ -12,6 +13,7 @@ export type AutonomousConfig = {
   minFreeMiB: number;
   maxKnowledgeFiles: number;
   exploration: number;
+  agenda?:AgendaSettings;
   ai: {provider: 'deterministic' | 'ollama'; model: string; timeoutMs: number};
   operation?: WeeklyOperation;
   publication?:{enabled:boolean;repository:'yumirima1/houkago-no-chishikibako';branch:string};
@@ -52,6 +54,7 @@ export function parseAutonomousConfig(value: unknown, base = process.cwd()): Aut
     maxJobsPerDay: integer('maxJobsPerDay',100,1,10000), maxDatabaseMiB: integer('maxDatabaseMiB',1024,1,102400),
     minFreeMiB: integer('minFreeMiB',1024,1,102400), maxKnowledgeFiles: integer('maxKnowledgeFiles',50000,1,1000000),
     exploration, ai:{provider,model: String(ai.model ?? 'rules-v1'),timeoutMs},
+    ...(row.agenda===undefined?{}:{agenda:parseAgendaSettings(row.agenda)}),
     ...(row.operation===undefined ? {} : {operation:parseWeeklyOperation(row.operation)}),
     ...(publication?{publication}:{}),
   };

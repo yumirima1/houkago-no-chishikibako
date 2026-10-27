@@ -19,6 +19,7 @@ export type Reflection = {
   counterClaimIds?:string[];
 };
 export type QualityAnalysis = {
+  sourceVerification?:import('./source-verification').SourceVerification;
   /** Optional only for immutable notes produced before the reflection revision. */
   reflection?:Reflection;
   viewReviews?:Array<{memoryId:string;action:'maintain'|'revise'|'withdraw';reason:string;previousConfidence:number;confidence:number;counterClaimIds:string[]}>;

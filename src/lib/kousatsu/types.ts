@@ -128,7 +128,7 @@ export type AnalysisResult = {
     evidence: Array<{claimId: string; itemId: string; versionId: string; excerpt: string; url: string}>;
     counterSearch: Array<{itemId: string; versionId: string; title: string; url: string; excerpt: string; reason: string}>;
     questions: string[];
-    model: {requested: string; used: string; elapsedMs: number; error: string | null};
+    model: {requested: string; used: string; elapsedMs: number; error: string | null;status?:'succeeded'|'partial'|'failed'|'not-requested';responseReceived?:boolean;method?:'model'|'rules'|'mixed'};
   };
 };
 
@@ -148,6 +148,7 @@ export type VerificationReport = {
 };
 
 export type PipelineInput = {
+  researchPlan?:{inquiryIds:string[];question:string;reason:string;sourceBudget:{candidateLimit:number;bodyLimit:number}};
   /** Trusted local scheduler: analyze this stored article, never refetch a whole feed. */
   articleRef?: {itemId:string;versionId:string};
   feedUrl?: string;
@@ -169,6 +170,8 @@ export type PipelineResult = {
 };
 
 export type JobRecord = {
+  startedAt?:string|null;
+  finishedAt?:string|null;
   attempts: number;
   currentStage: string | null;
   id: string;

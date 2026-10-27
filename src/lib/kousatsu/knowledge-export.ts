@@ -116,6 +116,20 @@ export async function exportKnowledge(config: AutonomousConfig, history: TopicHi
         ...references.slice(0,12).map(r=>`- ${line(r.sourceId)} → 記述 → ${line(r.title)} / [文書版](../Articles/${r.id}-${r.versionId}.md)`),
       ],job);
     }
+    // Immutable event files make evolving plans and interests inspectable while
+    // preserving every prior decision and any user-edited artifact.
+    for(const [table,prefix] of [['research_interest_events','interest-event'],['research_inquiry_events','inquiry-event']] as const){
+      if(!db.prepare('SELECT name FROM sqlite_master WHERE name=?').get(table))continue;
+      for(const event of db.prepare(`SELECT * FROM ${table} ORDER BY created_at,id`).all()){
+        const inquiry=table==='research_inquiry_events'?db.prepare('SELECT question,references_json FROM research_inquiries WHERE id=?').get(String(event.inquiry_id)):null;
+        remember(path.join(paths.memory,`${prefix}-${event.id}.md`),[
+          table==='research_inquiry_events'?'# 未解決課題の履歴':'# 関心の変更履歴','',
+          `記録日時: ${event.created_at}`,'',JSON.stringify(event,null,2),'',
+          ...(inquiry?[`問い: ${inquiry.question}`,'',`根拠の保存版: ${inquiry.references_json}`,'']:[]),
+          '履歴を保持。関心値は調査の優先度であり、主張の正しさや確信度を表しません。',
+        ],event.job_id?String(event.job_id):undefined);
+      }
+    }
   } finally {db.close();}
   const result={matching:0,repaired:0,conflicts:[] as string[]};
   for (const artifact of history.artifacts()) {

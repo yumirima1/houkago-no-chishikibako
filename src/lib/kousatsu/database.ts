@@ -712,6 +712,14 @@ export class KousatsuDatabase {
       | undefined;
     return row ? this.toStoredItem(row) : null;
   }
+  getItemByCanonicalUrl(url:string):StoredItem|null{
+    const row=this.db.prepare('SELECT id FROM items WHERE canonical_url=? LIMIT 1').get(url);return row?this.getItem(String(row.id)):null;
+  }
+  documentCoverage(versionId:string){
+    if(!this.db.prepare("SELECT name FROM sqlite_master WHERE name='research_content_provenance'").get())return null;
+    const row=this.db.prepare('SELECT coverage_json FROM research_content_provenance WHERE version_id=?').get(versionId);
+    return row?JSON.parse(String(row.coverage_json)) as import('./quality-types').DocumentCoverage:null;
+  }
 
   getItemVersion(versionId: string): StoredItem | null {
     const row = this.db.prepare("SELECT *,item_id AS id,id AS current_version_id FROM item_versions WHERE id=?")
@@ -993,6 +1001,7 @@ export class KousatsuDatabase {
     if (!row) return null;
     return {
       attempts: asNumber(row.attempts),
+      startedAt:row.started_at===null?null:asString(row.started_at),finishedAt:row.finished_at===null?null:asString(row.finished_at),
       currentStage: row.current_stage === null ? null : asString(row.current_stage),
       id: asString(row.id),
       input: parseJson<PipelineInput>(row.input_json),
