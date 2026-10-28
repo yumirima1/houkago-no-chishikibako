@@ -22,7 +22,10 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
   await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1); await page.waitForTimeout(160);
   await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
   await page.waitForTimeout(120); await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
-  await expect.poll(sash, { timeout: 15000 }).toBeCloseTo(-1.93, 1); await expect(page.locator('[data-window-motion="open"]')).toHaveCount(1);
+  // Software WebGL can render only a few frames per second. Wait for the real
+  // completion callback, then verify the exact final sash position.
+  await expect(page.locator('[data-window-motion="open"]')).toHaveCount(1, { timeout: 45000 });
+  expect(await sash()).toBeCloseTo(-1.93, 3);
   await page.screenshot({ path: info.outputPath('window-open.png') });
   const movement = await page.evaluate(() => window.__roomView.samples.filter(s => s.phase === 'room'));
   expect(movement.some(sample => sample.sash < -0.05 && sample.sash > -1.8)).toBe(true);
