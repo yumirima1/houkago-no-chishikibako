@@ -16,8 +16,8 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
   expect(geometry.bed).toBe(false); expect(geometry.flat).toBe(false); expect(geometry.main).toBe(true); expect(geometry.small).toBeLessThan(1);
   expect(geometry.posters[0]).not.toBe(geometry.posters[1]); expect(geometry.road!).toBeLessThan(-3); expect(geometry.train!).toBeLessThan(0);
   await page.screenshot({ path: info.outputPath('room.png') }); await page.emulateMedia({ reducedMotion: 'no-preference' }); await page.mouse.move(720, 450); await page.waitForTimeout(300);
-  const camera = new PerspectiveCamera(42, 1440 / 900, 0.1, 100); camera.position.set(...ROOM_CAMERA.position); camera.lookAt(...ROOM_CAMERA.target); camera.updateMatrixWorld();
-  const p = new Vector3(0.4, 2.95, -1.76).project(camera), clickWindow = () => page.mouse.click((p.x + 1) * 720, (1 - p.y) * 450);
+  const camera = new PerspectiveCamera(ROOM_CAMERA.fov, 1440 / 900, 0.1, 100); camera.position.set(...ROOM_CAMERA.position); camera.lookAt(...ROOM_CAMERA.target); camera.updateMatrixWorld();
+  const p = new Vector3(-0.6, 2.25, -1.76).project(camera), clickWindow = () => page.mouse.click((p.x + 1) * 720, (1 - p.y) * 450);
   const sash = () => page.evaluate(() => window.__roomView.scene!.getObjectByName('moving-window-sash')!.position.x);
   await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1); await page.waitForTimeout(160);
   await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
@@ -31,7 +31,8 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
   expect(Math.abs(movement.at(-1)!.car - movement[0].car)).toBeGreaterThan(0.5); expect(Math.abs(movement.at(-1)!.train - movement[0].train)).toBeGreaterThan(0.5);
   await page.mouse.click(700, 790); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const crt = new Vector3(-0.23, 1.57, -0.44).project(camera); await page.mouse.click((crt.x + 1) * 720, (1 - crt.y) * 450);
+  await page.waitForTimeout(150);
+  const crt = new Vector3(0.37, 1.57, -0.44).project(camera); await page.mouse.click((crt.x + 1) * 720, (1 - crt.y) * 450);
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible(); await page.keyboard.press('Escape'); await expect(page.locator('dialog')).toHaveCount(0);
   await info.attach('room-geometry', { body: JSON.stringify(geometry), contentType: 'application/json' });
 });

@@ -11,7 +11,8 @@ test('the real public archive separates selection and reading, preserves sources
   page.on('response', r => { if (r.status() >= 400) failed.push(`${r.status()} ${r.url()}`); if (r.url().endsWith('.glb') && r.ok()) assets.add(r.url()); });
   await roomReady(page, baseURL!);
   expect(await page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => { const gl = canvas.getContext('webgl2'); return Boolean(gl && !gl.isContextLost()); })).toBe(true);
-  expect(assets.size).toBeGreaterThanOrEqual(14); await page.screenshot({ path: info.outputPath('room.png') });
+  // The articulated desk lamp is geometry; the other existing models still load locally.
+  expect(assets.size).toBeGreaterThanOrEqual(13); await page.screenshot({ path: info.outputPath('room.png') });
   const snapshot = await (await page.request.get(new URL('research/snapshot.json', baseURL!).href)).json(); expect(snapshot.notes.length).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'CRTモニターを開く', exact: true }).focus(); await page.keyboard.press('Enter');
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();

@@ -29,7 +29,7 @@ export function ObserverStudyScene({ onOpen, onReady, mobile, phase, interactive
   const handleReady = useCallback(() => { setReady(true); onReady(); }, [onReady]);
   // The modal covers the scene. Resume rendering for the closing animation.
   return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} frameloop={visible && !paused ? reducedMotion ? "demand" : "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
-    camera={{ position: [...ROOM_CAMERA.position], fov: 42, near: 0.1, far: 100 }}
+    camera={{ position: [...ROOM_CAMERA.position], fov: ROOM_CAMERA.fov, near: 0.1, far: 100 }}
     gl={{ antialias: true, stencil: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
     onCreated={({ camera, gl }) => {
       camera.lookAt(...ROOM_CAMERA.target);
@@ -37,13 +37,11 @@ export function ObserverStudyScene({ onOpen, onReady, mobile, phase, interactive
     }}>
     <color attach="background" args={["#101a21"]} />
     <CameraController active={interactive} focused={focused} stationary={mobile} reducedMotion={reducedMotion} />
-    <hemisphereLight args={["#9bb1c6", "#30281e", 0.95]} />
-    <ambientLight color="#a6b6c3" intensity={0.3} />
-    <pointLight position={[0, 3.2, 3.5]} color="#d8c9ae" intensity={6} distance={10} decay={2} />
+    <hemisphereLight args={["#9bb1c6", "#30281e", 0.7]} />
+    <ambientLight color="#a6b6c3" intensity={0.2} />
+    <pointLight position={[0, 3.2, 3.5]} color="#d8c9ae" intensity={3.2} distance={10} decay={2} />
     <directionalLight position={[-4, 5, -0.8]} color="#88a9ce" intensity={1.1} />
     <pointLight position={[2.2, 2.7, -0.5]} distance={3.8} decay={2} intensity={1.1} color="#c7b28c" />
-    <spotLight position={[-1.3, 2.05, -0.55]} angle={0.95} penumbra={0.8} intensity={12}
-      color="#ffd099" castShadow shadow-mapSize={[1024, 1024]} shadow-bias={-0.001} />
     <Suspense fallback={null}>
       <NightCity reducedMotion={reducedMotion} weather={weather} />
       <NightStudy onOpen={() => { setHovered(false); onOpen(); }} enabled={interactive} onHover={setHovered} weather={weather} reducedMotion={reducedMotion} windowOpen={windowOpen} onWindowToggle={onWindowToggle} onWindowSettled={onWindowSettled} />

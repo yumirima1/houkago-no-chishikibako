@@ -1,5 +1,13 @@
 .room { position: fixed; inset: 0; background: #101a21; overflow: hidden; }
 .scene { position: absolute; inset: 0; }
+.epaperSettings { flex-shrink: 0; max-height: 310px; overflow: auto; padding: 10px 18px; border-bottom: 1px solid #9fa890; font-size: 12px; background: #e4e7d8; }
+.epaperSettings summary { cursor: pointer; padding: 4px 0; }
+.epaperSettings p { line-height: 1.7; margin: 8px 0; }
+.epaperSettings fieldset { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 8px 0; border: 1px solid #9fa890; padding: 10px; }
+.epaperSettings input { display: block; max-width: 240px; margin-top: 6px; font: inherit; }
+.epaperSettings button { padding: 6px; border: 1px solid #77856c; background: #e4e5d3; cursor: pointer; }
+.epaperSettings [role="alert"] { color: #8b302b; }
+.epaperPreview { width: 36px; height: 60px; background-size: contain; background-repeat: no-repeat; background-position: center; }
 .mobileEntry { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); padding: 12px 16px; min-height: 46px; border: 1px solid #858b76; border-radius: 8px; background: #28372f; color: #e0dfcb; font-size: 13px; cursor: pointer; }
 .ambientControl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 4px; border-top: 1px solid #68726755; margin-top: 10px; }
 .soundWaiting { margin-left: 10px; color: #bdc9a4; font-size: 10px; }

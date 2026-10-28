@@ -3,7 +3,7 @@
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import * as THREE from "three";
-import { MONITOR_CAMERA, ROOM_CAMERA, roomCameraPosition } from "./roomMotion";
+import { MONITOR_CAMERA, ROOM_CAMERA, roomCameraPosition, roomCameraTarget } from "./roomMotion";
 
 export function CameraController({ active, focused, reducedMotion, stationary = false }: { active: boolean; focused: boolean; reducedMotion: boolean; stationary?: boolean }) {
   const { camera, gl, pointer, size } = useThree();
@@ -21,7 +21,7 @@ export function CameraController({ active, focused, reducedMotion, stationary = 
     const zoom = focused && !reducedMotion;
     const [x, y, z] = zoom ? MONITOR_CAMERA.position : roomCameraPosition(active ? pointer.x : 0, active ? pointer.y : 0, size.width / size.height, reducedMotion || stationary);
     destination.set(x, y, z);
-    const [tx, ty, tz] = zoom ? MONITOR_CAMERA.target : ROOM_CAMERA.target;
+    const [tx, ty, tz] = zoom ? MONITOR_CAMERA.target : roomCameraTarget(active ? pointer.x : 0, active ? pointer.y : 0, reducedMotion || stationary);
     target.set(tx, ty, tz);
     if (reducedMotion || stationary) { camera.position.copy(destination); lookAt.copy(target); }
     else {

@@ -8,6 +8,7 @@ import { DesktopClock } from "./DesktopClock";
 import { TerminalReader } from "./TerminalReader";
 import { SystemPanel } from "./SystemPanel";
 import { RoomControls } from "./RoomControls";
+import { EPaperSettings } from "./EPaper";
 import type { RoomSoundController } from "./useRoomSound";
 import { date, apiMessage, readableTitle } from "./terminalFormat";
 import type { RoomWeather } from "@/lib/observer-weather";
@@ -100,6 +101,7 @@ export function ObserverDesktop({ onClose, phase, weather, mobile = false, sound
       {app !== "system" ? <input type="search" aria-label={app === "archive" ? "考察を検索" : "収集ニュースを検索"} placeholder="タイトルを検索…" value={query} onChange={event => setQuery(event.target.value)} /> : <span>保存されている設定と状態</span>}
       <button type="button" onClick={reload} disabled={!snapshot && !error}>再読込</button>
     </div>
+    {app === "system" && !mobile && <EPaperSettings />}
     {error ? <div className={styles.empty} role="alert"><p>{error}</p><button type="button" onClick={reload}>再試行</button></div>
       : !snapshot ? <p className={styles.empty} role="status">保存された記録を読み込んでいます…</p>
       : app === "archive" ? <div ref={list} className={styles.recordList} aria-label="考察一覧">

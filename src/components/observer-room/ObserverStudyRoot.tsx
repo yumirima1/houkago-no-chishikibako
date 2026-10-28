@@ -8,6 +8,7 @@ import { RoomControls } from "./RoomControls";
 import { createRoomSession, type RoomSession } from "./roomSession";
 import { useRoomSound } from "./useRoomSound";
 import styles from "./observer-room.module.css";
+import { EPaperProvider } from "./EPaper";
 
 const ObserverStudyScene = dynamic(() => import("./ObserverStudyScene").then((module) => module.ObserverStudyScene), {
   ssr: false, loading: () => <RoomLoading />,
@@ -41,6 +42,10 @@ class SceneBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 
 export function ObserverStudyRoot() {
+  return <EPaperProvider><ObserverRoom /></EPaperProvider>;
+}
+
+function ObserverRoom() {
   const [session, setSession] = useState<RoomSession | null>(null);
   const initialSession = useRef<RoomSession | null>(null);
   const [windowOpen, setWindowOpen] = useState(false);
