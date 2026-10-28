@@ -1,4 +1,5 @@
-export const ROOM_CAMERA = { position: [0.25, 1.85, 2.9], target: [-0.25, 1.62, -2], fov: 64 } as const;
+export const ROOM_CAMERA = { position: [-1.1, 1.85, 3.05], target: [1.1, 1.62, -0.6], fov: 68 } as const;
+export const MOBILE_ROOM_CAMERA = { target: [2.5, 1.62, -0.1], fov: 90 } as const;
 export const MONITOR_CAMERA = { position: [0.45, 1.65, 2.3], target: [0.37, 1.57, -0.44] } as const;
 
 export function roomCameraPosition(x: number, y: number, aspect = 16 / 9, reducedMotion = false) {
@@ -23,7 +24,14 @@ export function trainPosition(seconds: number) {
 
 export function carPosition(seconds: number, index: number) {
   const direction = index % 2 ? -1 : 1;
-  return -35 + ((((seconds * (1.6 + index * 0.13) * direction + 28 + index * 16) % 70) + 70) % 70);
+  // Equal speeds within each lane preserve separation over arbitrarily long runs.
+  return -35 + ((((seconds * (index % 2 ? 1.8 : 1.6) * direction + 28 + index * 16) % 70) + 70) % 70);
+}
+
+export function motionDelta(delta: number, reducedMotion: boolean) {
+  // R3F stops/restarts its clock when the tab or terminal pauses the Canvas.
+  // Keep all active elapsed time: clamping each frame makes slow GPUs freeze traffic.
+  return Number.isFinite(delta) && delta > 0 ? delta * (reducedMotion ? 0.35 : 1) : 0;
 }
 
 export const PHONE_OPEN_MS = 1500;

@@ -28,7 +28,7 @@ export function ObserverStudyScene({ onOpen, onReady, mobile, phase, interactive
   const [ready, setReady] = useState(false);
   const handleReady = useCallback(() => { setReady(true); onReady(); }, [onReady]);
   // The modal covers the scene. Resume rendering for the closing animation.
-  return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, 1.5]} frameloop={visible && !paused ? reducedMotion ? "demand" : "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
+  return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, mobile ? 1.25 : 1.5]} frameloop={visible && !paused ? "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
     camera={{ position: [...ROOM_CAMERA.position], fov: ROOM_CAMERA.fov, near: 0.1, far: 100 }}
     gl={{ antialias: true, stencil: true, powerPreference: "high-performance", toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.15 }}
     onCreated={({ camera, gl }) => {

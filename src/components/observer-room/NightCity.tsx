@@ -4,9 +4,9 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { RoomModel } from "./RoomAssets";
-import { trainPosition } from "./roomMotion";
+import { trainPosition, motionDelta } from "./roomMotion";
 import type { NightWeather } from "@/lib/observer-weather";
-import { WINDOW_OPENING, STREET_LEVEL, VIADUCT_LEVEL, TRAFFIC_Z, TRAFFIC_ANGLE } from "./roomLayout";
+import { WINDOW_OPENING, WINDOW_FRAME, STREET_LEVEL, VIADUCT_LEVEL, TRAFFIC_Z, TRAFFIC_ANGLE } from "./roomLayout";
 import { exteriorStencil } from "./windowStencil";
 import { NightTraffic } from "./NightTraffic";
 
@@ -21,8 +21,8 @@ function Train({ reducedMotion }: { reducedMotion: boolean }) {
   const train = useRef<THREE.Group>(null);
   const elapsed = useRef(0);
   useFrame((_, delta) => {
-    if (!train.current || reducedMotion) return;
-    elapsed.current += Math.min(delta, 0.05);
+    if (!train.current) return;
+    elapsed.current += motionDelta(delta, reducedMotion);
     train.current.position.x = trainPosition(elapsed.current);
   });
   return <group ref={train} position={[trainPosition(0), VIADUCT_LEVEL + 0.42, 0]} name="night-train">
@@ -93,7 +93,7 @@ export function NightCity({ reducedMotion, weather }: { reducedMotion: boolean; 
     if (beacon.current) beacon.current.opacity = 0.35 + Math.pow((Math.sin(elapsed.current * 1.25) + 1) / 2, 7) * 0.65;
     if (litWindows.current) litWindows.current.color.setRGB(0.56 + Math.sin(elapsed.current * 0.17) * 0.06, 0.52, 0.34);
   });
-  return <group name="exterior-only">
+  return <group name="exterior-only" position={[...WINDOW_FRAME.position]} rotation={[...WINDOW_FRAME.rotation]}>
     <mesh name="exterior-window-mask" renderOrder={-100} position={[(WINDOW_OPENING.left + WINDOW_OPENING.right) / 2, (WINDOW_OPENING.top + WINDOW_OPENING.bottom) / 2, -1.95]}>
       <planeGeometry args={[WINDOW_OPENING.right - WINDOW_OPENING.left, WINDOW_OPENING.top - WINDOW_OPENING.bottom]} />
       <meshBasicMaterial colorWrite={false} depthWrite={false} depthTest={false} stencilWrite stencilRef={1} stencilFunc={THREE.AlwaysStencilFunc} stencilZPass={THREE.ReplaceStencilOp} />

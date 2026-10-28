@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { matchesImageSignature, validateImageFile, MAX_IMAGE_BYTES } from "../../src/components/observer-room/epaperStorage";
-import { roomCameraPosition, roomCameraTarget } from "../../src/components/observer-room/roomMotion";
+import { ROOM_CAMERA, roomCameraPosition, roomCameraTarget } from "../../src/components/observer-room/roomMotion";
 import { ROOM_SIZE } from "../../src/components/observer-room/roomLayout";
 
 test("epaper rejects active formats, empty files, oversized files and spoofed signatures", () => {
@@ -22,7 +22,9 @@ test("the eye remains inside the room on narrow screens and extreme pointer posi
     assert.ok(y > 1.5 && y < 2);
     assert.ok(z > ROOM_SIZE.back && z < ROOM_SIZE.front);
     const target = roomCameraTarget(pointer, pointer);
-    assert.ok(target.every(Number.isFinite)); assert.ok(target[0] > -2 && target[0] < 2);
+    assert.ok(target.every(Number.isFinite));
+    assert.ok(target[0] > ROOM_SIZE.left && target[0] < ROOM_SIZE.right);
+    assert.ok(Math.abs(target[0] - ROOM_CAMERA.target[0]) <= 1.25);
     assert.ok(target[1] > 0.8 && target[1] < 2.5);
   }
 });

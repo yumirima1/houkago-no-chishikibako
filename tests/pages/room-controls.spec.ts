@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { ROOM_CAMERA } from '../../src/components/observer-room/roomMotion';
+import { WINDOW_FRAME } from '../../src/components/observer-room/roomLayout';
 import { seedRoom, mockWeather, roomReady, observeRoom, observeSound, readSound } from './room-support';
 
 test('the second-floor room keeps two CRTs, has no bed or flat monitor and a continuous reversible window', async ({ page, baseURL }, info) => {
@@ -17,7 +18,7 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
   expect(geometry.posters[0]).not.toBe(geometry.posters[1]); expect(geometry.road!).toBeLessThan(-3); expect(geometry.train!).toBeLessThan(0);
   await page.screenshot({ path: info.outputPath('room.png') }); await page.emulateMedia({ reducedMotion: 'no-preference' }); await page.mouse.move(720, 450); await page.waitForTimeout(300);
   const camera = new PerspectiveCamera(ROOM_CAMERA.fov, 1440 / 900, 0.1, 100); camera.position.set(...ROOM_CAMERA.position); camera.lookAt(...ROOM_CAMERA.target); camera.updateMatrixWorld();
-  const p = new Vector3(-0.6, 2.25, -1.76).project(camera), clickWindow = () => page.mouse.click((p.x + 1) * 720, (1 - p.y) * 450);
+  const p = new Vector3(WINDOW_FRAME.position[0] + 1.76, 2.25, WINDOW_FRAME.position[2] - 1.4).project(camera), clickWindow = () => page.mouse.click((p.x + 1) * 720, (1 - p.y) * 450);
   const sash = () => page.evaluate(() => window.__roomView.scene!.getObjectByName('moving-window-sash')!.position.x);
   await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1); await page.waitForTimeout(160);
   await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);

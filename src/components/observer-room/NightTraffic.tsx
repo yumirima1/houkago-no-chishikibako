@@ -4,14 +4,14 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { STREET_LEVEL } from "./roomLayout";
-import { carPosition } from "./roomMotion";
+import { carPosition, motionDelta } from "./roomMotion";
 import { exteriorStencil } from "./windowStencil";
 
 function Car({ index, reducedMotion, glow }: { index: number; reducedMotion: boolean; glow: THREE.Texture }) {
   const car = useRef<THREE.Group>(null), elapsed = useRef(0);
   useFrame((_, delta) => {
-    if (!car.current || reducedMotion) return;
-    elapsed.current += Math.min(delta, 0.08);
+    if (!car.current) return;
+    elapsed.current += motionDelta(delta, reducedMotion);
     car.current.position.x = carPosition(elapsed.current, index);
   });
   return <group name={`street-car-${index}`} ref={car} position={[carPosition(0, index), STREET_LEVEL + 0.16, index % 2 ? -1.05 : 1.05]} rotation={[0, index % 2 ? Math.PI : 0, 0]}>
