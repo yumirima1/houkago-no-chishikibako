@@ -79,6 +79,7 @@ export async function readSound(page: Page) {
 }
 export async function roomReady(page: Page, url: string) {
   expect((await page.goto(url, { waitUntil: "domcontentloaded" }))?.status()).toBe(200);
-  await expect(page.locator("canvas")).toBeVisible();
+  // The lazy-loaded Three bundle can take longer than the default 5s on software WebGL.
+  await expect(page.locator("canvas")).toBeVisible({ timeout: 45000 });
   await expect(page.getByText("部屋を準備しています…", { exact: true })).toHaveCount(0, { timeout: 45000 });
 }
