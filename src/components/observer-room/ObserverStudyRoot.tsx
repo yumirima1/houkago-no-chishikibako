@@ -66,6 +66,7 @@ export function ObserverStudyRoot() {
   useEffect(() => {
     if (!mobile || autoOpened.current || !session || !(sceneReady || webGL === false)) return;
     const timer = setTimeout(() => {
+      if (autoOpened.current) return;
       autoOpened.current = true;
       if (phaseRef.current === "room") { phaseRef.current = "opening"; setPhase("opening"); }
     }, reducedMotion ? 300 : 900);
@@ -82,6 +83,7 @@ export function ObserverStudyRoot() {
   }, [phase, reducedMotion, mobile]);
   function open() {
     if (phaseRef.current !== "room") return;
+    if (mobile) autoOpened.current = true;
     phaseRef.current = "opening"; setPhase("opening");
   }
   function close() {
