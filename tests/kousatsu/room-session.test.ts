@@ -22,8 +22,8 @@ test("phone motion is continuous, bounded, and takes the full approach interval"
 test("street cars move in opposing lanes and wrap outside the visible neighbourhood", () => {
   assert.ok(carPosition(1, 0) > carPosition(0, 0)); assert.ok(carPosition(1, 1) < carPosition(0, 1));
   for (let i = 0; i < 4; i++) for (let t = 0; t < 200; t += 0.2) {
-    const x = carPosition(t, i), next = carPosition(t + 0.2, i); assert.ok(x >= -35 && x < 35);
-    if (Math.abs(next - x) > 60) assert.ok(Math.abs(x) > 34);
+    const x = carPosition(t, i), next = carPosition(t + 0.2, i); assert.ok(x >= -50 && x < 50);
+    if (Math.abs(next - x) > 60) assert.ok(Math.abs(x) > 49);
   }
 });
 test("reading preserves paragraphs, source quotes, lists and literal code while deduplicating the title", () => {

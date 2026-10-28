@@ -36,9 +36,9 @@ export function NightTraffic({ reducedMotion, rainy }: { reducedMotion: boolean;
   }, []);
   useEffect(() => () => glow.dispose(), [glow]);
   return <group name="second-floor-street">
-    <mesh position={[0, STREET_LEVEL - 0.07, 0]}><boxGeometry args={[90, 0.14, 5.7]} /><meshStandardMaterial {...exteriorStencil} color="#26313a" roughness={rainy ? 0.32 : 0.65} metalness={0.12} /></mesh>
-    {[-2.95, 2.95].map(z => <mesh key={z} position={[0, STREET_LEVEL + 0.035, z]}><boxGeometry args={[90, 0.07, 0.3]} /><meshStandardMaterial {...exteriorStencil} color="#586063" /></mesh>)}
-    {Array.from({ length: 26 }, (_, i) => <mesh key={i} position={[-43 + i * 3.4, STREET_LEVEL + 0.009, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[1.3, 0.055]} /><meshBasicMaterial {...exteriorStencil} color="#9d9c83" /></mesh>)}
+    <mesh position={[0, STREET_LEVEL - 0.07, 0]}><boxGeometry args={[120, 0.14, 5.7]} /><meshStandardMaterial {...exteriorStencil} color="#26313a" roughness={rainy ? 0.32 : 0.65} metalness={0.12} /></mesh>
+    {[-2.95, 2.95].map(z => <mesh key={z} position={[0, STREET_LEVEL + 0.035, z]}><boxGeometry args={[120, 0.07, 0.3]} /><meshStandardMaterial {...exteriorStencil} color="#586063" /></mesh>)}
+    {Array.from({ length: 34 }, (_, i) => <mesh key={i} position={[-56 + i * 3.4, STREET_LEVEL + 0.009, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[1.3, 0.055]} /><meshBasicMaterial {...exteriorStencil} color="#9d9c83" /></mesh>)}
     {[-24, -12, 0, 12, 24].map(x => <group key={x} position={[x, STREET_LEVEL, 2.9]}>
       <mesh position={[0, 1.1, 0]}><cylinderGeometry args={[0.035, 0.05, 2.2, 8]} /><meshStandardMaterial {...exteriorStencil} color="#344653" /></mesh>
       <mesh position={[0, 2.2, 0]}><boxGeometry args={[0.28, 0.08, 0.12]} /><meshBasicMaterial {...exteriorStencil} color="#ddbf83" toneMapped={false} /></mesh>

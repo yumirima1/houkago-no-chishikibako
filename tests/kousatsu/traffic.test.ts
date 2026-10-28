@@ -24,11 +24,11 @@ test("cars keep their lane direction and separation through many loops", () => {
   for (let seconds = 0; seconds < 3600; seconds += 0.5) {
     for (let index = 0; index < 4; index++) {
       const a = carPosition(seconds, index), b = carPosition(seconds + 0.5, index);
-      assert.ok(a >= -35 && a < 35);
-      close(distance(a, b, 70), (index % 2 ? -1.8 : 1.6) * 0.5);
+      assert.ok(a >= -50 && a < 50);
+      close(distance(a, b, 100), (index % 2 ? -1.8 : 1.6) * 0.5);
       const sameLane = carPosition(seconds, (index + 2) % 4);
-      close(Math.abs(distance(a, sameLane, 70)), 32);
-      if (Math.abs(b - a) > 35) assert.ok(Math.abs(a) > 34, "car wraps at the distant route boundary");
+      close(Math.abs(distance(a, sameLane, 100)), 32);
+      if (Math.abs(b - a) > 50) assert.ok(Math.abs(a) > 49, "car wraps at the distant route boundary");
     }
   }
 });

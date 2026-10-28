@@ -25,7 +25,9 @@ export function trainPosition(seconds: number) {
 export function carPosition(seconds: number, index: number) {
   const direction = index % 2 ? -1 : 1;
   // Equal speeds within each lane preserve separation over arbitrarily long runs.
-  return -35 + ((((seconds * (index % 2 ? 1.8 : 1.6) * direction + 28 + index * 16) % 70) + 70) % 70);
+  // The far lane remains visible near -35 after the window's rotation. Both
+  // reset points need to be farther out than the entire right-wall aperture.
+  return -50 + ((((seconds * (index % 2 ? 1.8 : 1.6) * direction + 43 + index * 16) % 100) + 100) % 100);
 }
 
 export function motionDelta(delta: number, reducedMotion: boolean) {

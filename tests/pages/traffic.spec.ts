@@ -47,7 +47,7 @@ function checkMovement(frames: TrafficFrame[], rate: number) {
   const seconds = pairs.reduce((total, [a, b]) => total + (b.time - a.time) / 1000, 0);
   expect(seconds).toBeGreaterThan(2);
   const velocities = Array.from({ length: 5 }, (_, index) => {
-    const speed = index === 0 ? 1.45 : index % 2 ? 1.6 : -1.8, period = index === 0 ? 80 : 70;
+    const speed = index === 0 ? 1.45 : index % 2 ? 1.6 : -1.8, period = index === 0 ? 80 : 100;
     const vehicle = (frame: TrafficFrame) => index === 0 ? frame.train : frame.cars[index - 1];
     let total = 0;
     for (const [a, b] of pairs) {
@@ -67,7 +67,7 @@ function checkMovement(frames: TrafficFrame[], rate: number) {
   for (const frame of frames) for (let index = 0; index < 4; index++) {
     expect(frame.cars[index].heading).toBeCloseTo(index % 2 ? Math.PI : 0, 6);
     expect(frame.cars[index].position[2]).toBeCloseTo(index % 2 ? -1.05 : 1.05, 6);
-    expect(Math.abs(travelled(frame.cars[index].position[0], frame.cars[(index + 2) % 4].position[0], 70))).toBeCloseTo(32, 5);
+    expect(Math.abs(travelled(frame.cars[index].position[0], frame.cars[(index + 2) % 4].position[0], 100))).toBeCloseTo(32, 5);
   }
   return { seconds, velocities, frames: frames.length };
 }
@@ -92,6 +92,7 @@ async function prepare(page: Page, url: string, reduced: boolean) {
 }
 
 test("traffic moves in the right window, pauses behind the terminal, resumes after resize, and reappears after a full pass", async ({ page, baseURL }, info) => {
+  test.setTimeout(150000);
   const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
   await prepare(page, baseURL!, false); await recordTraffic(page);
   const first = await captureVisibleMotion(page, info, "traffic-normal");
@@ -117,13 +118,31 @@ test("traffic moves in the right window, pauses behind the terminal, resumes aft
     const wrap = frames.findIndex((frame, index) => index > 0 && frame.train.position[0] < frames[index - 1].train.position[0] - 40);
     return wrap >= 0 && frames.slice(wrap).some(frame => frame.train.throughWindow);
   }, undefined, { timeout: 65000 });
+  // The far lane used to reset while it was still visible after the rotation.
+  // Observe a real wrap and re-entry in EACH direction, including the slower
+  // approach from the positive endpoint; checking only train looping misses it.
+  await page.waitForFunction(() => {
+    const frames = window.__trafficFrames;
+    return [0, 1].every(lane => [lane, lane + 2].some(car => {
+      const wrap = frames.findIndex((frame, i) => i > 0 && Math.abs(frame.cars[car].position[0] - frames[i - 1].cars[car].position[0]) > 50);
+      return wrap > 0 && frames.slice(wrap).some(frame => frame.cars[car].throughWindow);
+    }));
+  }, undefined, { timeout: 65000 });
   const frames = await page.evaluate(() => window.__trafficFrames);
   const wrap = frames.findIndex((frame, index) => index > 0 && frame.train.position[0] < frames[index - 1].train.position[0] - 40);
   expect(frames[wrap - 1].train.throughWindow).toBe(false); expect(frames[wrap].train.throughWindow).toBe(false);
   expect(frames.slice(0, wrap).some(frame => !frame.train.throughWindow)).toBe(true);
+  let carWraps = 0;
+  for (let i = 1; i < frames.length; i++) for (let car = 0; car < 4; car++) {
+    if (Math.abs(frames[i].cars[car].position[0] - frames[i - 1].cars[car].position[0]) <= 50) continue;
+    carWraps++;
+    expect(frames[i - 1].cars[car].throughWindow).toBe(false);
+    expect(frames[i].cars[car].throughWindow).toBe(false);
+  }
+  expect(carWraps).toBeGreaterThanOrEqual(2);
   expect(errors).toEqual([]);
   await page.screenshot({ path: info.outputPath("train-reappeared.png") });
-  await info.attach("traffic-real-time", { body: JSON.stringify({ movement, resumedMovement, paused, still, wrap, errors, frames }), contentType: "application/json" });
+  await info.attach("traffic-real-time", { body: JSON.stringify({ movement, resumedMovement, paused, still, wrap, carWraps, errors, frames }), contentType: "application/json" });
 });
 
 test("reduced motion keeps slow continuous traffic visible through the right window", async ({ page, baseURL }, info) => {

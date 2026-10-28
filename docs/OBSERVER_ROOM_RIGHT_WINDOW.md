@@ -39,7 +39,7 @@ different speeds and could catch each other over time.
   R3F stops/restarts its clock when Canvas changes to/from `never`; per-vehicle
   elapsed refs persist across terminal/visibility changes and resize.
 - Train moves forward at 1.45 world units/sec, with an 80-unit cycle. Cars use
-  opposite lanes at 1.6/1.8 units/sec, a 70-unit cycle and fixed same-lane
+  opposite lanes at 1.6/1.8 units/sec, a 100-unit cycle and fixed same-lane
   separation. Road and bridge share a diagonal corridor; wheels rest at road
   level and bridge supports stand outside the lanes.
 
