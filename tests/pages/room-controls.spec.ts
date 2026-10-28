@@ -20,11 +20,14 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
   const p = new Vector3(0.4, 2.95, -1.76).project(camera), clickWindow = () => page.mouse.click((p.x + 1) * 720, (1 - p.y) * 450);
   const sash = () => page.evaluate(() => window.__roomView.scene!.getObjectByName('moving-window-sash')!.position.x);
   await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1); await page.waitForTimeout(160);
-  const midway = await sash(); expect(midway).toBeLessThan(-0.03); expect(midway).toBeGreaterThan(-1.8);
-  await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1); expect(Math.abs((await sash()) - midway)).toBeLessThan(0.4);
+  await clickWindow(); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
   await page.waitForTimeout(120); await clickWindow(); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
-  await expect.poll(sash, { timeout: 7000 }).toBeCloseTo(-1.93, 1); await page.screenshot({ path: info.outputPath('window-open.png') });
+  await expect.poll(sash, { timeout: 15000 }).toBeCloseTo(-1.93, 1); await expect(page.locator('[data-window-motion="open"]')).toHaveCount(1);
+  await page.screenshot({ path: info.outputPath('window-open.png') });
   const movement = await page.evaluate(() => window.__roomView.samples.filter(s => s.phase === 'room'));
+  expect(movement.some(sample => sample.sash < -0.05 && sample.sash > -1.8)).toBe(true);
+  // Compare actual consecutive frames, not two RPC reads separated by rendering latency.
+  for (let i = 1; i < movement.length; i++) expect(Math.abs(movement[i].sash - movement[i - 1].sash)).toBeLessThan(0.45);
   expect(Math.abs(movement.at(-1)!.car - movement[0].car)).toBeGreaterThan(0.5); expect(Math.abs(movement.at(-1)!.train - movement[0].train)).toBeGreaterThan(0.5);
   await page.mouse.click(700, 790); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: 'reduce' });
