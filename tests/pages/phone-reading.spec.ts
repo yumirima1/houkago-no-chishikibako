@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { seedRoom, mockWeather, roomReady, observeRoom } from './room-support';
+import { seedRoom, mockWeather, roomReady, observeRoom, observeSound, readSound } from './room-support';
 
 test.describe('touch phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   test('the phone itself approaches a stationary camera, then presents a separate mobile reader', async ({ page, baseURL }, info) => {
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-    await seedRoom(page); await mockWeather(page, false); await observeRoom(page); await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await seedRoom(page); await mockWeather(page, false); await observeRoom(page); await observeSound(page); await page.emulateMedia({ reducedMotion: 'no-preference' });
     await roomReady(page, baseURL!);
     await expect(page.locator('[data-window][data-phase="opening"]')).toHaveCount(1, { timeout: 15000 });
     await page.waitForTimeout(400); await page.screenshot({ path: info.outputPath('phone-approach.png') });
@@ -33,6 +33,12 @@ test.describe('touch phone', () => {
     await back.tap(); await expect(list).toBeVisible(); await expect(page.locator('[aria-label="考察本文"]')).toHaveCount(0);
     await page.getByRole('button', { name: 'アプリを閉じる', exact: true }).tap();
     await dialog.locator('summary').tap(); await expect(dialog.getByRole('slider')).toHaveCount(1);
+    await dialog.getByRole('button', { name: 'ローファイを再生', exact: true }).tap();
+    await expect.poll(async () => (await readSound(page)).music.rms).toBeGreaterThan(0.001);
+    const slider = dialog.getByRole('slider', { name: 'ローファイの音量', exact: true }); await slider.scrollIntoViewIfNeeded();
+    const target = await slider.boundingBox(); expect(target!.height).toBeGreaterThanOrEqual(44);
+    await page.touchscreen.tap(target!.x + target!.width * 0.65, target!.y + target!.height / 2);
+    await expect.poll(async () => (await readSound(page)).music.gain).toBeGreaterThan(0.45);
     await dialog.getByRole('button', { name: '窓を開ける', exact: true }).tap(); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
     await dialog.getByRole('button', { name: 'モニターを閉じて部屋に戻る', exact: true }).tap(); await expect(page.locator('dialog')).toHaveCount(0);
     await expect(page.locator('[data-window][data-phase="room"]')).toHaveCount(1); await page.waitForTimeout(1200); await expect(page.locator('dialog')).toHaveCount(0);
