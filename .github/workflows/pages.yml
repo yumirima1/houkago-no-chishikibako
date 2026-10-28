@@ -8,6 +8,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+
 concurrency:
   group: github-pages
   cancel-in-progress: false
@@ -56,6 +59,8 @@ jobs:
           path: out
   deploy:
     needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -80,7 +85,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Verify the deployed archive
         env:
-          PAGES_TEST_URL: https://yumirima1.github.io/houkago-no-chishikibako/
+          PAGES_TEST_URL: ${{ needs.deploy.outputs.page_url }}
         run: npm run test:pages
       - uses: actions/upload-artifact@v5
         if: always()

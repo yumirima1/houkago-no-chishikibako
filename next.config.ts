@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   ...(pages ? {
     output: "export",
-    basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "/houkago-no-chishikibako",
+    basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "/kousatsubako",
     trailingSlash: true,
     images: { unoptimized: true },
     turbopack: { root: process.env.PAGES_BUILD_ROOT ?? process.cwd() },

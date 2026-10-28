@@ -45,6 +45,14 @@ different speeds and could catch each other over time.
 
 ## Verification and release
 
+On 2026-10-29, release preflight found that repository ID `1254963615` had
+been renamed to `yumirima1/kousatsubako`, retaining main `0f49f41`. The old
+Pages URL returned 404; the new URL served the old artifact with obsolete
+`/houkago-no-chishikibako` asset paths. Pages now builds with the current
+repository name, local verification reads the artifact's base path, and public
+verification uses the deployment's actual `page_url` output. The canonical
+Pages URL is `https://yumirima1.github.io/kousatsubako/`.
+
 The existing typecheck, lint, regression, normal build, Pages build and browser
 scripts are used. Added unit tests compare 2/5/15/60/144 FPS and many cycles.
 Added browser tests measure actual rendered positions and frame timestamps in
