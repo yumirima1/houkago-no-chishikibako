@@ -45,23 +45,23 @@ function screenResources() {
   return { geometry: plane, texture, bezel: createCRTBezelGeometry() };
 }
 
-export function RetroMonitor({ onOpen, onHover, enabled }: { onOpen: () => void; onHover: (hover: boolean) => void; enabled: boolean }) {
+export function RetroMonitor({ onOpen, onHover, enabled, position = [0.12, 0.86, -0.48], name = "interactive-crt" }: { onOpen: () => void; onHover: (hover: boolean) => void; enabled: boolean; position?: [number, number, number]; name?: string }) {
   const resources = useMemo(() => screenResources(), []);
   useEffect(() => () => { resources.geometry.dispose(); resources.texture.dispose(); resources.bezel.dispose(); }, [resources]);
   const open = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
     if (enabled && event.delta < 6) onOpen();
   };
-  return <group position={[0.12, 0.86, -0.48]} onClick={open}
-    onPointerOver={(event) => { event.stopPropagation(); if (enabled) onHover(true); }} onPointerOut={() => onHover(false)} name="interactive-crt">
+  return <group position={position} onClick={open}
+    onPointerOver={(event) => { event.stopPropagation(); if (enabled) onHover(true); }} onPointerOut={() => onHover(false)} name={name}>
     <RoundedBox args={[0.88, 0.075, 0.66]} position={[0, 0.04, 0.03]} radius={0.035} smoothness={3} castShadow><meshStandardMaterial color="#a79e86" roughness={0.7} /></RoundedBox>
     <mesh position={[0, 0.13, 0]}><cylinderGeometry args={[0.22, 0.3, 0.15, 24]} /><meshStandardMaterial color="#b6aa8e" /></mesh>
     <RoomModel name="televisionVintage" position={[0, 0.2, 0]} size={[1.54, 1.02, 1.03]} finish="crt" rearCut={0.27} />
     <mesh geometry={resources.bezel} position={[0, 0.71, 0]} castShadow receiveShadow><meshStandardMaterial color="#c3b69b" roughness={0.65} /></mesh>
     <RoundedBox args={[1.3, 0.78, 0.045]} position={[0, 0.71, 0.455]} radius={0.07} smoothness={4}><meshStandardMaterial color="#28332e" roughness={0.65} /></RoundedBox>
     <mesh geometry={resources.geometry} position={[0, 0.71, 0.49]}>
-      <meshPhysicalMaterial map={resources.texture} emissiveMap={resources.texture} emissive="#b4d9c8" emissiveIntensity={0.65}
-        roughness={0.3} clearcoat={0.6} clearcoatRoughness={0.3} metalness={0} />
+      <meshPhysicalMaterial map={resources.texture} emissiveMap={resources.texture} emissive="#b4d9c8" emissiveIntensity={0.5}
+        roughness={0.55} clearcoat={0.2} clearcoatRoughness={0.5} metalness={0} />
     </mesh>
     {/* Side ventilation and the deeper original housing remain visible. */}
     {Array.from({ length: 11 }, (_, index) => <mesh key={index} position={[0.774, 0.54 + index * 0.043, -0.12]}>

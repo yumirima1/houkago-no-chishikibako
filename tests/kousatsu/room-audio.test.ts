@@ -74,3 +74,11 @@ test("generated lofi has real finite audio energy and remains below clipping", (
   assert.ok(Math.sqrt(energy / samples.length) > 0.025); assert.ok(peak < 0.8);
   assert.equal(samples[0], 0);
 });
+test("a pending autoplay request becomes an honest gesture prompt and reuses its source on retry", async () => {
+  const h = fixture(); h.context.resume = () => new Promise<void>(() => {});
+  await h.audio.play("music", true);
+  assert.equal(h.state.music.status, "blocked"); assert.equal(h.context.gains[1].gain.value, 0);
+  h.context.resume = async () => { h.context.state = "running"; h.context.onstatechange?.(); };
+  await h.audio.play("music", true); assert.equal(h.state.music.status, "playing"); assert.equal(h.context.sources.length, 1);
+  h.audio.dispose();
+});

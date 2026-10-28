@@ -1,22 +1,29 @@
 "use client";
 
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import * as THREE from "three";
 import { WINDOW_OPENING } from "./roomLayout";
 import { WindowGlassWeather } from "./WindowWeather";
 import type { NightWeather } from "@/lib/observer-weather";
 
-export function NightWindow({ open, onToggle, onHover, enabled, reducedMotion, weather }: {
-  open: boolean; onToggle: () => void; onHover: (hover: boolean) => void; enabled: boolean; reducedMotion: boolean; weather: NightWeather;
+export function NightWindow({ open, onToggle, onSettled, onHover, enabled, reducedMotion, weather }: {
+  open: boolean; onToggle: () => void; onSettled: () => void; onHover: (hover: boolean) => void; enabled: boolean; reducedMotion: boolean; weather: NightWeather;
 }) {
   const sash = useRef<THREE.Group>(null);
   const width = (WINDOW_OPENING.right - WINDOW_OPENING.left) / 2, height = WINDOW_OPENING.top - WINDOW_OPENING.bottom;
   const y = (WINDOW_OPENING.top + WINDOW_OPENING.bottom) / 2;
+  const [initialSlide] = useState(() => open ? -width + 0.12 : 0);
+  const lastTarget = useRef(open), settled = useRef(true);
   useFrame((_, delta) => {
     if (!sash.current) return;
     const target = open ? -width + 0.12 : 0;
-    sash.current.position.x = reducedMotion ? target : THREE.MathUtils.damp(sash.current.position.x, target, 7, Math.min(delta, 0.05));
+    if (lastTarget.current !== open) { lastTarget.current = open; settled.current = false; }
+    sash.current.position.x = reducedMotion ? target : THREE.MathUtils.damp(sash.current.position.x, target, 3.1, Math.min(delta, 0.08));
+    if (Math.abs(sash.current.position.x - target) < 0.008) {
+      sash.current.position.x = target;
+      if (!settled.current) { settled.current = true; queueMicrotask(onSettled); }
+    }
   });
   const toggle = (event: ThreeEvent<MouseEvent>) => { event.stopPropagation(); if (enabled && event.delta < 6) onToggle(); };
   const pane = (moving: boolean) => <group position={[WINDOW_OPENING.left + width * (moving ? 1.5 : 0.5), y, moving ? -1.76 : -1.88]}>
@@ -30,6 +37,6 @@ export function NightWindow({ open, onToggle, onHover, enabled, reducedMotion, w
   return <group name="interactive-sliding-window" onClick={toggle} onPointerOver={event => { event.stopPropagation(); if (enabled) onHover(true); }} onPointerOut={() => onHover(false)}>
     {/* Only this opening receives hits, including the open half. Furniture stays in front. */}
     <mesh position={[(WINDOW_OPENING.left + WINDOW_OPENING.right) / 2, y, -1.95]}><planeGeometry args={[width * 2, height]} /><meshBasicMaterial transparent opacity={0} depthWrite={false} /></mesh>
-    {pane(false)}<group ref={sash} name="moving-window-sash">{pane(true)}</group>
+    {pane(false)}<group ref={sash} position-x={initialSlide} name="moving-window-sash">{pane(true)}</group>
   </group>;
 }

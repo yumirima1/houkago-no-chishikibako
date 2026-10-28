@@ -1,6 +1,6 @@
 // Original, locally synthesized audio. No recordings, downloads or third-party samples.
 export type SoundLayer = "music" | "rain" | "city";
-export type SoundStatus = "stopped" | "starting" | "playing" | "error";
+export type SoundStatus = "stopped" | "starting" | "playing" | "blocked" | "error";
 export type SoundState = { volume: number; status: SoundStatus; error: string | null };
 export type RoomSoundState = Record<SoundLayer, SoundState>;
 export const initialRoomSound: RoomSoundState = {
@@ -75,7 +75,7 @@ export class RoomAudio {
       this.outdoor.connect(this.filter).connect(context.destination);
       context.onstatechange = () => {
         for (const key of ["music", "rain", "city"] as const) {
-          if (this.requested[key]) this.publish(key, { status: context.state === "running" ? "playing" : "stopped" });
+          if (this.requested[key] && this.state[key].status !== "starting") this.publish(key, { status: context.state === "running" ? "playing" : "stopped" });
         }
       };
     }
@@ -105,17 +105,24 @@ export class RoomAudio {
       this.publish(layer, { status: "stopped", error: null }); return;
     }
     this.publish(layer, { status: "starting", error: null });
+    let resumeTimer: ReturnType<typeof setTimeout> | undefined;
     try {
       const context = this.ensure(layer);
-      await context.resume();
+      // resume() may stay pending until a gesture instead of rejecting.
+      await Promise.race([context.resume(), new Promise<never>((_, reject) => {
+        resumeTimer = setTimeout(() => reject(new Error("AUDIO_GESTURE_REQUIRED")), 450);
+      })]);
       if (this.disposed || revision !== this.revision[layer]) return;
       if (context.state !== "running") throw new Error("AUDIO_SUSPENDED");
       this.ramp(this.channels[layer]!.gain.gain, this.state[layer].volume);
       this.publish(layer, { status: "playing", error: null });
-    } catch {
+    } catch (reason) {
       if (this.disposed || revision !== this.revision[layer]) return;
       this.requested[layer] = false;
-      this.publish(layer, { status: "error", error: "音声を開始できませんでした。再生ボタンで再試行できます。" });
+      const blocked = reason instanceof Error && reason.message === "AUDIO_GESTURE_REQUIRED";
+      this.publish(layer, { status: blocked ? "blocked" : "error", error: blocked ? "音を有効にすると、部屋の音が始まります。" : "音声を開始できませんでした。再生ボタンで再試行できます。" });
+    } finally {
+      if (resumeTimer !== undefined) clearTimeout(resumeTimer);
     }
   }
   volume(layer: SoundLayer, value: number) {

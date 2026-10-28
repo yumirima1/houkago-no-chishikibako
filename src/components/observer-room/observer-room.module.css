@@ -1,5 +1,9 @@
 .room { position: fixed; inset: 0; background: #101a21; overflow: hidden; }
 .scene { position: absolute; inset: 0; }
+.mobileEntry { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); padding: 12px 16px; min-height: 46px; border: 1px solid #858b76; border-radius: 8px; background: #28372f; color: #e0dfcb; font-size: 13px; cursor: pointer; }
+.ambientControl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 4px; border-top: 1px solid #68726755; margin-top: 10px; }
+.soundWaiting { margin-left: 10px; color: #bdc9a4; font-size: 10px; }
+.enableSound { width: 100%; margin-top: 14px; }
 .roomControls { position: absolute; bottom: max(18px, env(safe-area-inset-bottom)); left: max(18px, env(safe-area-inset-left)); z-index: 2; max-width: min(330px, calc(100vw - 36px)); color: #d7d4c5; font-size: 12px; background: #1c2423eb; border: 1px solid #73746577; border-radius: 8px; box-shadow: 0 6px 24px #0004; }
 .roomControls summary { padding: 12px 16px; cursor: pointer; min-height: 44px; }
 .controlBody { padding: 0 16px 14px; max-height: min(65dvh, 440px); overflow: auto; }
@@ -68,14 +72,14 @@
 .toolbar button, .empty button, .reader button { flex-shrink: 0; padding: 5px 10px; border: 1px solid #77856c; background: #e4e5d3; box-shadow: inset 1px 1px #fffff4; font-size: 11px; cursor: pointer; }
 .toolbar button:disabled { opacity: .5; cursor: wait; }
 .splitPane { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(180px, 31%) minmax(0, 1fr); }
-.recordList { overflow: auto; background: #d3d8c6; border-right: 1px solid #9ca98f; scrollbar-width: thin; }
+.recordList { flex: 1; min-height: 0; overflow: auto; background: #e4e7d8; scrollbar-width: thin; }
 .listCaption { font-size: 10px; padding: 10px 12px; margin: 0; color: #5f705d; border-bottom: 1px solid #a9b398; }
-.recordList button { text-align: left; display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 14px 12px; border: 0; border-bottom: 1px solid #b2bba4; cursor: pointer; color: #304434; background: transparent; }
+.recordList button { text-align: left; display: flex; flex-direction: column; gap: 10px; width: 100%; padding: 22px 26px; border: 0; border-bottom: 1px solid #b2bba4; cursor: pointer; color: #304434; background: transparent; }
 .recordList button:hover { background: #c3ccb4; }
 .recordList button[aria-pressed="true"] { background: #4d6959; color: #f2f0dc; }
-.recordList small { font-size: 10px; opacity: .8; }
-.recordList strong { font-size: 12px; font-weight: 500; line-height: 1.8; overflow-wrap: anywhere; }
-.recordList button > span { font-size: 9px; opacity: .75; }
+.recordList small { font-size: 12px; opacity: .8; }
+.recordList strong { font-size: 16px; font-weight: 500; line-height: 1.8; overflow-wrap: anywhere; }
+.recordList button > span { font-size: 12px; opacity: .75; }
 .reader { overflow: auto; padding: 24px 28px; background: #f1f0e2; scrollbar-width: thin; color: #354233; overflow-wrap: anywhere; }
 .reader h2 { font-family: serif; font-size: 21px; font-weight: 500; line-height: 1.8; margin: 12px 0 20px; }
 .readerWelcome { display: flex; min-height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; color: #677662; }
@@ -115,9 +119,6 @@
   .appDock button { flex: 1; font-size: 10px; gap: 5px; padding: 4px; }
   .appIcon { font-size: 26px; }
   .reader { padding: 16px; }
-  .splitPane { grid-template-columns: minmax(125px, 35%) minmax(0, 1fr); }
-  .recordList button { padding: 10px 8px; }
-  .recordList strong { font-size: 11px; }
   .reader h2 { font-size: 17px; }
   .systemContent { padding: 18px; }
   .systemGrid { grid-template-columns: 125px 1fr; }
@@ -129,4 +130,88 @@
   .monitorDialog[data-phase="opening"] .desktopScreen { animation: none; }
   .monitorDialog[data-phase="closing"] { animation: backdropLeave 120ms ease both; }
   .monitorDialog[data-phase="opening"]::backdrop, .monitorDialog[data-phase="closing"]::backdrop { animation-duration: 120ms; }
+}
+
+.terminalContents { height: 100%; }
+.phoneDialog { width: min(430px, calc(100vw - 20px)); height: min(830px, calc(100dvh - 20px)); max-height: calc(100dvh - 20px); font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif; }
+.phoneFrame { height: 100%; display: flex; flex-direction: column; position: relative; border: 7px solid #202924; border-radius: 34px; background: #e9ebde; color: #263e33; overflow: hidden; box-shadow: 0 20px 80px #0008; padding-top: 12px; }
+.phoneNotch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 88px; height: 12px; background: #202924; border-radius: 0 0 12px 12px; }
+.phoneHeader { display: flex; align-items: center; gap: 12px; padding: 16px 16px 14px; border-bottom: 1px solid #cad1bd; }
+.phoneHeader > div { display: flex; flex: 1; flex-direction: column; gap: 4px; }
+.phoneHeader small { font-size: 8px; letter-spacing: 2px; color: #66745d; }
+.phoneHeader strong { font-size: 21px; letter-spacing: 3px; font-family: serif; font-weight: 500; }
+.phoneHeader time { font-size: 13px; color: #5b6d57; font-variant-numeric: tabular-nums; }
+.phoneHeader button { min-height: 44px; padding: 0 10px; background: transparent; border: 1px solid #a7b398; border-radius: 8px; font-size: 13px; cursor: pointer; }
+.phoneBody { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.phoneHome { width: 100%; padding: 24px 18px 20px; overflow: auto; }
+.phoneHome > p { color: #6f7b65; font-size: 12px; letter-spacing: 1px; margin: 0; }
+.phoneHome > h1 { font: 500 32px/1.6 serif; margin: 20px 0 26px; letter-spacing: 2px; }
+.phoneApps { display: flex; flex-direction: column; border-top: 1px solid #c3ccb7; }
+.phoneApps button { display: flex; align-items: center; gap: 17px; width: 100%; text-align: left; padding: 19px 4px; border-bottom: 1px solid #c3ccb7; background: transparent; cursor: pointer; }
+.phoneApps button > span:first-child { font-size: 27px; color: #617b62; }
+.phoneApps button > div { display: flex; flex: 1; flex-direction: column; gap: 6px; }
+.phoneApps strong { font-size: 16px; font-weight: 500; }
+.phoneApps small { font-size: 11px; color: #6c7c63; }
+.phoneApps button > span:last-child { font-size: 18px; color: #7d8d71; }
+.phoneHomeIndicator { flex-shrink: 0; align-self: center; width: 88px; height: 4px; background: #94a18b; border-radius: 4px; margin: 9px 0; }
+.phoneFrame .appWindow { width: 100%; border: 0; box-shadow: none; background: #e9ebde; }
+.phoneFrame .windowTitle { padding: 0 6px 0 18px; background: #d5ddc9; min-height: 54px; }
+.phoneFrame .windowTitle h1 { font-family: inherit; font-size: 17px; background: transparent; padding: 0; }
+.phoneFrame .windowTitle button { width: 44px; height: 44px; font-size: 25px; border: 0; background: transparent; }
+.phoneFrame .toolbar { padding: 10px 12px; gap: 8px; }
+.phoneFrame .toolbar input { flex: 1; min-height: 44px; font-size: 16px; border-radius: 6px; }
+.phoneFrame .toolbar button { min-height: 44px; font-size: 13px; border-radius: 6px; }
+.phoneFrame .recordList button { padding: 20px 18px; gap: 10px; }
+.phoneFrame .recordList strong { font-family: inherit; font-size: 16px; line-height: 1.8; }
+.phoneFrame .recordList small { font-size: 11px; line-height: 1.7; }
+.phoneFrame .recordList button > span { font-size: 12px; }
+.phoneFrame .listCaption { padding: 14px 18px; font-size: 12px; }
+.phoneFrame .empty { font-size: 15px; }
+.phoneFrame .systemContent { padding: 20px 18px; font-size: 14px; }
+.phoneFrame .systemGrid { grid-template-columns: 112px 1fr; }
+.phoneFrame .systemGrid dt, .phoneFrame .systemGrid dd { font-size: 12px; line-height: 1.8; }
+.phoneFrame .weatherStatus p { font-size: 13px; }
+.inlineControls { position: static; max-width: none; width: 100%; margin-top: 28px; background: #2b3c32; box-shadow: none; font-size: 12px; }
+.inlineControls summary { min-height: 48px; }
+.inlineControls button { min-height: 44px; }
+.inlineControls .controlBody { max-height: none; }
+.fullReaderDialog { width: 100vw; height: 100dvh; max-height: none; margin: 0; background: #f5f1e7; color: #303b32; overflow: hidden; font-family: "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif; }
+.fullReaderDialog::backdrop { background: #f5f1e7; backdrop-filter: none; }
+.fullReaderDialog[data-phase="closing"] { animation: backdropLeave 600ms ease both; }
+.readingShell { height: 100%; display: flex; flex-direction: column; background: #f5f1e7; }
+.readingHeader { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 68px; padding: max(8px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left)); border-bottom: 1px solid #d9dccd; background: #f5f1e7; }
+.readingHeader button { min-height: 44px; padding: 10px 15px; background: transparent; border: 1px solid #b8c1aa; border-radius: 7px; color: #40543f; font-size: 14px; cursor: pointer; }
+.readingHeader > span { color: #7a846e; font-size: 12px; letter-spacing: 2px; }
+.fullReader { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-color: #aeb7a0 #f5f1e7; }
+.readingColumn { max-width: 780px; margin: 0 auto; padding: 48px 32px max(80px, env(safe-area-inset-bottom)); overflow-wrap: anywhere; }
+.readingEyebrow { margin: 0 0 22px; color: #849075; font-size: 10px; letter-spacing: 3px; }
+.readingColumn h1 { font: 500 clamp(24px, 3vw, 34px)/1.65 serif; letter-spacing: .02em; margin: 0 0 24px; }
+.readingColumn h1:focus { outline: none; }
+.readingMeta { color: #7a846e; font-size: 12px; line-height: 1.9; margin: 20px 0 28px; }
+.readingNotice { padding: 13px 16px; border-left: 2px solid #b6bfa5; background: #e8ebde; color: #626e58; font-size: 12px; line-height: 1.9; }
+.readingText { white-space: pre-wrap; overflow-wrap: anywhere; font: 16px/2.05 "Yu Gothic", "Hiragino Kaku Gothic ProN", sans-serif; margin: 34px 0; color: #303d33; }
+.readingText p { margin: 18px 0 26px; }
+.readingText h2 { font: 500 22px/1.75 serif; margin: 42px 0 19px; padding-top: 10px; border-top: 1px solid #dce0d1; }
+.readingText h3, .readingText h4 { font-size: 18px; line-height: 1.8; margin: 30px 0 16px; }
+.readingText ul, .readingText ol { padding-left: 1.5em; white-space: normal; }
+.readingText li { margin: 14px 0; }
+.readingText blockquote { margin: 24px 0; padding: 4px 0 4px 21px; border-left: 2px solid #b6bea4; color: #65735d; }
+.readingText a { color: #4b6b51; text-decoration: underline; text-underline-offset: 4px; }
+.readingText code { font-size: .9em; background: #e6e9dc; padding: 2px 4px; }
+.readingText pre { overflow-x: auto; padding: 16px; background: #e6e9dc; }
+.recordMetadata { color: #7a846e; font-size: 12px; line-height: 1.9; }
+.recordMetadata summary { min-height: 36px; cursor: pointer; }
+.readingSources { border-top: 1px solid #cfd6c2; padding-top: 26px; margin-top: 40px; }
+.readingSources h2 { font: 500 20px/1.6 serif; }
+.readingSources a { display: inline-block; color: #4b6850; font-size: 14px; line-height: 1.9; padding: 10px 0; text-decoration: underline; text-underline-offset: 4px; }
+.readingSources button, .readerError button { padding: 12px 16px; min-height: 44px; font-size: 14px; border: 1px solid #abb89b; border-radius: 7px; background: #e4e8d8; cursor: pointer; }
+.readerError { font-size: 15px; line-height: 1.9; padding: 24px 0; }
+@media (max-width: 760px) {
+  .readingHeader { min-height: 62px; padding-inline: 12px; gap: 6px; }
+  .readingHeader > span { display: none; }
+  .readingHeader button { font-size: 13px; padding-inline: 12px; }
+  .readingColumn { padding: 30px 23px max(70px, env(safe-area-inset-bottom)); }
+  .readingColumn h1 { font-size: 25px; }
+  .readingText { font-size: 16px; line-height: 2; }
+  .readingNotice { font-size: 12px; padding: 11px 13px; }
 }

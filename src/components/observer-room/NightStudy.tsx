@@ -6,16 +6,19 @@ import * as THREE from "three";
 import { RoomModel } from "./RoomAssets";
 import { RetroMonitor } from "./RetroMonitor";
 import { createWoodTexture, createPlasterTexture } from "./proceduralTextures";
-import { WINDOW_OPENING, WORKSTATION_Z } from "./roomLayout";
+import { ROOM_SIZE, WINDOW_OPENING, WORKSTATION_X, WORKSTATION_Z } from "./roomLayout";
 import { WindowWeather } from "./WindowWeather";
 import type { NightWeather } from "@/lib/observer-weather";
 import { NightWindow } from "./NightWindow";
 import { RoomFurnishings, EPaperPosters } from "./RoomFurnishings";
 
-export function NightStudy({ onOpen, onHover, enabled, weather, reducedMotion, windowOpen, onWindowToggle }: { onOpen: () => void; onHover: (hover: boolean) => void; enabled: boolean; weather: NightWeather; reducedMotion: boolean; windowOpen: boolean; onWindowToggle: () => void }) {
-  const textures = useMemo(() => ({ wood: createWoodTexture("#8d6240", "#3f281b"), plaster: createPlasterTexture() }), []);
-  useEffect(() => () => { textures.wood.dispose(); textures.plaster.dispose(); }, [textures]);
-  const wall = <meshStandardMaterial color="#394340" roughness={0.98} bumpMap={textures.plaster} bumpScale={0.025} />;
+export function NightStudy({ onOpen, onHover, enabled, weather, reducedMotion, windowOpen, onWindowToggle, onWindowSettled }: { onOpen: () => void; onHover: (hover: boolean) => void; enabled: boolean; weather: NightWeather; reducedMotion: boolean; windowOpen: boolean; onWindowToggle: () => void; onWindowSettled: () => void }) {
+  const textures = useMemo(() => {
+    const floor = createWoodTexture("#806248", "#3b3025"); floor.repeat.set(3, 4);
+    return { wood: createWoodTexture("#8d6240", "#3f281b"), plaster: createPlasterTexture(), floor };
+  }, []);
+  useEffect(() => () => { textures.wood.dispose(); textures.plaster.dispose(); textures.floor.dispose(); }, [textures]);
+  const wall = <meshStandardMaterial color="#555650" roughness={0.98} bumpMap={textures.plaster} bumpScale={0.04} />;
   const windowWidth = WINDOW_OPENING.right - WINDOW_OPENING.left;
   const windowHeight = WINDOW_OPENING.top - WINDOW_OPENING.bottom;
   const windowX = (WINDOW_OPENING.left + WINDOW_OPENING.right) / 2;
@@ -23,19 +26,23 @@ export function NightStudy({ onOpen, onHover, enabled, weather, reducedMotion, w
   const openComputer = (event: ThreeEvent<MouseEvent>) => { event.stopPropagation(); if (enabled && event.delta < 6) onOpen(); };
   return <group name="night-study">
     {/* The back wall is built around a real opening; no scenery crosses it. */}
-    <mesh position={[2.975, 2.1, -1.96]} receiveShadow><boxGeometry args={[4.05, 4.2, 0.18]} />{wall}</mesh>
-    <mesh position={[-4.075, 2.1, -1.96]} receiveShadow><boxGeometry args={[1.85, 4.2, 0.18]} />{wall}</mesh>
-    <mesh position={[windowX, 0.525, -1.96]} receiveShadow><boxGeometry args={[windowWidth, 1.05, 0.18]} />{wall}</mesh>
-    <mesh position={[windowX, 3.75, -1.96]} receiveShadow><boxGeometry args={[windowWidth, 0.9, 0.18]} />{wall}</mesh>
-    <mesh position={[-4.96, 2.1, 1.1]} receiveShadow><boxGeometry args={[0.18, 4.2, 6.2]} />{wall}</mesh>
-    <mesh position={[0, 4.24, 1]} receiveShadow><boxGeometry args={[10, 0.08, 8]} /><meshStandardMaterial color="#2d3532" roughness={1} /></mesh>
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.015, 1]} receiveShadow><planeGeometry args={[10, 8]} /><meshStandardMaterial map={textures.wood} color="#61503e" roughness={0.86} /></mesh>
+    <mesh position={[(ROOM_SIZE.right + WINDOW_OPENING.right) / 2, 1.75, -2]} receiveShadow><boxGeometry args={[ROOM_SIZE.right - WINDOW_OPENING.right, 3.5, 0.18]} />{wall}</mesh>
+    <mesh position={[(ROOM_SIZE.left + WINDOW_OPENING.left) / 2, 1.75, -2]} receiveShadow><boxGeometry args={[WINDOW_OPENING.left - ROOM_SIZE.left, 3.5, 0.18]} />{wall}</mesh>
+    <mesh position={[windowX, WINDOW_OPENING.bottom / 2, -2]} receiveShadow><boxGeometry args={[windowWidth, WINDOW_OPENING.bottom, 0.18]} />{wall}</mesh>
+    <mesh position={[windowX, (ROOM_SIZE.height + WINDOW_OPENING.top) / 2, -2]} receiveShadow><boxGeometry args={[windowWidth, ROOM_SIZE.height - WINDOW_OPENING.top, 0.18]} />{wall}</mesh>
+    <mesh position={[-3.8, 1.75, 0.7]} receiveShadow><boxGeometry args={[0.18, 3.5, 5.4]} />{wall}</mesh>
+    {/* A cutaway room: back/side walls and the upper edge remain, without a roof hiding the desk. */}
+    <mesh position={[0, 3.51, -2]}><boxGeometry args={[7.78, 0.07, 0.23]} /><meshStandardMaterial color="#30332f" /></mesh>
+    <mesh position={[-3.8, 3.51, 0.7]}><boxGeometry args={[0.23, 0.07, 5.4]} /><meshStandardMaterial color="#30332f" /></mesh>
+    <mesh position={[0, -0.08, 0.7]} receiveShadow><boxGeometry args={[7.6, 0.16, 5.4]} /><meshStandardMaterial map={textures.floor} color="#9a8973" roughness={0.85} /></mesh>
+    <mesh position={[0, 0.055, -1.89]}><boxGeometry args={[7.55, 0.11, 0.035]} /><meshStandardMaterial color="#36362e" /></mesh>
+    <mesh position={[-3.69, 0.055, 0.7]}><boxGeometry args={[0.035, 0.11, 5.2]} /><meshStandardMaterial color="#36362e" /></mesh>
     {[WINDOW_OPENING.left, WINDOW_OPENING.right].map((x) => <mesh key={x} position={[x, windowY, -1.82]} castShadow><boxGeometry args={[0.085, windowHeight + 0.12, 0.22]} /><meshStandardMaterial color="#797465" roughness={0.72} /></mesh>)}
     {[WINDOW_OPENING.bottom, WINDOW_OPENING.top].map((y) => <mesh key={y} position={[windowX, y, -1.82]}><boxGeometry args={[windowWidth + 0.15, 0.08, 0.22]} /><meshStandardMaterial color="#797465" /></mesh>)}
-    <mesh position={[windowX, 1.015, -1.68]} castShadow><boxGeometry args={[windowWidth + 0.25, 0.09, 0.46]} /><meshStandardMaterial map={textures.wood} color="#8a7359" /></mesh>
-    <NightWindow open={windowOpen} onToggle={onWindowToggle} onHover={onHover} enabled={enabled} reducedMotion={reducedMotion} weather={weather} />
+    <mesh position={[windowX, WINDOW_OPENING.bottom - 0.035, -1.68]} castShadow><boxGeometry args={[windowWidth + 0.25, 0.09, 0.46]} /><meshStandardMaterial map={textures.wood} color="#8a7359" /></mesh>
+    <NightWindow open={windowOpen} onToggle={onWindowToggle} onSettled={onWindowSettled} onHover={onHover} enabled={enabled} reducedMotion={reducedMotion} weather={weather} />
     <WindowWeather weather={weather} reducedMotion={reducedMotion} />
-    <group position={[0, 0, WORKSTATION_Z]}>
+    <group position={[WORKSTATION_X, 0, WORKSTATION_Z]}>
     <RoomModel name="desk" position={[0, 0, -0.22]} size={[4.5, 0.86, 1.65]} finish="wood" wood={textures.wood} />
     <RetroMonitor onOpen={onOpen} onHover={onHover} enabled={enabled} />
     <group name="interactive-keyboard-mouse" onClick={openComputer} onPointerOver={(event) => { event.stopPropagation(); if (enabled) onHover(true); }} onPointerOut={() => onHover(false)}>
@@ -45,9 +52,9 @@ export function NightStudy({ onOpen, onHover, enabled, weather, reducedMotion, w
     </mesh>))}
     <RoomModel name="computerMouse" position={[1.03, 0.86, 0.52]} height={0.085} finish="cream" />
     </group>
-    <RoomModel name="lampRoundTable" position={[-1.3, 0.86, -0.67]} height={1.15} finish="lamp" />
-    <pointLight position={[-1.3, 1.73, -0.6]} color="#ffcb82" intensity={6} distance={4.8} decay={2} />
-    <mesh position={[-1.3, 1.73, -0.6]}><sphereGeometry args={[0.055, 12, 8]} /><meshBasicMaterial color="#ffe1a7" toneMapped={false} /></mesh>
+    <RoomModel name="lampRoundTable" position={[-2.0, 0.86, -0.67]} height={1.15} finish="lamp" />
+    <pointLight position={[-2.0, 1.73, -0.6]} color="#ffcb82" intensity={6} distance={4.8} decay={2} />
+    <mesh position={[-2.0, 1.73, -0.6]}><sphereGeometry args={[0.055, 12, 8]} /><meshBasicMaterial color="#ffe1a7" toneMapped={false} /></mesh>
     {/* Open notebook, pen and ceramic cup sit directly on the desktop. */}
     <group position={[-1.12, 0.872, 0.48]} rotation={[0, 0.17, 0]}>
       <mesh castShadow><boxGeometry args={[0.75, 0.022, 0.49]} /><meshStandardMaterial color="#443e32" /></mesh>
@@ -62,10 +69,12 @@ export function NightStudy({ onOpen, onHover, enabled, weather, reducedMotion, w
       <mesh position={[0.12, 0.13, 0]}><torusGeometry args={[0.075, 0.018, 8, 20]} /><meshStandardMaterial color="#a9a08a" /></mesh>
     </group>
     </group>
-    <RoomModel name="plantSmall1" position={[-2.65, 1.06, -1.68]} height={0.42} />
-    <RoomModel name="bookcaseOpen" position={[3.25, 0, -1.52]} height={2.9} finish="wood" wood={textures.wood} />
-    {[0.429, 1.22, 2.011, 2.802].map((height, i) => <RoomModel key={height} name="books" position={[3.25 + (i % 2 ? 0.12 : -0.1), height, -1.5]} height={0.32} />)}
+    <RoomModel name="plantSmall1" position={[-2.65, WINDOW_OPENING.bottom + 0.01, -1.68]} height={0.42} />
+    <group name="corner-bookshelf" position={[-3.2, 0, 1.15]} rotation={[0, Math.PI / 2, 0]}>
+      <RoomModel name="bookcaseOpen" height={2.5} finish="wood" wood={textures.wood} />
+      {[0.37, 1.052, 1.734, 2.416].map((height, i) => <RoomModel key={height} name="books" position={[i % 2 ? 0.1 : -0.08, height, 0.02]} height={0.27} />)}
+    </group>
     <EPaperPosters />
-    <RoomFurnishings wood={textures.wood} onOpen={onOpen} onHover={onHover} enabled={enabled} />
+    <RoomFurnishings onOpen={onOpen} onHover={onHover} enabled={enabled} />
   </group>;
 }
