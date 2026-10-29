@@ -97,7 +97,7 @@ test("traffic moves in the right window, pauses behind the terminal, resumes aft
   await prepare(page, baseURL!, false); await recordTraffic(page);
   const first = await captureVisibleMotion(page, info, "traffic-normal");
   const movement = checkMovement(first, 1);
-  await page.getByRole("button", { name: "CRTモニターを開く", exact: true }).focus(); await page.keyboard.press("Enter");
+  await page.getByRole("region", { name: "観察者の部屋", exact: true }).focus(); await page.keyboard.press("Enter");
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   await page.waitForTimeout(750);
   const paused = await page.evaluate(() => ({ count: window.__trafficFrames.length, frame: window.__trafficFrames.at(-1)! }));
@@ -129,6 +129,7 @@ test("traffic moves in the right window, pauses behind the terminal, resumes aft
     }));
   }, undefined, { timeout: 65000 });
   const frames = await page.evaluate(() => window.__trafficFrames);
+  await info.attach("traffic-wrap-frames", { body: JSON.stringify(frames), contentType: "application/json" });
   const wrap = frames.findIndex((frame, index) => index > 0 && frame.train.position[0] < frames[index - 1].train.position[0] - 40);
   expect(frames[wrap - 1].train.throughWindow).toBe(false); expect(frames[wrap].train.throughWindow).toBe(false);
   expect(frames.slice(0, wrap).some(frame => !frame.train.throughWindow)).toBe(true);
@@ -159,6 +160,8 @@ test.describe("traffic on a touch phone", () => {
   test("returning from the phone reveals moving trains and cars, including after orientation changes", async ({ page, baseURL }, info) => {
     const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
     await prepare(page, baseURL!, false);
+    await expect(page.locator('dialog')).toHaveCount(0);
+    await page.getByRole("region", { name: "観察者の部屋", exact: true }).focus(); await page.keyboard.press("Enter");
     await expect(page.locator('dialog[data-device="phone"][data-phase="desktop"]')).toBeVisible();
     await page.getByRole("button", { name: "モニターを閉じて部屋に戻る", exact: true }).tap();
     await expect(page.locator('dialog')).toHaveCount(0); await expect(page.locator('[data-window][data-phase="room"]')).toHaveCount(1);

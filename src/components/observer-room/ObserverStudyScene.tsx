@@ -8,7 +8,6 @@ import { NightCity } from "./NightCity";
 import { NightStudy } from "./NightStudy";
 import { ROOM_CAMERA } from "./roomMotion";
 import type { NightWeather } from "@/lib/observer-weather";
-import { FloatingPhone, type TerminalPhase } from "./FloatingPhone";
 
 function subscribeVisibility(callback: () => void) {
   document.addEventListener("visibilitychange", callback);
@@ -20,13 +19,13 @@ function SceneReady({ onReady }: { onReady: () => void }) {
   return null;
 }
 
-export function ObserverStudyScene({ onOpen, onReady, mobile, phase, interactive, focused, paused, reducedMotion, weather, windowOpen, onWindowToggle, onWindowSettled }: {
-  onOpen: () => void; onReady: () => void; mobile: boolean; phase: TerminalPhase; interactive: boolean; focused: boolean; paused: boolean; reducedMotion: boolean; weather: NightWeather; windowOpen: boolean; onWindowToggle: () => void; onWindowSettled: () => void;
+export function ObserverStudyScene({ onOpen, mobile, interactive, focused, paused, reducedMotion, weather, windowOpen, onWindowToggle, onWindowSettled }: {
+  onOpen: () => void; mobile: boolean; interactive: boolean; focused: boolean; paused: boolean; reducedMotion: boolean; weather: NightWeather; windowOpen: boolean; onWindowToggle: () => void; onWindowSettled: () => void;
 }) {
   const visible = useSyncExternalStore(subscribeVisibility, () => !document.hidden, () => true);
   const [hovered, setHovered] = useState(false);
   const [ready, setReady] = useState(false);
-  const handleReady = useCallback(() => { setReady(true); onReady(); }, [onReady]);
+  const handleReady = useCallback(() => setReady(true), []);
   // The modal covers the scene. Resume rendering for the closing animation.
   return <div style={{ position: "absolute", inset: 0 }}><Canvas shadows={{ type: THREE.PCFShadowMap }} dpr={[1, mobile ? 1.25 : 1.5]} frameloop={visible && !paused ? "always" : "never"} style={{ cursor: hovered && interactive ? "pointer" : "default" }}
     camera={{ position: [...ROOM_CAMERA.position], fov: ROOM_CAMERA.fov, near: 0.1, far: 100 }}
@@ -45,7 +44,6 @@ export function ObserverStudyScene({ onOpen, onReady, mobile, phase, interactive
     <Suspense fallback={null}>
       <NightCity reducedMotion={reducedMotion} weather={weather} />
       <NightStudy onOpen={() => { setHovered(false); onOpen(); }} enabled={interactive} onHover={setHovered} weather={weather} reducedMotion={reducedMotion} windowOpen={windowOpen} onWindowToggle={onWindowToggle} onWindowSettled={onWindowSettled} />
-      {mobile && <FloatingPhone phase={phase} onOpen={onOpen} reducedMotion={reducedMotion} />}
       <SceneReady onReady={handleReady} />
     </Suspense>
   </Canvas>{!ready && <div role="status" style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "#101a21", color: "#c7c8b8", fontSize: 12, pointerEvents: "none" }}>部屋を準備しています…</div>}</div>;

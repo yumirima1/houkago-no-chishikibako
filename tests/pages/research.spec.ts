@@ -14,7 +14,7 @@ test('the real public archive separates selection and reading, preserves sources
   // The articulated desk lamp is geometry; the other existing models still load locally.
   expect(assets.size).toBeGreaterThanOrEqual(13); await page.screenshot({ path: info.outputPath('room.png') });
   const snapshot = await (await page.request.get(new URL('research/snapshot.json', baseURL!).href)).json(); expect(snapshot.notes.length).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'CRTモニターを開く', exact: true }).focus(); await page.keyboard.press('Enter');
+  await page.getByRole('region', { name: '観察者の部屋', exact: true }).focus(); await page.keyboard.press('Enter');
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   await page.getByRole('button', { name: '考察アーカイブ', exact: true }).click();
   const list = page.locator('[aria-label="考察一覧"]'); await expect(list).toBeVisible(); await expect(page.locator('[aria-label="考察本文"]')).toHaveCount(0);
@@ -43,7 +43,7 @@ test('the real public archive separates selection and reading, preserves sources
   await page.getByRole('button', { name: 'システム', exact: true }).click(); await expect(page.getByText('06:00 / 18:00 / 22:00', { exact: true })).toBeVisible();
   await page.screenshot({ path: info.outputPath('system.png') }); await page.keyboard.press('Escape'); await expect(page.locator('dialog')).toHaveCount(0);
   await page.reload({ waitUntil: 'domcontentloaded' }); await expect(page.getByText('部屋を準備しています…', { exact: true })).toHaveCount(0, { timeout: 45000 });
-  await page.getByRole('button', { name: 'CRTモニターを開く', exact: true }).focus(); await page.keyboard.press('Enter'); await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
+  await page.getByRole('region', { name: '観察者の部屋', exact: true }).focus(); await page.keyboard.press('Enter'); await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   await page.getByRole('button', { name: '考察アーカイブ', exact: true }).click(); await page.locator(`[data-record-id="${selected.id}"]`).click(); await expect(content).toContainText('推論');
   expect(api).toEqual([]); expect(failed).toEqual([]); expect(errors).toEqual([]);
   await info.attach('research-render', { body: JSON.stringify({ url: page.url(), notes: snapshot.notes.length, assets: assets.size, api, errors, failed }), contentType: 'application/json' });

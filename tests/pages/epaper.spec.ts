@@ -3,7 +3,7 @@ import { mockWeather, observeRoom, roomReady, seedRoom } from "./room-support";
 import type { Mesh, MeshBasicMaterial } from "three";
 
 async function settings(page: Page) {
-  await page.getByRole("button", { name: "CRTモニターを開く", exact: true }).focus(); await page.keyboard.press("Enter");
+  await page.getByRole("region", { name: "観察者の部屋", exact: true }).focus(); await page.keyboard.press("Enter");
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   await page.getByRole("button", { name: "システム", exact: true }).click();
   await page.getByText("壁の電子ペーパー", { exact: true }).click();

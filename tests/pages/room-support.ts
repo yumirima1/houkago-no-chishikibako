@@ -83,3 +83,14 @@ export async function roomReady(page: Page, url: string) {
   await expect(page.locator("canvas")).toBeVisible({ timeout: 45000 });
   await expect(page.getByText("部屋を準備しています…", { exact: true })).toHaveCount(0, { timeout: 45000 });
 }
+
+/** Project a point through the actual rendered camera for mouse/touch hit tests. */
+export async function roomPoint(page: Page, point: [number, number, number]) {
+  await page.waitForFunction(() => Boolean(window.__roomView?.camera));
+  return page.evaluate(point => {
+    const camera = window.__roomView.camera!;
+    const projected = camera.position.clone().set(...point).project(camera);
+    const rect = document.querySelector('canvas')!.getBoundingClientRect();
+    return { x: rect.x + (projected.x + 1) * rect.width / 2, y: rect.y + (1 - projected.y) * rect.height / 2 };
+  }, point);
+}

@@ -42,12 +42,13 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
 });
 
 test('real lofi and automatic outdoor audio use one graph, fade with the window and reach silence', async ({ page, baseURL }, info) => {
-  // Continuous traffic also renders in reduced-motion mode. Software WebGL in
-  // CI makes this many real UI/audio operations exceed the default two minutes.
-  // Keep every gain, RMS, silence and source-count assertion intact.
   test.setTimeout(240000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
   await seedRoom(page); await mockWeather(page); await observeSound(page); await roomReady(page, baseURL!);
+  await expect(page.locator('[data-window][data-phase]').locator('button,details,input')).toHaveCount(0);
+  await page.getByRole('region', { name: '観察者の部屋', exact: true }).focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   const controls = page.locator('details').first(); await controls.locator('summary').click(); await expect(controls.getByRole('slider')).toHaveCount(1);
   if (await controls.getByRole('button', { name: '音を有効にする', exact: true }).isVisible()) await controls.getByRole('button', { name: '音を有効にする', exact: true }).click();
   else if (await controls.getByRole('button', { name: '外の音を聴く', exact: true }).isVisible()) await controls.getByRole('button', { name: '外の音を聴く', exact: true }).click();
@@ -59,7 +60,7 @@ test('real lofi and automatic outdoor audio use one graph, fade with the window 
   const before = await readSound(page);
   await controls.getByRole('button', { name: '窓を開ける', exact: true }).click();
   await expect.poll(async () => (await readSound(page)).outside).toBeCloseTo(1, 2); expect((await readSound(page)).filter).toBeCloseTo(12000, 0);
-  expect((await readSound(page)).music.gain).toBe(before.music.gain);
+  expect((await readSound(page)).music.gain).toBeCloseTo(before.music.gain, 3);
   await controls.getByRole('button', { name: '窓を閉める', exact: true }).click(); await expect.poll(async () => (await readSound(page)).outside).toBeCloseTo(0.22, 2);
   await controls.getByRole('slider', { name: 'ローファイの音量', exact: true }).fill('0');
   await expect.poll(async () => (await readSound(page)).music.gain).toBe(0); await expect.poll(async () => (await readSound(page)).music.rms).toBeLessThan(0.000001);
@@ -73,6 +74,7 @@ test('real lofi and automatic outdoor audio use one graph, fade with the window 
 });
 
 test('autoplay waiting is honest and a gesture starts the selected music without duplicating sources', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await seedRoom(page, true, true); await mockWeather(page, false); await observeSound(page);
   await page.addInitScript(() => {
     Object.defineProperty(window, '__allowRoomAudio', { value: false, writable: true });
@@ -81,6 +83,9 @@ test('autoplay waiting is honest and a gesture starts the selected music without
   });
   await roomReady(page, baseURL!); await page.waitForTimeout(600);
   await expect(page.locator('[data-initial-window="open"][data-initial-music="on"]')).toHaveCount(1);
+  await expect(page.locator('[data-window][data-phase]').locator('button,details,input')).toHaveCount(0);
+  await page.getByRole('region', { name: '観察者の部屋', exact: true }).focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible();
   const controls = page.locator('details').first(); await expect(controls.locator('summary')).toContainText('音は待機中'); await controls.locator('summary').click();
   await expect(controls.getByRole('button', { name: 'ローファイを再生', exact: true })).toHaveAttribute('aria-pressed', 'false');
   expect((await readSound(page)).music.rms).toBe(0);

@@ -1,22 +1,28 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { seedRoom, mockWeather, roomReady, observeRoom, observeSound, readSound } from './room-support';
+import { seedRoom, mockWeather, roomReady, observeRoom, observeSound, readSound, roomPoint } from './room-support';
 
 test.describe('touch phone', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-  test('the phone itself approaches a stationary camera, then presents a separate mobile reader', async ({ page, baseURL }, info) => {
+  test('the room stays visible until the CRT is tapped, then presents a separate mobile reader', async ({ page, baseURL }, info) => {
     const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
     await seedRoom(page); await mockWeather(page, false); await observeRoom(page); await observeSound(page); await page.emulateMedia({ reducedMotion: 'no-preference' });
     await roomReady(page, baseURL!);
-    await expect(page.locator('[data-window][data-phase="opening"]')).toHaveCount(1, { timeout: 15000 });
-    await page.waitForTimeout(400); await page.screenshot({ path: info.outputPath('phone-approach.png') });
+    await page.waitForTimeout(3000);
+    await expect(page.locator('[data-window][data-phase="room"]')).toHaveCount(1);
+    await expect(page.locator('[data-window][data-phase]').locator('button,summary,input,dialog')).toHaveCount(0);
+    expect(await page.evaluate(() => Boolean(window.__roomView.scene?.getObjectByName('floating-phone')))).toBe(false);
+    await page.screenshot({ path: info.outputPath('phone-room.png') });
+    const windowHandle = await roomPoint(page, [3.56, 2.25, 0.3]);
+    await page.touchscreen.tap(windowHandle.x, windowHandle.y); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
+    await page.touchscreen.tap(windowHandle.x, windowHandle.y); await expect(page.locator('[data-window="closed"]')).toHaveCount(1);
+    const crt = await roomPoint(page, [0.85, 1.57, -0.44]); await page.touchscreen.tap(crt.x, crt.y);
     const dialog = page.locator('dialog[data-device="phone"][data-phase="desktop"]'); await expect(dialog).toBeVisible();
-    const samples = await page.evaluate(() => window.__roomView.samples.filter(sample => sample.phase === 'opening' && sample.phone));
+    const samples = await page.evaluate(() => window.__roomView.samples.filter(sample => sample.phase === 'opening'));
     expect(samples.length).toBeGreaterThanOrEqual(2);
     const distance = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]));
     expect(distance(samples[0].camera, samples.at(-1)!.camera)).toBeLessThan(0.001);
-    expect(distance(samples[0].phone!, samples.at(-1)!.phone!)).toBeGreaterThan(2);
-    expect(distance(samples.at(-1)!.phone!, samples.at(-1)!.camera)).toBeLessThan(2.3);
+    expect(samples.every(sample => sample.phone === null)).toBe(true);
     await expect(dialog.locator('[class*="computerFrame"]')).toHaveCount(0); await page.screenshot({ path: info.outputPath('phone-home.png') });
     await dialog.getByRole('button', { name: /考察アーカイブ/ }).tap();
     const list = page.locator('[aria-label="考察一覧"]'); await expect(list).toBeVisible(); await expect(page.locator('[aria-label="考察本文"]')).toHaveCount(0);
@@ -42,7 +48,7 @@ test.describe('touch phone', () => {
     await dialog.getByRole('button', { name: '窓を開ける', exact: true }).tap(); await expect(page.locator('[data-window="open"]')).toHaveCount(1);
     await dialog.getByRole('button', { name: 'モニターを閉じて部屋に戻る', exact: true }).tap(); await expect(page.locator('dialog')).toHaveCount(0);
     await expect(page.locator('[data-window][data-phase="room"]')).toHaveCount(1); await page.waitForTimeout(1200); await expect(page.locator('dialog')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: '端末を開く', exact: true })).toBeVisible(); expect(errors).toEqual([]);
+    await expect(page.locator('[data-window][data-phase]').locator('button,summary,input,dialog')).toHaveCount(0); expect(errors).toEqual([]);
     await info.attach('phone-movement', { body: JSON.stringify({ samples, errors }), contentType: 'application/json' });
   });
 });
@@ -62,7 +68,7 @@ test('a failed backend can retry, and leaving an unfinished reader cannot overwr
     if (id === first.id) { await pending; await route.fulfill({ json: firstNote }).catch(() => {}); }
     else await route.fulfill({ json: { ...secondNote, markdown: `# ${secondNote.title}\n\n## 読み込みの確認\n\nSecond current body.\n\n<script>window.badReaderScript=true</script>\n\n[unsafe](javascript:alert(1))` } });
   });
-  await roomReady(page, baseURL!); await page.getByRole('button', { name: 'CRTモニターを開く', exact: true }).focus(); await page.keyboard.press('Enter');
+  await roomReady(page, baseURL!); await page.getByRole('region', { name: '観察者の部屋', exact: true }).focus(); await page.keyboard.press('Enter');
   await expect(page.locator('dialog[data-phase="desktop"]')).toBeVisible(); await page.getByRole('button', { name: '考察アーカイブ', exact: true }).click();
   await expect(page.locator('dialog [role="alert"]')).toContainText('保存データを読み込めません');
   failSnapshot = false; await page.getByRole('button', { name: '再試行', exact: true }).click();

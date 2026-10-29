@@ -8,7 +8,6 @@
 .epaperSettings button { padding: 6px; border: 1px solid #77856c; background: #e4e5d3; cursor: pointer; }
 .epaperSettings [role="alert"] { color: #8b302b; }
 .epaperPreview { width: 36px; height: 60px; background-size: contain; background-repeat: no-repeat; background-position: center; }
-.mobileEntry { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); padding: 12px 16px; min-height: 46px; border: 1px solid #858b76; border-radius: 8px; background: #28372f; color: #e0dfcb; font-size: 13px; cursor: pointer; }
 .ambientControl { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0 4px; border-top: 1px solid #68726755; margin-top: 10px; }
 .soundWaiting { margin-left: 10px; color: #bdc9a4; font-size: 10px; }
 .enableSound { width: 100%; margin-top: 14px; }
@@ -30,9 +29,6 @@
 .roomControls :focus-visible { outline: 2px solid #e3d7a7; outline-offset: 3px; }
 .loading, .unavailable { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 16px; background: #101a21; color: #c7c8b8; font-size: 13px; }
 .unavailable { flex-direction: column; padding: 24px; }
-.unavailable button { padding: 10px 20px; border: 1px solid #86866d; }
-.keyboardEntry { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.keyboardEntry:focus-visible { width: auto; height: auto; clip-path: none; top: 20px; left: 20px; padding: 12px 20px; background: #d1c7ac; color: #242d2a; border: 2px solid #fff6d7; z-index: 2; }
 .monitorDialog { border: 0; padding: 0; margin: auto; width: min(1280px, 96vw); max-width: none; max-height: 97dvh; background: transparent; color: #283731; overflow: visible; font-family: "Geist Mono", "MS Gothic", monospace; }
 .monitorDialog::backdrop { background: rgb(4 11 15 / 84%); backdrop-filter: blur(5px); }
 .monitorDialog:focus { outline: none; }
