@@ -42,6 +42,10 @@ test('the second-floor room keeps two CRTs, has no bed or flat monitor and a con
 });
 
 test('real lofi and automatic outdoor audio use one graph, fade with the window and reach silence', async ({ page, baseURL }, info) => {
+  // Continuous traffic also renders in reduced-motion mode. Software WebGL in
+  // CI makes this many real UI/audio operations exceed the default two minutes.
+  // Keep every gain, RMS, silence and source-count assertion intact.
+  test.setTimeout(240000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await seedRoom(page); await mockWeather(page); await observeSound(page); await roomReady(page, baseURL!);
   const controls = page.locator('details').first(); await controls.locator('summary').click(); await expect(controls.getByRole('slider')).toHaveCount(1);
