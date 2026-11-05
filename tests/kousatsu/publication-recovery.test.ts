@@ -51,3 +51,26 @@ test('live publication and delivery leases prevent recovery and explicit retry u
   assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{fetch:get})).status,'succeeded');assert.equal(f.db.prepare('SELECT count(*) n FROM public_delivery_checks').get()!.n,1);assert.ok(f.db.prepare("SELECT id FROM public_attempt_events WHERE error='PUBLIC_DELIVERY_INTERRUPTED'").get());
  }finally{f.db.close();}
 });
+
+test('an unchanged delivered archive is audited again hourly and later missing content becomes a bounded failure',async()=>{
+ const f=await fixture(),now=Date.now();let requests=0;
+ const good:typeof fetch=async url=>{requests++;const p=new URL(String(url)).pathname;return p.endsWith('build-info.json')?Response.json({branch:'main',target:'github-pages',commit:'remote'}):new Response(bundle.files[p.includes('snapshot')?'public/research/snapshot.json':p.endsWith('.md')?'public/research/notes/a-b.md':'public/research/notes/a-b.json']);};
+ try{
+  assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{now,fetch:good})).status,'succeeded');const initial=requests;
+  await verifyPublicDelivery(f.file,bundle,'remote',{now:now+1000,fetch:good});assert.equal(requests,initial);
+  const missing:typeof fetch=async()=>new Response('',{status:404});
+  for(let i=0;i<3;i++)assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{now:now+3600000+i*300001,fetch:missing})).status,i===2?'failed':'retry_wait');
+  assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{now:now+7200000,fetch:good})).status,'failed');assert.equal(requests,initial);
+  resetPublicationAttempts(f.db,bundle.digest,now+7200000);
+  assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{now:now+7200000,fetch:good})).status,'succeeded');
+ }finally{f.db.close();}
+});
+
+test('secret-bearing public bundles and inconsistent archive totals are rejected before credential access',async()=>{
+ const unsafe={...bundle,files:{...bundle.files,'public/research/notes/a-b.json':JSON.stringify({id:'a-b',markdown:'password=private-value'}),'public/research/notes/a-b.md':'password=private-value'}};
+ // Recognizable key material is blocked by the final independent gate too.
+ unsafe.files['public/research/notes/a-b.md']='ghp_abcdefghijklmnopqrst';unsafe.files['public/research/notes/a-b.json']=JSON.stringify({id:'a-b',markdown:unsafe.files['public/research/notes/a-b.md']});
+ await assert.rejects(publishResearch('unused',pub,unsafe),/PUBLIC_SAFETY_REJECTED/);
+ const gap={...bundle,files:{...bundle.files,'public/research/snapshot.json':JSON.stringify({notes:[{id:'a-b'}],archive:{saved:2}})}};
+ await assert.rejects(publishResearch('unused',pub,gap),/PUBLICATION_ARCHIVE_GAP/);
+});

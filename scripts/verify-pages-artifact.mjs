@@ -6,6 +6,7 @@ const root = path.resolve('out');
 const info = JSON.parse(await readFile(path.join(root, 'build-info.json'), 'utf8'));
 assert.equal(info.target, 'github-pages');
 assert.ok(info.commit && info.branch && info.basePath);
+assert.equal(info.basePath, '/houkago-no-chishikibako', 'PAGES_BASE_PATH_MISMATCH: the artifact must use the current repository name');
 for (const file of ['index.html', 'observer-room/index.html']) {
   const html = await readFile(path.join(root, file), 'utf8');
   assert.ok(html.includes(`${info.basePath}/_next/`), 'Next scripts must use the repository path');

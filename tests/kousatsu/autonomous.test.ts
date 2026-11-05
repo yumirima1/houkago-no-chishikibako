@@ -13,6 +13,7 @@ import { checkCapacity, ensureDataDirectories, exportKnowledge } from '../../src
 import { fetchFeed } from '../../src/lib/kousatsu/ingest';
 import { ResearchRuntime } from '../../src/lib/kousatsu/runtime-service';
 import { ResearchEngine, selectResearchTopic, TopicHistory } from '../../src/lib/kousatsu/research-engine';
+import {inspectBackend} from '../../src/lib/kousatsu/research-status';
 
 async function setup(t: TestContext, provider: KousatsuAiProvider=new DeterministicProvider()) {
   const dir=await mkdtemp(path.resolve('tmp/autonomous-test-'));
@@ -36,6 +37,54 @@ test('autonomous topic selection explores event questions while avoiding recent 
   const second=selectResearchTopic(context,[first.topic],1,0.1);
   assert.notEqual(first.topic,second.topic);assert(first.candidates.includes(first.topic));assert.match(first.reason,/探索抽選/);
   assert.deepEqual(first,selectResearchTopic(context,[],1,0.1));
+});
+
+test('a saved model failure remains an attention cycle rather than a successful research outcome',async t=>{
+  const f=await setup(t);
+  t.mock.method(OllamaProvider.prototype,'summarizeGrounded',async()=>{throw Error('MODEL_OFFLINE_FIXTURE');});
+  t.mock.method(OllamaProvider.prototype,'proposeGrounded',async()=>{throw Error('MODEL_OFFLINE_FIXTURE');});
+  const job=f.runtime.enqueueInput(f.input);
+  const result=await runAutonomousCycle({...f.config,ai:{provider:'ollama',model:'fixture',timeoutMs:1000}});
+  assert.equal(f.runtime.database.getJob(job)?.status,'needs_review');
+  assert.equal(f.runtime.snapshot().notes.length,1);
+  assert.equal(f.runtime.snapshot().memories.length,0);
+  assert.ok('outcomes' in result);assert.equal(result.outcomes[0]?.model?.status,'failed');
+  assert.equal(result.status,'attention');
+});
+
+test('health inspection allows both model calls before marking a live cycle stalled',async t=>{
+  const f=await setup(t),config={...f.config,maxJobsPerCycle:1,ai:{provider:'ollama' as const,model:'fixture',timeoutMs:300000}};
+  const now=Date.now();f.history.acquireSupervisor(now);f.history.beginRun();
+  const db=new DatabaseSync(f.paths.database);
+  try{db.prepare('UPDATE autonomy_supervisor SET expires_at=?').run(new Date(now+3600000).toISOString());}finally{db.close();}
+  assert.equal(inspectBackend(config,now+500000).health.status,'healthy');
+  assert.equal(inspectBackend(config,now+800000).health.status,'stalled');
+});
+
+test('a failed interpretation of a revised document cannot supersede the previous usable memory',async t=>{
+  const f=await setup(t);
+  f.runtime.enqueueInput(f.input);await f.runtime.tick({schedule:false});
+  const previous=f.runtime.store.retrieveMemories(f.input.topic);assert(previous.length>0);
+  await writeFile(f.fixture,(await readFile(f.fixture,'utf8')).replace('AI検証の記録を保存する','改訂されたAI検証の記録'));
+  t.mock.method(OllamaProvider.prototype,'summarizeGrounded',async()=>{throw Error('MODEL_OFFLINE_FIXTURE');});
+  t.mock.method(OllamaProvider.prototype,'proposeGrounded',async()=>{throw Error('MODEL_OFFLINE_FIXTURE');});
+  const job=f.runtime.enqueueInput(f.input);
+  const result=await runAutonomousCycle({...f.config,ai:{provider:'ollama',model:'fixture',timeoutMs:1000}});
+  assert.equal(result.status,'attention');assert.equal(f.runtime.database.getJob(job)?.status,'needs_review');
+  const retained=f.runtime.store.retrieveMemories(f.input.topic);
+  for(const old of previous)assert(retained.some(memory=>memory.id===old.id&&memory.text===old.text));
+});
+
+test('a historical generated view rejected by the current revision check is retained but excluded from reasoning input',async t=>{
+  const f=await setup(t),job=f.runtime.enqueueInput(f.input);await f.runtime.tick({schedule:false});
+  const previous=f.runtime.store.retrieveMemories(f.input.topic);assert(previous.length>0);
+  const analysis=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(job,'analyze')!;
+  // Represent a pre-fix generated note which was accepted under an older gate.
+  analysis.quality!.reflection!.revisionCondition='もし、具体的な手順に関する資料が得られれば、この見解の優先順位を下げる。';
+  analysis.quality!.evidenceReview={version:'evidence-review-v1'} as NonNullable<typeof analysis.quality>['evidenceReview'];
+  f.runtime.database.saveCheckpoint(job,'analyze',analysis);
+  assert(!f.runtime.store.retrieveMemories(f.input.topic).some(m=>m.jobId===job));
+  assert(f.runtime.snapshot().memories.some(m=>m.id===previous[0].id&&m.text===previous[0].text));
 });
 
 test('versioned knowledge exports repair missing files, preserve manual edits and remain stable on subsequent collection',async t=>{
@@ -80,7 +129,7 @@ test('revised source evidence appends a correction history and excludes supersed
   assert((await readdir(f.paths.hypotheses)).some(file=>file.startsWith('revision-')));
 });
 
-test('Ollama transport recovers, but an empty model answer is still recorded as alternative analysis',async t=>{
+test('Ollama transport recovery preserves failed model notes without producing replacement interpretations',async t=>{
   let healthy=false;
   const server=createServer((req,res)=>{req.resume();res.setHeader('content-type','application/json');if(!healthy){res.statusCode=503;res.end('{}');return;}
     res.end(JSON.stringify({response:JSON.stringify({observations:[],conclusions:[],hypotheses:[]})}));});
@@ -90,11 +139,13 @@ test('Ollama transport recovers, but an empty model answer is still recorded as 
   const f=await setup(t,provider);
   const first=f.runtime.enqueueInput(f.input);assert.equal((await f.runtime.tick({schedule:false})).status,'completed');
   const failed=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(first,'analyze')!;
-  assert.equal(failed.provider,'deterministic');assert.match(failed.research!.model.error!,/503/);assert(failed.research!.model.elapsedMs>=0);
+  assert.equal(failed.provider,'none');assert.match(failed.research!.model.error!,/503/);assert(failed.research!.model.elapsedMs>=0);
+  assert.equal(f.runtime.database.getJob(first)?.status,'needs_review');assert.equal(f.runtime.snapshot().memories.length,0);
   healthy=true;
   const second=f.runtime.enqueueInput(f.input);assert.equal((await f.runtime.tick({schedule:false})).status,'completed');
   const recovered=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(second,'analyze')!;
-  assert.equal(recovered.provider,'deterministic');assert.equal(recovered.research?.model.responseReceived,true);assert.equal(recovered.research?.model.status,'failed');
+  assert.equal(recovered.provider,'none');assert.equal(recovered.research?.model.responseReceived,true);assert.equal(recovered.research?.model.status,'failed');
+  assert.equal(f.runtime.database.getJob(second)?.status,'needs_review');assert.equal(f.runtime.snapshot().memories.length,0);
   assert.equal(f.runtime.snapshot().notes.length,2);
 });
 
@@ -174,9 +225,10 @@ test('a transient Ollama runner failure retries once within the inference deadli
   let calls=0;
   const server=createServer((req,res)=>{req.resume();res.setHeader('content-type','application/json');
     if(++calls===1){res.statusCode=500;res.end('{"error":"runner restarting"}');return;}
-    res.end(JSON.stringify({response:JSON.stringify({observations:[],conclusions:[],hypotheses:[]})}));});
+    res.end(JSON.stringify({response:JSON.stringify({考察:{判断の比較:{利用場面:'資料を使った学習',達成したい結果:'学習内容の理解の持続',候補:[{案:'体験型の学習活動',期待寄与:3,根拠ID:['E1'],出典の主張:'図書館は体験活動を予定している。',期待の理由:'体験により記憶が持続すると期待する。',不確実性:'理解の持続への効果は未確認である。'},{案:'展示資料による学習',期待寄与:2,根拠ID:['E1'],出典の主張:'図書館は体験活動を予定している。',期待の理由:'資料の閲覧により理解が深まると期待する。',不確実性:'体験との効果の差は未確認である。'}]},仮定:[],確信度:.4}})}));});
   await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>server.close());
   const address=server.address();assert(address && typeof address!=='string');
-  const result=await new OllamaProvider({endpoint:`http://127.0.0.1:${address.port}`,model:'fixture',timeoutMs:2000}).analyze({topic:'a',items:[],claims:[],relations:[]});
-  assert.equal(result.provider,'ollama');assert.equal(calls,2);
+  const provider=new OllamaProvider({endpoint:`http://127.0.0.1:${address.port}`,model:'fixture',timeoutMs:2000});
+  const result=await provider.proposeGrounded({topic:'学習',items:[],claims:[{id:'fixture-claim',itemId:'fixture-document',text:'図書館は体験活動を予定している。',classification:'source_claim',confidence:.5,reason:'出典',createdAt:'2026-11-05T00:00:00Z'}],relations:[]});
+  assert.deepEqual(result.observations,[]);assert.equal(result.decisionEvaluation?.selectedId,'A');assert.deepEqual(result.reflection?.premiseClaimIds,['fixture-claim']);assert.equal(calls,2);assert.equal(provider.calls[0].attempts,2);
 });

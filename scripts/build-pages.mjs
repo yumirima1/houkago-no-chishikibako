@@ -6,8 +6,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? `/${process.env.GITHUB_REPOSITORY?.split('/')[1] ?? 'kousatsubako'}`;
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '/houkago-no-chishikibako';
 if (!/^\/[A-Za-z0-9_-]+$/.test(basePath)) throw new Error('A single repository base path is required');
+if (basePath !== '/houkago-no-chishikibako') throw new Error('PAGES_BASE_PATH_MISMATCH: the repository is houkago-no-chishikibako');
 const tmp = path.join(root, 'tmp');
 await mkdir(tmp, { recursive: true });
 const stage = await mkdtemp(path.join(tmp, 'pages-build-'));

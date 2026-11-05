@@ -2,6 +2,9 @@ export type DocumentCoverage = {
   itemId: string; versionId: string; kind: 'metadata' | 'feed-summary' | 'article-body';
   status: 'available' | 'disabled' | 'failed' | 'denied';
   url: string; fetchedAt: string; documentId?: string; error?: string;
+  failureKind?: 'missing' | 'access-restricted' | 'policy' | 'timeout' | 'network' | 'extraction';
+  metadata?:{language?:string;publishedAt?:string;modifiedAt?:string;eventAt?:string;primaryLinks:string[];extractorVersion?:number;documentKind?:'paper';referenceLinks?:Array<{url:string;text:string}>};
+  sourceProfile?:import('./types').SourceProfile;
 };
 export type GroundedObservation = {
   claimId: string; itemId: string; versionId: string; quote: string; url: string;
@@ -19,6 +22,10 @@ export type Reflection = {
   counterClaimIds?:string[];
 };
 export type QualityAnalysis = {
+  decisionEvaluation?:import('./decision-evaluation').DecisionEvaluation;
+  evidenceReview?:import('./evidence-review').EvidenceReview;
+  generationStatus?:'succeeded'|'partial'|'failed'|'not-requested';
+  discovery?:Array<{query:string;purpose:'related'|'counterevidence';status:'found'|'not-found';itemIds:string[]}>;
   sourceVerification?:import('./source-verification').SourceVerification;
   /** Optional only for immutable notes produced before the reflection revision. */
   reflection?:Reflection;
@@ -34,6 +41,9 @@ export type QualityAnalysis = {
   followUp: Array<{url: string; status: string; reason: string}>;
 };
 export type GroundedModelProposal = {
+  inquiryReviews?:unknown;
+  decisionEvaluation?:import('./decision-evaluation').DecisionEvaluation;
+  sourceComparisons?:unknown;
   interestEvaluations?:unknown;
   reflection?:Omit<Reflection,'origin'|'scope'>;
   observations: Array<{claimId: string; quote: string}>;

@@ -9,14 +9,28 @@
   "maxKnowledgeFiles": 50000,
   "exploration": 0.25,
   "agenda": {
-    "initialScores": {"ai":50,"pc":50,"economy":50,"world":50,"science":60,"culture":50,"environment":50},
-    "decayDays":7,"decayPoints":5,"discoveryBoost":6,
-    "maxSources":4,"maxTopics":50,"maxInquiryAttempts":3,"freshDays":90
+    "initialScores": {
+      "ai": 50,
+      "pc": 50,
+      "economy": 50,
+      "world": 50,
+      "science": 60,
+      "culture": 50,
+      "environment": 50
+    },
+    "decayDays": 7,
+    "decayPoints": 5,
+    "discoveryBoost": 6,
+    "maxSources": 4,
+    "maxTopics": 50,
+    "maxInquiryAttempts": 3,
+    "freshDays": 90
   },
   "ai": {
     "provider": "ollama",
-    "model": "qwen3:4b-q4_K_M",
-    "timeoutMs": 180000
+    "model": "gemma4:e4b",
+    "timeoutMs": 600000,
+    "thinking": true
   },
   "operation": {
     "id": "continuous-20261027",

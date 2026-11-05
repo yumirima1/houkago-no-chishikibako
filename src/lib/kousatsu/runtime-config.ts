@@ -48,6 +48,15 @@ export function parseResearchSources(value: unknown): ResearchSource[] {
       articlePolicy={enabled:policy.enabled,allowedHosts:[...new Set(policy.allowedHosts as string[])],maxArticles,cacheMinutes,followLinks};
     }
     const intervalMinutes = row.intervalMinutes ?? 60;
+    let profile:ResearchSource['profile'];
+    if(row.profile!==undefined){
+      const p=row.profile as Record<string,unknown>;
+      if(!p||typeof p!=='object'||!['official','research','paper','statistics','reporting','commentary'].includes(String(p.kind))||
+        ['publisher','language','region','policyUrl','checkedAt'].some(key=>typeof p[key]!=='string'||!String(p[key]).trim()||String(p[key]).length>500)||
+        !/^https:\/\//.test(String(p.policyUrl))||!Number.isFinite(Date.parse(String(p.checkedAt)))||
+        (p.interests!==undefined&&(typeof p.interests!=='string'||p.interests.length>500)))throw new Error('SOURCE_CONFIG_INVALID: profile');
+      profile={publisher:String(p.publisher),language:String(p.language),region:String(p.region),kind:p.kind as NonNullable<ResearchSource['profile']>['kind'],policyUrl:String(p.policyUrl),checkedAt:String(p.checkedAt),...(p.interests?{interests:String(p.interests)}:{})};
+    }
     const genres=['ai','pc','economy','world','science','culture','environment'];
     if(row.genre!==undefined && !genres.includes(String(row.genre)))throw new Error('SOURCE_CONFIG_INVALID: genre');
     if (typeof intervalMinutes !== "number" || !Number.isInteger(intervalMinutes) || intervalMinutes < 15 || intervalMinutes > 525_600) {
@@ -59,6 +68,7 @@ export function parseResearchSources(value: unknown): ResearchSource[] {
       contentPolicy: row.contentPolicy ?? "metadata-only",
       ...(row.genre ? {genre:row.genre} : {}),
       ...(articlePolicy ? {articlePolicy} : {}),
+      ...(profile ? {profile} : {}),
     } as ResearchSource;
   });
 }

@@ -56,3 +56,9 @@ export function assessInterests(proposal:unknown,context:AnalysisContext,provide
 }
 
 export const interestDelta=(evaluation:Pick<InterestAppraisal,'impact'|'confidence'>)=>Math.round(evaluation.impact*evaluation.confidence)/2;
+
+/** The direction describes the signed opinion score; it is not another vote. */
+export function interestDirection(impact:unknown,aversion:unknown){
+  if(typeof impact!=='number'||!Number.isInteger(impact)||Math.abs(impact)>10||typeof aversion!=='boolean'||aversion&&impact>=0)return undefined;
+  return impact===0?'neutral':impact>0?'strengthen':aversion?'aversion':'weaken';
+}

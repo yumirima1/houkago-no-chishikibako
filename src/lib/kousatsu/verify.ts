@@ -7,6 +7,8 @@ import type {
   VerificationIssue,
   VerificationReport,
 } from "./types";
+import {prematureEventInQuality} from './future-event';
+import {decisionEvaluationMatches,decisionSourceIssues} from './decision-evaluation';
 
 function normalizedText(value: string) {
   return value.replace(/\s+/g, " ").trim();
@@ -26,6 +28,11 @@ export function verifyArticle(input: {
   const issues: VerificationIssue[] = [];
   const quality=input.article.quality;
   if(quality) {
+    if(quality.decisionEvaluation&&!decisionEvaluationMatches(quality.decisionEvaluation,quality.reflection))issues.push({code:'DECISION_EVALUATION_MISMATCH',severity:'error',message:'保存された候補評価と選択結果・理由が一致しません。'});
+    if(quality.decisionEvaluation)for(const code of decisionSourceIssues({items:input.items,claims:input.claims,relations:[],coverage:quality.coverage,topic:quality.question},quality.decisionEvaluation))issues.push({code,severity:'error',message:'候補評価の出典記述が保存された引用に対応しません。'});
+    if(quality.evidenceReview&&quality.generationStatus!=='succeeded')issues.push({code:'MODEL_GENERATION_INCOMPLETE',severity:'error',message:'モデルの生成または資料の日本語整理が検査を完了していません。失敗記録を保持し、人による確認・再試行が必要です。'});
+    if(quality.evidenceReview?.summaryIssues.length)issues.push({code:'SOURCE_SUMMARY_REJECTED',severity:'error',message:quality.evidenceReview.summaryIssues.join('; ')});
+    if(quality.evidenceReview&&prematureEventInQuality(quality))issues.push({code:'REFLECTION_EVENT_PREMATURE_COMPLETION',severity:'error',message:'取得時点より先の開催予定日を、考察で実施済み・実施中として扱っています。'});
     const valid=new Set(quality.observations.map(o=>o.claimId));
     for(const observation of quality.observations) {
       const claim=input.claims.find(c=>c.id===observation.claimId);

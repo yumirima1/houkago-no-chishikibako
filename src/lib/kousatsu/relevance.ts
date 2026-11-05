@@ -1,6 +1,8 @@
 import type { StoredItem } from './types';
 
 const noise=new Set(('a an the and or but about after again also are as at be been before being brief by can clear comes could detailed did do does during each first for from had has have how in into is it its keep last latest may more most nasa news new not now of on one our out over plan provided said says should so some that their them there these they this those through time to today under united nations update was were what when where which who why will with within without women world would year years').split(' '));
+for(const word of ['こと','もの','ため','これ','それ','今回','発表','研究','記事','ニュース','について','における','お知らせ','プレス','リリース','記者','会見','報道','掲載','一覧','世界','初めて','による','により','最新','情報','年度','press','release'])noise.add(word);
+for(const word of 'apod astronomy picture day january february march april june july august september october november december'.split(' '))noise.add(word);
 
 export function meaningfulTerms(value: string) {
   const text=value.normalize('NFKC').replace(/https?:\/\/\S+/g,' ').replace(/&#\d+;|&[a-z]+;/gi,' ')
@@ -19,7 +21,8 @@ export function compareRecords(left: Pick<StoredItem,'title'|'summary'|'publishe
   const common=[...a].filter(word=>b.has(word));
   const union=new Set([...a,...b]);
   const score=common.length/Math.max(1,union.size);
-  const named=common.filter(word=>new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'i').test(left.title) &&
+  const named=common.filter(word=>(/[\p{Script=Han}\p{Script=Katakana}]/u.test(word)&&left.title.includes(word)&&right.title.includes(word))||new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'i').test(left.title) &&
+    new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\b`,'i').test(right.title) &&
     (new RegExp(`\\b${word.charAt(0).toUpperCase()+word.slice(1)}\\b`).test(left.title) || /\d/.test(word)));
   const gap=Math.abs(Date.parse(left.publishedAt ?? '')-Date.parse(right.publishedAt ?? ''))/86400000;
   if(common.length>=3 && named.length && gap<=14 && score>=0.15) return {kind:'follow_up_candidate',score,common,

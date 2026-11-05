@@ -9,26 +9,69 @@ import type { DocumentCoverage } from './quality-types';
 
 const now=()=>new Date().toISOString();
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
-const clean=(value:string)=>value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
-export type PageDocument={id:string;url:string;finalUrl:string;title:string;text:string;fetchedAt:string;links:Array<{url:string;text:string}>};
-export type PageResult={status:'available'|'failed'|'denied'|'disabled';document?:PageDocument;error?:string;cached?:boolean};
+const extractorVersion=4;
+const clean=(value:string)=>value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/\r\n?/g,'\n').replace(/[ \t]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+export type PageDocument={id:string;url:string;finalUrl:string;title:string;text:string;fetchedAt:string;links:Array<{url:string;text:string}>;metadata?:DocumentCoverage['metadata']};
+export type PageResult={status:'available'|'failed'|'denied'|'disabled';document?:PageDocument;error?:string;cached?:boolean;failureKind?:DocumentCoverage['failureKind']};
 
 /** No scripts, styles, frames or resources are executed or loaded by this DOM. */
 export function extractArticle(html:string,url:string) {
   const {document}=parseHTML(html);
+  const meta=(selector:string)=>document.querySelector(selector)?.getAttribute('content')??undefined;
+  const date=(value:string|undefined)=>value&&Number.isFinite(Date.parse(value))?new Date(value).toISOString():undefined;
+  const metadata:NonNullable<DocumentCoverage['metadata']>={
+    language:document.documentElement?.getAttribute('lang')??meta('meta[http-equiv="content-language"]'),
+    publishedAt:date(meta('meta[property="article:published_time"]')??meta('meta[name="date"]')??meta('meta[name="citation_date"]')),
+    modifiedAt:date(meta('meta[property="article:modified_time"]')),
+    primaryLinks:[],
+    extractorVersion,
+    ...(meta('meta[name="citation_title"]')?{documentKind:'paper' as const}:{}),
+  };
+  // Only a structured Event startDate is an event time. A publication date is not.
+  for(const script of document.querySelectorAll('script[type="application/ld+json"]')){
+    try {
+      const data=JSON.parse(script.textContent??'{}');
+      const nodes=Array.isArray(data)?data:[data,...(Array.isArray(data['@graph'])?data['@graph']:[])];
+      const event=nodes.find(node=>node&&(Array.isArray(node['@type'])?node['@type']:[node['@type']]).includes('Event'));
+      if(event)metadata.eventAt=date(event.startDate);
+    } catch { /* Invalid structured metadata does not invalidate the article. */ }
+  }
   if(document.querySelectorAll('*').length>30000)throw new Error('ARTICLE_TOO_MANY_ELEMENTS');
   if([...document.querySelectorAll('meta[name="robots"]')].some(meta=>/\bnoarchive\b/i.test(meta.getAttribute('content') ?? ''))) throw new Error('ARTICLE_ARCHIVING_DENIED');
   const base=document.createElement('base');base.setAttribute('href',url);document.head?.prepend(base);
   Object.defineProperty(document,'documentURI',{value:url,configurable:true});
+  // NASA's APOD redesign places its explanation in the media hero. Readability
+  // otherwise prefers the recurring credits sidebar over the actual article.
+  if(new URL(url).hostname==='science.nasa.gov'&&new URL(url).pathname.startsWith('/image-article/apod-')){
+    const explanation=document.querySelector('article .media-detail-hero__description');
+    if(!explanation||!/^\s*Explanation:/i.test(explanation.textContent??'')||(explanation.textContent??'').trim().length<160)throw Error('ARTICLE_BODY_APOD_EXPLANATION_MISSING');
+    const paragraph=explanation.cloneNode(true) as typeof explanation;paragraph.removeAttribute('class');
+    for(const label of paragraph.querySelectorAll('b,strong'))if(/^Tomorrow.s picture:/i.test(label.textContent??'')){
+      let node:typeof label|null=label;
+      while(node){const next=node.nextSibling as typeof label|null;node.remove();node=next;}
+    }
+    const content=document.createElement('article'),heading=document.createElement('h1');heading.textContent=document.title;
+    content.appendChild(heading);content.appendChild(paragraph);document.body.replaceChildren(content);
+  }
   const article=new Readability(document as unknown as Document,{charThreshold:160,maxElemsToParse:30000}).parse();
   const body=parseHTML(article?.content ?? '').document;
   for(const element of body.querySelectorAll('p,div,li,h1,h2,h3,h4,br'))element.appendChild(body.createTextNode('\n'));
   const text=clean(body.documentElement?.textContent ?? article?.textContent ?? '');
   if(text.length<160)throw new Error('ARTICLE_BODY_EMPTY_OR_TOO_SHORT');
   const links=[...body.querySelectorAll('a[href]')].flatMap(anchor=>{
-    try {const link=new URL(anchor.getAttribute('href')!,url);return link.protocol==='https:' ? [{url:canonicalizeUrl(link.href),text:clean(anchor.textContent ?? '').slice(0,180)}] : [];}catch{return [];}
-  }).filter(link=>link.text.length>=8 && !/\.(jpg|jpeg|png|gif|mp4|mp3|pdf)(\?|$)/i.test(link.url));
-  return {title:clean(article?.title ?? ''),text:text.slice(0,120000),links:[...new Map(links.map(link=>[link.url,link])).values()].slice(0,40)};
+    try {
+      const link=new URL(anchor.getAttribute('href')!,url);
+      const text=clean(anchor.textContent??'');
+      const paragraph=anchor.closest('p,li');
+      const ownContext=clean((paragraph?.textContent??'').replace(text,'').replace(/https?:\/\/\S+/g,'')).slice(0,180);
+      const context=/^https?:\/\//.test(text)?ownContext||clean(paragraph?.previousElementSibling?.textContent??'').slice(-180):'';
+      return link.protocol==='https:'?[{url:canonicalizeUrl(link.href),text:context||text.slice(0,180)}]:[];
+    }catch{return [];}
+  }).filter(link=>link.text.length>=3 && !/\.(jpg|jpeg|png|gif|mp4|mp3|pdf)(\?|$)/i.test(link.url));
+  const unique=[...new Map(links.map(link=>[link.url,link])).values()].slice(0,40);
+  metadata.primaryLinks=unique.filter(link=>new URL(link.url).hostname!==new URL(url).hostname||/doi\.org|arxiv\.org\/abs\/|論文|原資料|報告書|研究成果|paper|study|report|source|詳細/i.test(link.url+' '+link.text)).map(link=>link.url);
+  metadata.referenceLinks=unique;
+  return {title:clean(article?.title ?? ''),text:text.slice(0,120000),links:unique,metadata};
 }
 
 /** Additive cache/provenance tables. Existing item versions and notes are never rewritten. */
@@ -48,12 +91,15 @@ export class ArticleContentStore {
       CREATE TABLE IF NOT EXISTS research_robots(origin TEXT PRIMARY KEY,body TEXT NOT NULL,status TEXT NOT NULL,fetched_at TEXT NOT NULL,error TEXT);
       CREATE TABLE IF NOT EXISTS research_content_provenance(version_id TEXT PRIMARY KEY REFERENCES item_versions(id),
         document_id TEXT REFERENCES research_page_documents(id),coverage_json TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS research_page_metadata(document_id TEXT PRIMARY KEY REFERENCES research_page_documents(id),metadata_json TEXT NOT NULL);
     `);
   }
   close(){this.db.close();}
   document(id:string):PageDocument|null {
     const row=this.db.prepare('SELECT * FROM research_page_documents WHERE id=?').get(id);
-    return row ? {id:String(row.id),url:String(row.url),finalUrl:String(row.final_url),title:String(row.title),text:String(row.body),fetchedAt:String(row.fetched_at),links:JSON.parse(String(row.links_json))} : null;
+    const metadata=row?this.db.prepare('SELECT metadata_json FROM research_page_metadata WHERE document_id=?').get(id):undefined;
+    const parsed=metadata?JSON.parse(String(metadata.metadata_json)):undefined;
+    return row ? {id:String(row.id),url:String(row.url),finalUrl:String(row.final_url),title:String(row.title),text:String(row.body),fetchedAt:String(row.fetched_at),links:parsed?.referenceLinks??JSON.parse(String(row.links_json)),...(parsed?{metadata:parsed}:{})} : null;
   }
   coverage(item:StoredItem):DocumentCoverage {
     const row=item.versionId ? this.db.prepare('SELECT coverage_json FROM research_content_provenance WHERE version_id=?').get(item.versionId) : undefined;
@@ -65,6 +111,8 @@ export class ArticleContentStore {
       kind:result.document ? 'article-body' : item.summary || item.content ? 'feed-summary' : 'metadata',
       status:result.status,fetchedAt:result.document?.fetchedAt ?? item.fetchedAt,
       ...(result.document ? {documentId:result.document.id} : {}),...(result.error ? {error:result.error} : {})};
+    if(result.document?.metadata)coverage.metadata=result.document.metadata;
+    if(result.failureKind)coverage.failureKind=result.failureKind;
     this.db.prepare('INSERT OR IGNORE INTO research_content_provenance VALUES(?,?,?)').run(item.versionId!,result.document?.id ?? null,JSON.stringify(coverage));
     return coverage;
   }
@@ -96,9 +144,12 @@ export class ArticleContentStore {
     this.db.prepare("UPDATE research_page_attempts SET status='interrupted',finished_at=?,error='PROCESS_INTERRUPTED' WHERE status='running' AND started_at<?")
       .run(now(),new Date(Date.now()-120000).toISOString());
     const attemptsToday=Number(this.db.prepare('SELECT count(*) n FROM research_page_attempts WHERE url=? AND started_at>=?').get(url.href,day)?.n);
-    if(cached && (String(cached.next_at)>now() || attemptsToday>=3)) {
+    const cachedDocument=cached?.document_id?this.document(String(cached.document_id)):null;
+    const currentExtractor=!cachedDocument||cachedDocument.metadata?.extractorVersion===extractorVersion;
+    if(attemptsToday>=3&&!currentExtractor)return {status:'failed',error:'ARTICLE_BODY_EXTRACTOR_UPGRADE_DAILY_LIMIT',failureKind:'extraction',cached:true};
+    if(cached && currentExtractor && (String(cached.next_at)>now() || attemptsToday>=3)) {
       const doc=cached.document_id ? this.document(String(cached.document_id)) : null;
-      return {status:cached.status as PageResult['status'],...(doc ? {document:doc} : {}),...(cached.error ? {error:String(cached.error)} : {}),cached:true};
+      return {status:cached.status as PageResult['status'],...(doc ? {document:doc} : {}),...(cached.error ? {error:String(cached.error),failureKind:classifyArticleFailure(String(cached.error))} : {}),cached:true};
     }
     if(attemptsToday>=3)return {status:'failed',error:'ARTICLE_DAILY_ATTEMPT_LIMIT',cached:true};
     const id=randomUUID();this.db.prepare("INSERT INTO research_page_attempts(id,url,started_at,status) VALUES(?,?,?,'running')").run(id,url.href,now());
@@ -114,10 +165,11 @@ export class ArticleContentStore {
       const docId=old ? String(old.id) : randomUUID();
       this.db.prepare('INSERT OR IGNORE INTO research_page_documents VALUES(?,?,?,?,?,?,?,?)').run(docId,url.href,fetched.finalUrl ?? url.href,
         extracted.title,extracted.text,hash,JSON.stringify(extracted.links),now());
+      this.db.prepare('INSERT INTO research_page_metadata VALUES(?,?) ON CONFLICT(document_id) DO UPDATE SET metadata_json=excluded.metadata_json').run(docId,JSON.stringify(extracted.metadata));
       result={status:'available',document:this.document(docId)!};
     } catch(e) {
       const error=e instanceof Error ? e.message : String(e);httpStatus=(e as {httpStatus?:number}).httpStatus ?? httpStatus;
-      result={status:/DENIED|HOST_NOT_ALLOWED|HTTP 40[13]/.test(error) ? 'denied' : 'failed',error};
+      result={status:/DENIED|HOST_NOT_ALLOWED|HTTP 40[13]/.test(error) ? 'denied' : 'failed',error,failureKind:classifyArticleFailure(error)};
     }
     const attempts=cached?.attempt_day===day ? Number(cached.attempts)+1 : 1;
     const delay=result.status==='available' ? policy.cacheMinutes : result.status==='denied' ? 1440 : 15;
@@ -128,4 +180,10 @@ export class ArticleContentStore {
       .run(now(),result.status,httpStatus,result.error ?? null,result.document?.id ?? null,id);
     return result;
   }
+}
+
+export function classifyArticleFailure(error:string):NonNullable<DocumentCoverage['failureKind']>{
+  return /HTTP (404|410)/.test(error)?'missing':/HTTP (401|403|429)/.test(error)?'access-restricted':
+    /ROBOTS|DENIED|HOST_NOT_ALLOWED/.test(error)?'policy':/timeout|timed out|abort/i.test(error)?'timeout':
+    /ARTICLE_BODY|ARTICLE_CONTENT|ARTICLE_TOO/.test(error)?'extraction':'network';
 }

@@ -25,11 +25,23 @@ export const jobStatuses = [
 export type JobStatus = (typeof jobStatuses)[number];
 
 export type SourceInput = {
+  profile?: SourceProfile;
   articlePolicy?: {enabled: boolean; allowedHosts: string[]; maxArticles: number; cacheMinutes: number; followLinks: number};
   contentPolicy?: "metadata-only" | "metadata-and-feed-summary";
   feedUrl: string;
   id: string;
   name: string;
+};
+
+/** Describes the publisher, never a rating of the truth of an individual claim. */
+export type SourceProfile = {
+  publisher: string;
+  language: string;
+  region: string;
+  kind: 'official' | 'research' | 'paper' | 'statistics' | 'reporting' | 'commentary';
+  policyUrl: string;
+  checkedAt: string;
+  interests?: string;
 };
 
 export type FeedEntry = {
@@ -121,6 +133,7 @@ export type AnalysisResult = {
   provider: string;
   summary: string;
   research?: {
+    inquiryReviews?:import('./inquiry-review').InquiryReview[];
     interests?:import('./interest-evaluation').InterestAssessment;
     topic: string;
     reason: string;
@@ -129,7 +142,9 @@ export type AnalysisResult = {
     evidence: Array<{claimId: string; itemId: string; versionId: string; excerpt: string; url: string}>;
     counterSearch: Array<{itemId: string; versionId: string; title: string; url: string; excerpt: string; reason: string}>;
     questions: string[];
-    model: {requested: string; used: string; elapsedMs: number; error: string | null;status?:'succeeded'|'partial'|'failed'|'not-requested';responseReceived?:boolean;method?:'model'|'rules'|'mixed'};
+    model: {requested: string; used: string; elapsedMs: number; error: string | null;status?:'succeeded'|'partial'|'failed'|'not-requested';responseReceived?:boolean;method?:'model'|'rules'|'mixed';
+      timings?:{retrievalMs:number;summaryMs:number;generationMs:number;validationMs:number};
+      calls?:import('./evidence-review').ModelCallMetrics[]};
   };
 };
 

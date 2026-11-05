@@ -66,7 +66,11 @@ function decodeBasicEntities(value: string) {
     .replaceAll("&lt;", "<")
     .replaceAll("&gt;", ">")
     .replaceAll("&quot;", '"')
-    .replaceAll("&#39;", "'");
+    .replaceAll("&#39;", "'")
+    .replace(/&#(x[0-9a-f]+|\d+);/gi,(entity,code:string)=>{
+      const value=code[0].toLowerCase()==='x'?Number.parseInt(code.slice(1),16):Number(code);
+      return value>0&&value<=0x10ffff&&!(value>=0xd800&&value<=0xdfff)?String.fromCodePoint(value):entity;
+    });
 }
 
 export function normalizeFeedText(value: unknown, maxLength = MAX_ENTRY_TEXT_LENGTH) {
@@ -119,7 +123,7 @@ function entryFromRecord(
     content: normalizeFeedText(contentSource) || undefined,
     externalId: normalizeFeedText(record.id ?? record.guid, 2_048) || undefined,
     publishedAt: normalizeDate(
-      record.published ?? record.updated ?? record.pubDate ?? record.date,
+      record.published ?? record.updated ?? record.pubDate ?? record.date ?? record['dc:date'],
     ),
     summary: normalizeFeedText(summarySource) || undefined,
     title,
@@ -141,6 +145,13 @@ export function parseFeed(xml: string): { entries: FeedEntry[]; title?: string }
   const rss = parsed.rss as Record<string, unknown> | undefined;
   const channel = rss?.channel as Record<string, unknown> | undefined;
   const atom = parsed.feed as Record<string, unknown> | undefined;
+  const rdf=parsed['rdf:RDF'] as Record<string,unknown>|undefined;
+
+  if(rdf){
+    const channel=rdf.channel as Record<string,unknown>|undefined;
+    return {entries:toArray(rdf.item).filter((entry):entry is Record<string,unknown>=>Boolean(entry&&typeof entry==='object'))
+      .map(entry=>entryFromRecord(entry,'rss')).filter((entry):entry is FeedEntry=>Boolean(entry)),title:normalizeFeedText(channel?.title,500)||undefined};
+  }
 
   if (channel) {
     return {
@@ -283,14 +294,21 @@ async function assertSafeRemoteUrl(value: string, resolveHostname: ResolveHostna
   return { url, addresses };
 }
 
+export function hostRatePolicy(hostname:string){
+  if(hostname==='loc.gov'||hostname.endsWith('.loc.gov'))return {key:'loc.gov',intervalMs:6000};
+  if(hostname==='arxiv.org'||hostname.endsWith('.arxiv.org'))return {key:'arxiv.org',intervalMs:3000};
+  return {key:hostname,intervalMs:MIN_HOST_INTERVAL_MS};
+}
+
 async function enforceHostRateLimit(hostname: string, signal: AbortSignal) {
-  const previous = lastRequestAtByHost.get(hostname) ?? 0;
-  const waitMs = Math.max(0, MIN_HOST_INTERVAL_MS - (Date.now() - previous));
+  const policy=hostRatePolicy(hostname);
+  const previous = lastRequestAtByHost.get(policy.key) ?? 0;
+  const waitMs = Math.max(0, policy.intervalMs - (Date.now() - previous));
   if (waitMs > 0) {
     await delay(waitMs, undefined, { signal });
   }
   signal.throwIfAborted();
-  lastRequestAtByHost.set(hostname, Date.now());
+  lastRequestAtByHost.set(policy.key, Date.now());
 }
 
 async function readBoundedText(response: Response, signal: AbortSignal,allowCompression=false) {

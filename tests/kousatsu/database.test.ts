@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import {DatabaseSync} from 'node:sqlite';
 
 import { KousatsuDatabase } from "../../src/lib/kousatsu/database";
 import {
@@ -18,6 +19,22 @@ const fixturePath = path.join(
   "fixtures",
   "kousatsu-sample.rss.xml",
 );
+
+test('re-extracting an unchanged document preserves reviewed claims and their original metadata',async t=>{
+  const directory=await mkdtemp(path.resolve('tmp/claim-preservation-')),file=path.join(directory,'test.sqlite');
+  const database=new KousatsuDatabase(file);
+  t.after(async()=>{database.close();await rm(directory,{recursive:true,force:true});});
+  const source={id:'preserve',name:'Fixture',feedUrl:'https://example.invalid/feed.xml'};
+  collectFeedXml(database,source,await readFile(fixturePath,'utf8'));
+  const items=database.listItemsForSource(source.id),first=extractSourceClaims(database,items),claim=first[0];
+  database.upsertClaim({itemId:claim.itemId!,versionId:claim.versionId!,text:claim.text,classification:'contradiction',confidence:.7,reason:'保存済みのレビュー判断'});
+  const reader=new DatabaseSync(file,{readOnly:true});
+  try{
+    const before=reader.prepare('SELECT * FROM claims ORDER BY id').all();
+    extractSourceClaims(database,items);
+    assert.deepEqual(reader.prepare('SELECT * FROM claims ORDER BY id').all(),before);
+  }finally{reader.close();}
+});
 
 test("RSS/Atom ingestion is persistent, searchable, and idempotent", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "kousatsu-db-"));

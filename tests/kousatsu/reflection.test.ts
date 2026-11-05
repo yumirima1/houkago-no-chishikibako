@@ -38,6 +38,17 @@ test('a Japanese opinion need not use a tentative keyword or repeat the source v
  const formed=formReflection(context,observation(),{reflection:p});assert.equal(formed.reflection.origin,'model');assert.equal(formed.reflection.position,p.position);assert.deepEqual(formed.issues,[]);
 });
 
+test('known document and memory references are citations, while unknown UUIDs remain rejected',()=>{
+ const id='11111111-2222-3333-4444-555555555555',memoryId='a1'.repeat(32);
+ const c={...context,groundedRequest:true,items:[{...item,id,content:claim.text}],claims:[{...claim,itemId:id}],
+  coverage:[{...context.coverage![0],itemId:id,kind:'article-body' as const}],memories:[{...memory(),id:memoryId}]};
+ const reason=`資料${id}の説明を、過去の見解${memoryId}と区別して評価するためである。`;
+ const result=formReflection(c,observation(c),{reflection:{...sound,reasoning:reason}});
+ assert.deepEqual(result.issues,[]);assert.equal(result.reflection.origin,'model');
+ const bad=formReflection(c,observation(c),{reflection:{...sound,reasoning:'資料99999999-2222-3333-4444-555555555555の説明を根拠とするためである。'}});
+ assert(bad.issues.includes('REFLECTION_UNKNOWN_REFERENCE'));assert.equal(bad.reflection.origin,'rules');
+});
+
 test('a causal interpretation need not be written as a first-person preference',()=>{
  const c={...context,coverage:[{...context.coverage![0],kind:'feed-summary' as const}]};
  const position='主な制約は運用条件の違いにある可能性がある。';
@@ -68,6 +79,18 @@ test('a circular alternative and a condition that only reaffirms the view are re
 test('mentioning another medium is not itself a condition for changing the view',()=>{
  const condition='作品が別の媒体へ移る場合に、原稿や著作権の問題が発生する可能性がある。';
  const q=quality(context,{reflection:{...sound,revisionCondition:condition}});assert(q.modelIssues.includes('REFLECTION_NONREVISING_CONDITION'));assert.notEqual(q.reflection!.revisionCondition,condition);assert.equal(q.reflection!.position,sound.position);
+});
+
+test('obtaining unspecified documentation does not identify an observation that weakens a grounded view',()=>{
+ const c={...context,groundedRequest:true,coverage:[{...context.coverage![0],kind:'article-body' as const}]};
+ for(const revisionCondition of ['もし、具体的な使用手順や設計思想に関する資料が得られれば、この見解の優先順位を下げる。','もし、参加者がどのような知識を得ることを目的としたのかという設計思想に関する資料が得られれば、この見解の優先順位を下げる。','もし、追加の詳細情報が公開されれば、この見解の優先順位を下げる。']){
+  const result=formReflection(c,observation(c),{reflection:{...sound,revisionCondition}});
+  assert(result.issues.includes('REFLECTION_NONREVISING_CONDITION'));assert.equal(result.reflection.origin,'rules');
+ }
+ const result=formReflection(c,observation(c),{reflection:{...sound,revisionCondition:'もし、想定した効果が別の条件で再現されないことを示す資料が得られれば、この見解の前提が弱まるため適用範囲を狭める。'}});
+ assert.deepEqual(result.issues,[]);assert.equal(result.reflection.origin,'model');
+ const intransitive=formReflection(c,observation(c),{reflection:{...sound,revisionCondition:'もし、想定した効果が再現されないという観測が得られれば、この見解の優先順位は下がる。'}});
+ assert.deepEqual(intransitive.issues,[]);assert.equal(intransitive.reflection.origin,'model');
 });
 
 test('unfinished introductions and numbered consequences are repaired into complete arguments',()=>{

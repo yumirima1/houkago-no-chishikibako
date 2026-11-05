@@ -2,7 +2,7 @@ import {defineConfig} from '@playwright/test';
 import {readFileSync} from 'node:fs';
 const artifactBasePath = () => {
  try { return JSON.parse(readFileSync('out/build-info.json','utf8')).basePath as string; }
- catch { return process.env.NEXT_PUBLIC_BASE_PATH ?? '/kousatsubako'; }
+ catch { return process.env.NEXT_PUBLIC_BASE_PATH ?? '/houkago-no-chishikibako'; }
 };
 const localURL = `http://127.0.0.1:4177${artifactBasePath()}/`;
 export default defineConfig({testDir:'tests/pages',workers:1,timeout:120000,retries:0,outputDir:'tmp/research-browser',reporter:[['list'],['html',{outputFolder:'tmp/research-browser-report',open:'never'}]],

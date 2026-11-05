@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { autonomousPaths, loadAutonomousConfig } from '../src/lib/kousatsu/autonomous-config';
+import { autonomousPaths, loadAutonomousConfig, autonomousCycleDeadlineMs } from '../src/lib/kousatsu/autonomous-config';
 import { backendLog, backendStatus, runAutonomousCycle } from '../src/lib/kousatsu/autonomous-service';
 import { ensureDataDirectories, exportKnowledge } from '../src/lib/kousatsu/knowledge-export';
 import { KousatsuDatabase } from '../src/lib/kousatsu/database';
@@ -106,7 +106,9 @@ async function main() {
       let diagnostic='';
       child.stdout.on('data',chunk=>process.stdout.write(chunk));
       child.stderr.on('data',chunk=>{diagnostic=(diagnostic+chunk.toString()).slice(-4000);});
-      const timeout=setTimeout(()=>child.kill(),Math.max(240000,config.maxJobsPerCycle*(config.ai.timeoutMs+60000)));
+      // The grounded engine has a bounded reading call and an analysis call.
+      // Do not kill a healthy child using the former single-call allowance.
+      const timeout=setTimeout(()=>child.kill(),autonomousCycleDeadlineMs(config));
       const exit=await new Promise<{code:number|null;signal:string|null}>((resolve,reject)=>{child.once('error',reject);child.once('exit',(code,signal)=>resolve({code,signal}));})
         .finally(()=>clearTimeout(timeout));
       if (exit.code!==0) await backendLog(config,{type:'child-failure',...exit,error:safeDiagnostic(diagnostic)});

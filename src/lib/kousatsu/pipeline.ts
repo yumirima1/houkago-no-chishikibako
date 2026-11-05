@@ -25,6 +25,7 @@ import type {
 import { verifyArticle } from "./verify";
 import { prepareResearchDocuments } from './research-documents';
 import type { DocumentCoverage } from './quality-types';
+import {publisherFamily} from './evidence-review';
 
 const DEFAULT_OUTPUT_DIRECTORY = path.join(
   process.cwd(),
@@ -36,6 +37,7 @@ const DEFAULT_OUTPUT_DIRECTORY = path.join(
 type PipelineOptions = {
   /** Trusted process-local injection for network failure/recovery tests; never API input. */
   articleTransport?: typeof fetchFeed;
+  sources?:import('./types').SourceInput[];
   failAfterStage?: string;
   provider?: KousatsuAiProvider;
   leaseMs?: number;
@@ -58,6 +60,8 @@ type ItemCheckpoint = {
   sourceDigest: string;
   /** Frozen aliases, including historical associations for these exact versions. */
   sources?: ItemSourceRecord[];
+  retrievalMs?:number;
+  discovery?:import('./research-documents').DiscoveryAttempt[];
 };
 
 type ClaimCheckpoint = { claims: ClaimRecord[]; evidence: EvidenceRecord[]; integrityDigest?:string };
@@ -145,6 +149,7 @@ export class KousatsuPipeline {
   private readonly leaseMs: number;
   private readonly afterStage?: PipelineOptions["afterStage"];
   private readonly articleTransport?: PipelineOptions['articleTransport'];
+  private readonly sources:NonNullable<PipelineOptions['sources']>;
 
   constructor(database: KousatsuDatabase, options: PipelineOptions = {}) {
     this.database = database;
@@ -153,6 +158,7 @@ export class KousatsuPipeline {
     this.leaseMs = options.leaseMs ?? 30_000;
     this.afterStage = options.afterStage;
     this.articleTransport=options.articleTransport;
+    this.sources=options.sources??[];
     if (!Number.isFinite(this.leaseMs) || this.leaseMs < 100) {
       throw new Error("leaseMs must be at least 100 milliseconds.");
     }
@@ -325,20 +331,27 @@ export class KousatsuPipeline {
       if (!selected) throw new Error("CHECKPOINT_INCOMPLETE: missing pinned documents.");
       if(job.input.source.articlePolicy?.enabled && !this.database.getCheckpoint(jobId,'article-content')) {
         commit(()=>this.database.setJobStage(jobId,'article-content'));
-        const prepared=await prepareResearchDocuments(this.database.filePath,structuredClone(selected.items),job.input.source,this.articleTransport);
+        const retrievalStart=Date.now();
+        const prepared=await prepareResearchDocuments(this.database.filePath,structuredClone(selected.items),job.input.source,this.articleTransport,{database:this.database,sources:this.sources});
         selected=commit(()=>{
           const items:StoredItem[]=[],coverage:DocumentCoverage[]=[];
           for(const entry of prepared.entries) {
+            this.database.upsertSource(entry.source);
             const body=entry.result.document;
             const candidate={...entry.item,...(body ? {content:body.text,fetchedAt:body.fetchedAt} : {})};
             const stored=body ? this.database.getItem(this.database.upsertItem(candidate).id)! : entry.item;
+            if(items.some(item=>item.id===stored.id&&item.versionId===stored.versionId)){
+              prepared.followUp.push({url:entry.item.url,status:'duplicate',reason:'既存の同一保存本文・版へ統合した。追加の独立した証拠には数えない。'});
+              continue;
+            }
             items.push(stored);
             const c:DocumentCoverage={itemId:stored.id,versionId:stored.versionId!,url:stored.url,
               fetchedAt:body?.fetchedAt ?? stored.fetchedAt,kind:body ? 'article-body' : stored.summary || stored.content ? 'feed-summary' : 'metadata',
-              status:entry.result.status,...(body ? {documentId:body.id} : {}),...(entry.result.error ? {error:entry.result.error} : {})};
+              status:entry.result.status,...(body ? {documentId:body.id,metadata:body.metadata} : {}),...(entry.result.error ? {error:entry.result.error} : {}),
+              ...(entry.result.failureKind?{failureKind:entry.result.failureKind}:{}),...(entry.source.profile&&entry.source.profile.publisher===publisherFamily(stored.url)?{sourceProfile:entry.source.profile}:{})};
             coverage.push(c);this.database.saveDocumentCoverage(stored.versionId!,body?.id ?? null,c);
           }
-          const value:ItemCheckpoint={items,coverage,followUp:prepared.followUp,
+          const value:ItemCheckpoint={items,coverage,followUp:prepared.followUp,discovery:prepared.discovery,retrievalMs:Date.now()-retrievalStart,
             pins:items.map(item=>({id:item.id,digest:digest(itemIdentity(item))})),sourceDigest:digest(sourceIdentity(this.database,job.input.source.id)),
             sources:items.flatMap(item=>this.database.listItemSources(item.id,{includeHistorical:true}).filter(source=>source.versionId===item.versionId))};
           this.database.saveCheckpoint(jobId,'selected-items',value);
@@ -384,6 +397,8 @@ export class KousatsuPipeline {
           relations,
           topic: job.input.topic,
           coverage:selected.coverage,
+          retrievalMs:selected.retrievalMs,
+          discovery:selected.discovery,
         }));
         const value = analysis;
         if(value.quality && selected.followUp)value.quality.followUp=selected.followUp;
@@ -468,6 +483,7 @@ export class KousatsuPipeline {
         this.database.withJobLease(jobId, lease.token, () => {
           this.database.recordJobDiagnostic(jobId, message);
           this.database.saveCheckpoint(jobId, "diagnostic", { message, at: new Date().toISOString() });
+          if(this.provider.rawCalls?.length)this.database.saveCheckpoint(jobId,'model-failure',{message,calls:this.provider.rawCalls});
           if (attempt !== undefined) this.database.finishJob(jobId, attempt, status, result, message);
         });
       } catch { /* Lost ownership: leave recovery to the valid owner. */ }

@@ -107,6 +107,35 @@ test('all distinct eligible historical notes are exported beyond the old three-n
  assert.equal(new Set(JSON.parse(first.files['public/research/snapshot.json']).notes.map((n:{id:string})=>n.id)).size,5);
  }finally{f.close();}
 });
+
+test('all saved views include legacy and failed-check notes sharing a source, without rewriting the frozen view',async()=>{
+ const f=await fixture();try{
+  await planWeekly(f.config,f.runtime,f.sources,f.transport,at);assert.equal((await f.runtime.tick({schedule:false})).status,'completed');
+  const config={...f.config,dataDirectory:path.join(f.directory,'all-saved-store')};await mkdir(path.join(config.dataDirectory,'Memory'),{recursive:true});
+  const file=path.join(config.dataDirectory,'Memory','kousatsu.sqlite');await f.runtime.database.backupTo(file);
+  const first=await exportPublicResearch(config,f.sources),firstId=JSON.parse(first.files['public/research/snapshot.json']).notes[0].id;
+  // A second saved interpretation of exactly the same source is a separate
+  // publication unit. Its failed check and legacy format must remain visible.
+  const db=new DatabaseSync(file);try{
+    const a=db.prepare('SELECT * FROM articles LIMIT 1').get()!,j=db.prepare('SELECT * FROM jobs WHERE id=?').get(a.job_id)!;
+    const jobId='11111111-1111-4111-8111-111111111111',articleId='22222222-2222-4222-8222-222222222222';
+    const columns=Object.keys(j);db.prepare(`INSERT INTO jobs(${columns.join(',')}) VALUES(${columns.map(()=>'?').join(',')})`).run(...columns.map(k=>k==='id'?jobId:k==='status'?'needs_review':j[k]));
+    const ac=Object.keys(a);db.prepare(`INSERT INTO articles(${ac.join(',')}) VALUES(${ac.map(()=>'?').join(',')})`).run(...ac.map(k=>k==='id'?articleId:k==='job_id'?jobId:k==='slug'?'legacy-separate-view':k==='markdown'?'# 旧形式の別見解\n## 分析・考察\n未確認の見解を保持する。\n## 不明点・限界\n別の説明が残る。':a[k]));
+    for(const row of db.prepare('SELECT * FROM checkpoints WHERE job_id=?').all(j.id)){
+      const c=Object.keys(row);let data=row.data_json;
+      if(row.stage==='analyze'){const v=JSON.parse(String(data));delete v.quality;data=JSON.stringify(v);}
+      if(row.stage==='verify')data=JSON.stringify({status:'failed',factCheckStatus:'unverified',issues:[]});
+      db.prepare(`INSERT INTO checkpoints(${c.join(',')}) VALUES(${c.map(()=>'?').join(',')})`).run(...c.map(k=>k==='job_id'?jobId:k==='data_json'?data:row[k]));
+    }
+    const before=JSON.stringify(db.prepare('SELECT * FROM articles ORDER BY id').all()),bundle=await exportPublicResearch(config,f.sources),snapshot=JSON.parse(bundle.files['public/research/snapshot.json']);
+    assert.equal(bundle.notes,2);assert.equal(snapshot.archive.saved,2);assert.equal(new Set(snapshot.notes.map((n:{id:string})=>n.id)).size,2);
+    assert.equal(bundle.files[`public/research/notes/${firstId}.md`],first.files[`public/research/notes/${firstId}.md`]);
+    const note=JSON.parse(bundle.files[`public/research/notes/${articleId}.json`]);assert.equal(note.status,'needs_review');assert.equal(note.verification.status,'failed');assert.match(note.markdown,/別の説明が残る/);
+    assert.equal(JSON.stringify(db.prepare('SELECT * FROM articles ORDER BY id').all()),before);
+    assert.equal((await exportPublicResearch(config,f.sources)).digest,bundle.digest);
+  }finally{db.close();}
+ }finally{f.close();}
+});
 test('expiry enqueues nothing, missed previous days remain visible, and repeated process failures stop after three attempts',async()=>{
  const f=await fixture();const store=new WeeklyStore(f.runtime.database.filePath);try{
  store.register(op(),at);const due=store.due(op(),at)!;

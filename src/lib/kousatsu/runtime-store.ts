@@ -5,6 +5,10 @@ import type { AnalysisResult, PipelineInput, StoredItem } from "./types";
 import type { MemoryContext, ResearchSnapshot, ResearchSource } from "./runtime-types";
 import {meaningfulTerms} from './relevance';
 import {jstDay,jstDayStart} from './weekly-config';
+import {unspecifiedRevisionEvidence} from './reflection';
+import {prematureEventInQuality} from './future-event';
+import {decisionEvaluationMatches} from './decision-evaluation';
+import {summaryMeaningIssues} from './evidence-review';
 
 const hash = (value: string) => createHash("sha256").update(value).digest("hex");
 const timestamp = (milliseconds = Date.now()) => new Date(milliseconds).toISOString();
@@ -232,13 +236,14 @@ export class ResearchStore {
           }
           return {itemId:item.id,versionId:item.versionId,claimIds:classified.claims.filter((claim) => claim.itemId===item.id && claim.versionId===item.versionId).map((claim)=>claim.id)};
         });
+        const canRemember=!analysis.quality?.evidenceReview||(verification.status==='passed'&&analysis.quality.generationStatus==='succeeded');
         const events = [
           {kind:"interpretation",text:analysis.quality?.reflection?.position ?? analysis.summary,
             reason:analysis.quality?.reflection ? JSON.stringify({reasoning:analysis.quality.reflection.reasoning,confidence:analysis.quality.reflection.confidence,
               alternative:analysis.quality.reflection.alternative,revisionCondition:analysis.quality.reflection.revisionCondition,
               assumptions:analysis.quality.reflection.assumptions,classification:'inference',independentVerification:'not-performed'}) : `${analysis.provider}/${analysis.model}; 独立した事実確認は未実施`},
           ...analysis.hypotheses.map((entry)=>({kind:"hypothesis",text:entry.text,reason:entry.rationale})),
-        ];
+        ].filter(()=>canRemember);
         events.forEach((event,index) => {
           const fingerprint=hash(JSON.stringify({kind:event.kind,text:event.text.normalize('NFKC').trim(),
             references:references.map(r=>`${r.itemId}:${r.versionId}`).sort()}));
@@ -252,11 +257,13 @@ export class ResearchStore {
         // invalidate its context, not necessarily the hypothesis itself.
         const pinned = this.db.prepare('SELECT memory_json FROM research_queue WHERE job_id=?').get(jobId) as Row;
         const previous = JSON.parse(String(pinned.memory_json)) as MemoryContext[];
-        for(const review of analysis.quality?.viewReviews??[])if(review.action!=='maintain') {
+        for(const review of analysis.quality?.viewReviews??[])if(canRemember&&review.action!=='maintain') {
           this.db.prepare('INSERT OR IGNORE INTO research_memory_revisions(old_memory_id,new_job_id,reason,created_at) VALUES(?,?,?,?)')
             .run(review.memoryId,jobId,review.action==='revise'?`旧判断の誤り・反証成立は未確認。${review.reason}`:review.reason,timestamp());
         }
-        for (const memory of previous) {
+        // A failed replacement is not a new interpretation. Keep the prior
+        // usable memory searchable until a verified replacement exists.
+        for (const memory of canRemember ? previous : []) {
           const changes = memory.references.flatMap(old => references.filter(current =>
             old.itemId === current.itemId && old.versionId !== current.versionId)
             .map(current => `${old.itemId}: ${old.versionId} -> ${current.versionId}`));
@@ -289,7 +296,20 @@ export class ResearchStore {
         (lower(topic)=? ${patterns.map(()=>"OR lower(topic) LIKE ? ESCAPE '\\' OR lower(text) LIKE ? ESCAPE '\\'").join(' ')})
       ORDER BY CASE WHEN lower(topic)=? THEN 0 ELSE 1 END,created_at DESC,id DESC LIMIT 200`)
       .all(normalized,...patterns.flatMap((pattern)=>[pattern,pattern]),normalized) as Row[];
-    const all = rows.map((row)=>this.toMemory(row));
+    // Reapply the current narrow gate to older generated views. Keep their text
+    // and history in snapshots, but do not feed a known defective view back in.
+    const all = rows.map((row)=>this.toMemory(row)).filter(memory=>{
+      const quality=memory.quality,view=quality?.reflection;
+      if(quality?.decisionEvaluation&&!decisionEvaluationMatches(quality.decisionEvaluation,view))return false;
+      if(!quality?.evidenceReview)return true;
+      if(quality.evidenceReview.summaries?.some(s=>s.facts?.some(f=>{
+        const quote=quality.observations?.find(o=>o.claimId===f.claimId)?.quote;
+        return quote&&typeof f.text==='string'&&summaryMeaningIssues(quote,f.text).length>0;
+      })))return false;
+      if(unspecifiedRevisionEvidence(view?.revisionCondition??''))return false;
+      if(!view)return true;
+      return !prematureEventInQuality(quality);
+    });
     return all.map((memory,index) => ({memory,score:
       (memory.topic.normalize("NFKC").toLowerCase() === normalized ? 10 : 0) +
       tokens.filter((token)=>`${memory.topic} ${memory.text}`.toLowerCase().includes(token)).length + 1/(index+1)}))

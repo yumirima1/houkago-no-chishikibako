@@ -14,10 +14,16 @@ export type AutonomousConfig = {
   maxKnowledgeFiles: number;
   exploration: number;
   agenda?:AgendaSettings;
-  ai: {provider: 'deterministic' | 'ollama'; model: string; timeoutMs: number};
+  ai: {provider: 'deterministic' | 'ollama'; model: string; timeoutMs: number;thinking?:boolean};
   operation?: WeeklyOperation;
   publication?:{enabled:boolean;repository:'yumirima1/houkago-no-chishikibako';branch:string};
 };
+
+/** The grounded model performs a source summary and a separate analysis call. */
+export function autonomousCycleDeadlineMs(config: AutonomousConfig) {
+  const callsPerJob=config.ai.provider==='ollama'?2:1;
+  return Math.max(240000,config.maxJobsPerCycle*(callsPerJob*config.ai.timeoutMs+90000));
+}
 
 export function parseAutonomousConfig(value: unknown, base = process.cwd()): AutonomousConfig {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('BACKEND_CONFIG_INVALID');
@@ -39,7 +45,7 @@ export function parseAutonomousConfig(value: unknown, base = process.cwd()): Aut
   const provider = ai.provider ?? 'deterministic';
   if (provider !== 'deterministic' && provider !== 'ollama') throw new Error('BACKEND_CONFIG_INVALID: provider');
   const timeoutMs = ai.timeoutMs ?? 60000;
-  if (typeof timeoutMs !== 'number' || !Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 300000 ||
+  if ((ai.thinking!==undefined&&typeof ai.thinking!=='boolean')||typeof timeoutMs !== 'number' || !Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 600000 ||
       (ai.model !== undefined && typeof ai.model !== 'string') || (provider === 'ollama' && !ai.model)) {
     throw new Error('BACKEND_CONFIG_INVALID: ai settings');
   }
@@ -53,7 +59,7 @@ export function parseAutonomousConfig(value: unknown, base = process.cwd()): Aut
     pollSeconds: integer('pollSeconds',30,5,3600), maxJobsPerCycle: integer('maxJobsPerCycle',6,1,100),
     maxJobsPerDay: integer('maxJobsPerDay',100,1,10000), maxDatabaseMiB: integer('maxDatabaseMiB',1024,1,102400),
     minFreeMiB: integer('minFreeMiB',1024,1,102400), maxKnowledgeFiles: integer('maxKnowledgeFiles',50000,1,1000000),
-    exploration, ai:{provider,model: String(ai.model ?? 'rules-v1'),timeoutMs},
+    exploration, ai:{provider,model: String(ai.model ?? 'rules-v1'),timeoutMs,...(ai.thinking===undefined?{}:{thinking:ai.thinking})},
     ...(row.agenda===undefined?{}:{agenda:parseAgendaSettings(row.agenda)}),
     ...(row.operation===undefined ? {} : {operation:parseWeeklyOperation(row.operation)}),
     ...(publication?{publication}:{}),

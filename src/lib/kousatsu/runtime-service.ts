@@ -28,6 +28,8 @@ function withMemory(provider: KousatsuAiProvider, memories: MemoryContext[]): Ko
       base:provider.configurationFingerprint ?? null,memories:frozen,wrapper:1,
     })).digest("hex"),
     analyze:(context)=>provider.analyze({...context,memories:structuredClone(frozen)}),
+    get calls(){return provider.calls;},
+    get rawCalls(){return provider.rawCalls;},
   };
 }
 
@@ -109,7 +111,7 @@ export class ResearchRuntime {
           }
         }
         const provider=withMemory(this.providerForJob?.(next.jobId) ?? this.provider ?? createAiProviderFromEnvironment(),next.memories);
-        const result=await new KousatsuPipeline(this.database,{provider}).resume(next.jobId);
+        const result=await new KousatsuPipeline(this.database,{provider,sources:this.sources}).resume(next.jobId);
         if (leaseError) throw leaseError;
         this.store.complete(next.jobId,token);
         return {status:"completed" as const,jobId:next.jobId,result};

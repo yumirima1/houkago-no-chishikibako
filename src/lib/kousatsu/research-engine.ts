@@ -1,13 +1,15 @@
 import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { type AnalysisContext, type KousatsuAiProvider } from './ai';
-import { buildQualityAnalysis } from './quality-analysis';
+import { buildQualityAnalysis,selectGroundedClaims } from './quality-analysis';
 import { compareRecords, meaningfulTerms } from './relevance';
 import {reflectionQuestion} from './reflection';
 import type { KousatsuDatabase } from './database';
 import type { AnalysisResult } from './types';
 import {verifySourceBindings} from './source-verification';
 import {extractInterestCandidates,readInterestBasis,assessInterests} from './interest-evaluation';
+import {auditSourceSummaries,evaluateEvidence,type SourceSummary} from './evidence-review';
+import {reviewInquiries,type InquiryContext} from './inquiry-review';
 
 const stopwords = new Set('about after again also and are before being can comes could first for from has have into its more nasa news not now that the their there these they this through today united was were what when which who will with would library congress'.split(' '));
 
@@ -23,7 +25,7 @@ export type TopicDecision = {topic: string; reason: string; candidates: string[]
 /** Bounded, reproducible once persisted; randomness affects research questions, never source facts. */
 export function selectResearchTopic(context: AnalysisContext, history: string[], exploration=0.25, draw=randomInt(1_000_000)/1_000_000): TopicDecision {
   const proposals=context.items.slice(0,30).filter(item=>meaningfulTerms(item.title).size>=3 || meaningfulTerms(item.summary??item.content??'').size>=5)
-    .flatMap((item,index)=>[0,1].map(aspect=>({item,topic:aspect===0 ? `「${item.title.slice(0,180)}」を手掛かりに、${reflectionQuestion(item.title,context.claims.filter(c=>c.itemId===item.id).map(c=>c.text).join(' '))}` :
+    .flatMap((item,index)=>[0,1].map(aspect=>({item,topic:aspect===0 ? `「${item.title.slice(0,180)}」を手掛かりに、${context.groundedRequest?'資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。':reflectionQuestion(item.title,context.claims.filter(c=>c.itemId===item.id).map(c=>c.text).join(' '))}` :
       `「${item.title.slice(0,180)}」について、自分の見方を変えるのはどんな情報か。`,
       score:(context.coverage?.some(c=>c.itemId===item.id && c.kind==='article-body')?5:0)+
         (item.summary || item.content ? 2:0)+1/(1+index)-aspect*0.1}))).sort((a,b)=>b.score-a.score);
@@ -113,17 +115,20 @@ export function safeDiagnostic(error: unknown) {
 /** A stable provider identity keeps retries compatible even if Ollama is offline. */
 export class ResearchEngine implements KousatsuAiProvider {
   readonly id='autonomous';
-  readonly model='research-v6';
+  readonly model='research-v11';
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:6,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:11,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
     const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
-    const decision=this.options.history.decision(this.options.jobId,context,this.options.exploration,plan?.inquiryIds.length?plan.question:undefined);
+    const reader=new DatabaseSync(this.options.database.filePath,{readOnly:true});let inquiries:InquiryContext[]=[];
+    try{if(reader.prepare("SELECT name FROM sqlite_master WHERE name='research_inquiries'").get())inquiries=reader.prepare("SELECT q.* FROM research_inquiries q JOIN research_inquiry_attempts t ON t.inquiry_id=q.id WHERE t.job_id=? AND t.status='selected' LIMIT 2").all(this.options.jobId).map(r=>({id:String(r.id),question:String(r.question),originJob:String(r.origin_job),references:JSON.parse(String(r.references_json))}));}finally{reader.close();}
+    const decision=this.options.history.decision(this.options.jobId,{...context,groundedRequest:Boolean(this.options.provider.summarizeGrounded)},this.options.exploration,plan?.inquiryIds.length?plan.question:undefined);
     // Search previously fetched documents only. Match is a lead, not semantic refutation.
-    const focusIds=decision.focusItemIds ?? context.items.slice(0,1).map(item=>item.id);
+    const strict=Boolean(this.options.provider.summarizeGrounded);
+    const focusIds=strict&&context.items.length<=3?context.items.map(i=>i.id):decision.focusItemIds ?? context.items.slice(0,1).map(item=>item.id);
     const focus=context.items.filter(item=>focusIds.includes(item.id));
     const keys=[...meaningfulTerms(focus[0]?.title ?? '')].slice(0,4);
     const current=new Set(context.items.map(item => item.id));
@@ -136,21 +141,43 @@ export class ResearchEngine implements KousatsuAiProvider {
     let proposal:unknown;
     let used='deterministic/reflection-v3';
     let error: string|null=null;
-    const selected={...context,topic:decision.topic,items:focus,claims:context.claims.filter(c=>focusIds.includes(c.itemId!)),interestCandidates:extractInterestCandidates(focus),interestBasis:readInterestBasis(this.options.database.filePath),
+    const selected={...context,inquiries,topic:decision.topic,items:focus,claims:context.claims.filter(c=>focusIds.includes(c.itemId!)),groundedRequest:strict,interestCandidates:extractInterestCandidates(focus.slice(0,1)),interestBasis:readInterestBasis(this.options.database.filePath),
       memories:(context.memories??[]).filter(m=>m.quality?.reflection&&m.references.some(ref=>{
         if(focusIds.includes(ref.itemId))return true;
         const old=this.options.database.getItemVersion(ref.versionId);
         return old&&focus.some(item=>['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(old,item).kind));
       })).slice(0,2)};
+    selected.claims=selectGroundedClaims(selected,focusIds);
+    let summaries:SourceSummary[]=[],summaryIssues:string[]=[],summaryWarnings:string[]=[],summaryMs=0,generationMs=0;
+    if(strict&&focus.length){
+      const summaryStart=Date.now();
+      try {
+        const raw=await this.options.provider.summarizeGrounded!(selected);
+        const audit=auditSourceSummaries(selected,raw);summaries=audit.summaries;summaryIssues=audit.fatalIssues;summaryWarnings=audit.warnings;
+        this.options.database.saveCheckpoint(this.options.jobId,'source-summaries',{raw,...audit,elapsedMs:Date.now()-summaryStart});
+      }catch(e){summaryIssues=['MODEL_SUMMARY_FAILED'];error=safeDiagnostic(e);
+        this.options.database.saveCheckpoint(this.options.jobId,'source-summaries',{error,elapsedMs:Date.now()-summaryStart});}
+      summaryMs=Date.now()-summaryStart;
+    }
     if(focus.length)try {
-      if(this.options.provider.proposeGrounded) {proposal=await this.options.provider.proposeGrounded(selected);used=`${this.options.provider.id}/${this.options.provider.model}`;}
+      const generationStart=Date.now();
+      if(this.options.provider.proposeGrounded) {proposal=await this.options.provider.proposeGrounded({...selected,sourceSummaries:summaries});used=`${this.options.provider.id}/${this.options.provider.model}`;}
       else if(this.options.provider.id!=='deterministic') {await this.options.provider.analyze(selected);error='MODEL_SOURCE_BINDINGS_REQUIRED';}
-    } catch(e) {error=safeDiagnostic(e);}
-    const quality=buildQualityAnalysis(context,decision.topic,focusIds,proposal);
+      generationMs=Date.now()-generationStart;
+    } catch(e) {error=safeDiagnostic(e);generationMs=Date.now()-started-summaryMs;}
+    this.options.database.saveCheckpoint(this.options.jobId,'research-model-output',{proposal:proposal??null,error,requested:`${this.options.provider.id}/${this.options.provider.model}`,calls:this.options.provider.calls??[],rawCalls:this.options.provider.rawCalls??[]});
+    const validationStart=Date.now();
+    const quality=buildQualityAnalysis({...context,groundedRequest:strict},decision.topic,focusIds,proposal);
+    if(strict){
+      quality.reflection!.confidence=Math.min(.45,quality.reflection!.confidence);
+      if(!context.coverage?.some(c=>c.itemId===focus[0]?.id&&c.kind==='article-body'&&c.status==='available'))quality.modelIssues.push('PRIMARY_BODY_REQUIRED');
+    }
+    quality.discovery=context.discovery;
     quality.sourceVerification=verifySourceBindings(context,quality,[...context.items,...matches]);
     const sourceConflicts=quality.sourceVerification.claims.filter(c=>c.result==='conflict-candidate');
     if(sourceConflicts.length){quality.unresolved.push(`保存済みの別資料と数値が異なる主張が${sourceConflicts.length}件ある。観測条件と独立性の確認が必要。`);quality.reflection!.confidence=Math.min(.25,quality.reflection!.confidence);}
     else quality.unresolved.push('保存済み資料の照合では、独立性を確定した別ソースの裏付けは得られていない。未照合は反証ではない。');
+    for(const review of quality.viewReviews??[])review.confidence=Math.min(review.confidence,quality.reflection!.confidence,review.action==='maintain'?review.previousConfidence:1);
     for(const entry of quality.priorMemory.filter(m=>m.decision==='excluded')) {
       const memory=context.memories?.find(m=>m.id===entry.id);
       if(!memory?.quality)continue;
@@ -167,16 +194,25 @@ export class ResearchEngine implements KousatsuAiProvider {
       if(quality.viewReviews?.some(r=>r.memoryId===memory.id))continue;
       const old=memory.quality!.reflection!;
       const changed=old.position!==quality.reflection!.position||sourceConflicts.length>0;
-      quality.viewReviews??=[];quality.viewReviews.push({memoryId:memory.id,action:changed?'revise':'maintain',previousConfidence:old.confidence,confidence:quality.reflection!.confidence,counterClaimIds:[],reason:sourceConflicts.length?'関連する別資料に数値の食い違い候補があるため判断を再検討する。矛盾成立と情報源の独立性は未確認。':'同じ問題の別資料を参照した再検討。旧判断の誤り・反証成立は未確認。過去の文章を根拠となる事実としては扱わない。'});
+      quality.viewReviews??=[];quality.viewReviews.push({memoryId:memory.id,action:changed?'revise':'maintain',previousConfidence:old.confidence,confidence:Math.min(quality.reflection!.confidence,changed?1:old.confidence),counterClaimIds:[],reason:sourceConflicts.length?'関連する別資料に数値の食い違い候補があるため判断を再検討する。矛盾成立と情報源の独立性は未確認。':'同じ問題の別資料を参照した再検討。旧判断の誤り・反証成立は未確認。過去の文章を根拠となる事実としては扱わない。'});
     }
     if(quality.modelIssues.length)error=[error,...quality.modelIssues].filter(Boolean).join('; ');
-    const method=quality.reflection?.origin??'rules',responseReceived=proposal!==undefined;
-    if(method==='rules'&&!quality.conclusions.length&&!quality.hypotheses.length)used='deterministic/reflection-v3';
-    const modelStatus=this.options.provider.id==='deterministic'?'not-requested':!responseReceived?'failed':method==='model'&&!error?'succeeded':used.startsWith('deterministic/')?'failed':'partial';
+    if(summaryIssues.length)error=[error,...summaryIssues].filter(Boolean).join('; ');
+    if(strict){
+      quality.evidenceReview=evaluateEvidence(selected,quality,summaries,[...summaryIssues],proposal);
+      if(summaryWarnings.length)quality.evidenceReview.summaryWarnings=summaryWarnings;
+      const comparisonIssues=quality.evidenceReview.summaryIssues.filter(i=>!summaryIssues.includes(i));
+      if(comparisonIssues.length)error=[error,...comparisonIssues].filter(Boolean).join('; ');
+    }
+    const method=quality.reflection?.origin??'rules',responseReceived=proposal!==undefined||Boolean(this.options.provider.rawCalls?.some(call=>call.metrics.phase==='analysis'&&typeof call.response==='string'));
+    if(method==='rules'&&!quality.conclusions.length&&!quality.hypotheses.length)used=strict?'none/rejected-model-output':'deterministic/reflection-v3';
+    const modelStatus=this.options.provider.id==='deterministic'?'not-requested':!responseReceived||strict&&method==='rules'?'failed':method==='model'&&!error?'succeeded':used.startsWith('deterministic/')?'failed':'partial';
+    quality.generationStatus=modelStatus;
     const summary=`${quality.reflection!.position} 理由: ${quality.reflection!.reasoning}`;
     const analysis:AnalysisResult={quality,summary,provider:used.split('/')[0],model:used.split('/')[1],hypotheses:quality.hypotheses.map(h=>({text:h.text,
       rationale:`前提: ${h.premiseClaimIds.join(', ')} / 予測: ${h.prediction} / 反証: ${h.falsification} / 代替説明: ${h.alternative} / 必要資料: ${h.requiredEvidence}`}))};
     const research: NonNullable<AnalysisResult['research']>={
+      inquiryReviews:reviewInquiries(selected,quality,(proposal as {inquiryReviews?:unknown}|undefined)?.inquiryReviews),
       interests:assessInterests(proposal,selected,`${this.options.provider.id}/${this.options.provider.model}`),
       topic:decision.topic,reason:decision.reason,candidates:decision.candidates,
       memories:selected.memories.map(m=>({id:m.id,jobId:m.jobId,text:m.text})),
@@ -184,10 +220,12 @@ export class ResearchEngine implements KousatsuAiProvider {
         claimId:claim.id,itemId:claim.itemId!,versionId:claim.versionId!,excerpt:claim.text.slice(0,300),
         url:context.items.find(item => item.id===claim.itemId)!.url,
       })),counterSearch,
-      questions:[`「${focus[0]?.title??decision.topic}」の記述は別の独立した情報源でも確認できるか。`,
-        `「${focus[0]?.title??decision.topic}」に関する過去の仮説は、文書版の更新によって維持できなくなるか。`,
-        '継続的な現象という解釈と、配信元の選択・報道頻度の偏りという解釈を、時系列と異なる配信元で比較する。'],
-      model:{requested:`${this.options.provider.id}/${this.options.provider.model}`,used:`${analysis.provider}/${analysis.model}`,elapsedMs:Date.now()-started,error,status:modelStatus,responseReceived,method},
+      questions:strict?[`「${focus[0]?.title??decision.topic}」: ${quality.reflection!.revisionCondition}`,
+        ...(summaries.slice(0,1).map(s=>`「${focus[0]?.title??decision.topic}」: ${s.limitation} この未確認点をどの原資料で検証できるか。`))]:[
+        `「${focus[0]?.title??decision.topic}」の記述は別の独立した情報源でも確認できるか。`,
+        `「${focus[0]?.title??decision.topic}」に関する過去の仮説は、文書版の更新によって維持できなくなるか。`],
+      model:{requested:`${this.options.provider.id}/${this.options.provider.model}`,used:`${analysis.provider}/${analysis.model}`,elapsedMs:Date.now()-started,error,status:modelStatus,responseReceived,method,
+        timings:{retrievalMs:context.retrievalMs??0,summaryMs,generationMs,validationMs:Date.now()-validationStart},calls:this.options.provider.calls??[]},
     };
     return {...analysis,research};
   }

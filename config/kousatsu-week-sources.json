@@ -1,6 +1,27 @@
 {
-  "note": "実取得・本文取得を検証済みの出典。既存3出典設定を保持した独立設定。公開日と取得日時は区別。",
+  "note": "既存出典を保持し、日本語の理研・JAXA・NDLの公式RSSを追加。公開日・出来事の日・取得日時を区別。本文は許可ホストとrobotsの範囲で私有保存する。",
   "sources": [
+    {
+      "id":"riken-ja","name":"理化学研究所 プレスリリース","genre":"science",
+      "feedUrl":"https://www.riken.jp/feed/press_feed/","topic":"科学 物理 生命 情報 理化学研究所",
+      "enabled":true,"intervalMinutes":1440,"contentPolicy":"metadata-and-feed-summary",
+      "profile":{"publisher":"riken.jp","language":"ja","region":"JP","kind":"research","policyUrl":"https://www.riken.jp/terms/","checkedAt":"2026-10-28T08:50:00.000Z","interests":"研究実施機関による成果の発表。独立した再現検証とは区別する。"},
+      "articlePolicy":{"enabled":true,"allowedHosts":["www.riken.jp","www.jasri.jp"],"maxArticles":2,"cacheMinutes":1440,"followLinks":1}
+    },
+    {
+      "id":"jaxa-ja","name":"JAXA プレスリリース","genre":"science",
+      "feedUrl":"https://www.jaxa.jp/rss/press_j.rdf","topic":"科学 宇宙 航空 JAXA",
+      "enabled":true,"intervalMinutes":1440,"contentPolicy":"metadata-and-feed-summary",
+      "profile":{"publisher":"jaxa.jp","language":"ja","region":"JP","kind":"official","policyUrl":"https://www.jaxa.jp/policy_j.html","checkedAt":"2026-10-28T08:50:00.000Z","interests":"研究開発の実施主体。発表・予定と運用後の検証を区別する。"},
+      "articlePolicy":{"enabled":true,"allowedHosts":["www.jaxa.jp","global.jaxa.jp"],"maxArticles":2,"cacheMinutes":1440,"followLinks":1}
+    },
+    {
+      "id":"ndl-ja","name":"国立国会図書館 カレントアウェアネス-R","genre":"culture",
+      "feedUrl":"https://current.ndl.go.jp/car-rss","topic":"文化 歴史 図書館 資料保存 アーカイブ",
+      "enabled":true,"intervalMinutes":1440,"contentPolicy":"metadata-and-feed-summary",
+      "profile":{"publisher":"ndl.go.jp","language":"ja","region":"JP","kind":"reporting","policyUrl":"https://current.ndl.go.jp/sitepolicy","checkedAt":"2026-10-28T08:50:00.000Z","interests":"国内外の図書館ニュースの紹介。紹介先の原資料との依存を確認する。"},
+      "articlePolicy":{"enabled":true,"allowedHosts":["current.ndl.go.jp","www.ndl.go.jp","www.shochiku.co.jp"],"maxArticles":2,"cacheMinutes":1440,"followLinks":1}
+    },
     {
       "id": "hf-ai",
       "name": "Hugging Face Blog",
@@ -13,11 +34,12 @@
       "articlePolicy": {
         "enabled": true,
         "allowedHosts": [
-          "huggingface.co"
+          "huggingface.co",
+          "arxiv.org"
         ],
         "maxArticles": 1,
         "cacheMinutes": 1440,
-        "followLinks": 0
+        "followLinks": 1
       }
     },
     {
@@ -106,14 +128,16 @@
       "enabled": true,
       "intervalMinutes": 1440,
       "contentPolicy": "metadata-only",
+      "profile":{"publisher":"loc.gov","language":"en","region":"US","kind":"official","policyUrl":"https://www.loc.gov/legal/","checkedAt":"2026-10-28T09:25:00.000Z","interests":"所蔵機関による資料紹介。歴史上の人物・出来事と記事の公開時点を区別する。"},
       "articlePolicy": {
         "enabled": true,
         "allowedHosts": [
-          "blogs.loc.gov"
+          "blogs.loc.gov",
+          "www.loc.gov"
         ],
         "maxArticles": 1,
         "cacheMinutes": 1440,
-        "followLinks": 0
+        "followLinks": 1
       }
     },
     {

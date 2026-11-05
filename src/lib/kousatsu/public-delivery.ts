@@ -19,8 +19,11 @@ export async function verifyPublicDelivery(file:string,bundle:{digest:string;fil
       db.prepare('UPDATE public_delivery_checks SET status=?,error=? WHERE digest=?').run(previous.status,previous.error,bundle.digest);
       publicationEvent(db,'delivery',bundle.digest,Number(previous.attempts),String(previous.status),now,String(previous.error));
     }
-    if(previous&&(previous.status==='succeeded'||Number(previous.attempts)>=3||(!options.force&&String(previous.next_at)>new Date(now).toISOString())))return {status:String(previous.status),attempts:Number(previous.attempts),commit:previous.deployed_commit};
-    db.prepare(`INSERT INTO public_delivery_checks VALUES(?,1,?,'running',NULL,?,NULL,NULL,?) ON CONFLICT(digest) DO UPDATE SET attempts=attempts+1,status='running',next_at=excluded.next_at`).run(bundle.digest,new Date(now+300000).toISOString(),publishedCommit,JSON.stringify(ids));
+    // Recheck an unchanged successful archive hourly. A cached success alone
+    // cannot detect a later Pages rollback, missing note or corrupted payload.
+    const recheck=previous?.status==='succeeded'&&(options.force||now-Date.parse(String(previous.checked_at))>=3600000);
+    if(previous&&!recheck&&(previous.status==='succeeded'||Number(previous.attempts)>=3||(!options.force&&String(previous.next_at)>new Date(now).toISOString())))return {status:String(previous.status),attempts:Number(previous.attempts),commit:previous.deployed_commit};
+    db.prepare(`INSERT INTO public_delivery_checks VALUES(?,1,?,'running',NULL,?,NULL,NULL,?) ON CONFLICT(digest) DO UPDATE SET attempts=CASE WHEN status='succeeded' THEN 1 ELSE attempts+1 END,status='running',next_at=excluded.next_at`).run(bundle.digest,new Date(now+300000).toISOString(),publishedCommit,JSON.stringify(ids));
     const attempt=Number(db.prepare('SELECT attempts FROM public_delivery_checks WHERE digest=?').get(bundle.digest)!.attempts);
     publicationEvent(db,'delivery',bundle.digest,attempt,'running',now);
     try{

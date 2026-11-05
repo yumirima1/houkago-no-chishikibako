@@ -3,14 +3,14 @@ import {DatabaseSync} from 'node:sqlite';
 import {ResearchAgenda,type AgendaSettings} from './research-agenda';
 import {auditPublicArticles,publicDecisionCounts} from './public-audit';
 import type {AutonomousConfig} from './autonomous-config';
-import {autonomousPaths} from './autonomous-config';
+import {autonomousPaths,autonomousCycleDeadlineMs} from './autonomous-config';
 
 export function readResearchSummary(file:string,settings?:AgendaSettings){
   if(!existsSync(file))return null;const db=new DatabaseSync(file,{readOnly:true});
   try{if(!db.prepare("SELECT name FROM sqlite_master WHERE name='research_interests'").get())return null;}
   finally{db.close();}
   const agenda=new ResearchAgenda(file,settings,{readOnly:true});try{
-    const summary=agenda.summary();return {openInquiries:(summary.inquiryCounts.open??0)+(summary.inquiryCounts.selected??0),exhaustedInquiries:(summary.inquiryCounts.exhausted??0)+(summary.inquiryCounts.waiting_evidence??0),interestScores:agenda.interests().filter(i=>i.kind==='genre').map(i=>({genre:i.label,score:i.score})),lastSelection:summary.lastPlan?{sources:summary.lastPlan.sources.map(s=>({id:s.id,score:s.score,candidateLimit:s.candidateLimit}))}:null};
+    const summary=agenda.summary();return {openInquiries:(summary.inquiryCounts.open??0)+(summary.inquiryCounts.selected??0)+(summary.inquiryCounts.partially_resolved??0),exhaustedInquiries:(summary.inquiryCounts.exhausted??0)+(summary.inquiryCounts.waiting_evidence??0),interestScores:agenda.interests().filter(i=>i.kind==='genre').map(i=>({genre:i.label,score:i.score})),lastSelection:summary.lastPlan?{sources:summary.lastPlan.sources.map(s=>({id:s.id,score:s.score,candidateLimit:s.candidateLimit}))}:null};
   }finally{agenda.close();}
 }
 /** A diagnostic read never creates a DB, migrates it, starts work, or advances a lease. */
@@ -23,7 +23,7 @@ export function inspectBackend(config:AutonomousConfig,now=Date.now()){
     const supervisor=has('autonomy_supervisor')?db.prepare('SELECT expires_at FROM autonomy_supervisor WHERE id=1').get():null;
     const cycles=has('autonomy_runs')?db.prepare('SELECT id,started_at,finished_at,status,details_json FROM autonomy_runs ORDER BY id DESC LIMIT 10').all().map(r=>({id:r.id,startedAt:r.started_at,finishedAt:r.finished_at,status:r.status,details:r.details_json?JSON.parse(String(r.details_json)):null})):[];
     const active=Boolean(supervisor&&String(supervisor.expires_at)>new Date(now).toISOString());
-    const deadline=Math.max(240000,config.maxJobsPerCycle*(config.ai.timeoutMs+60000))+90000;
+    const deadline=autonomousCycleDeadlineMs(config)+90000;
     const last=cycles[0],stalled=!!last&&last.status==='running'&&now-Date.parse(String(last.startedAt))>deadline;
     const publication=has('public_publish_state')?db.prepare('SELECT digest,status,attempts,error,commit_sha FROM public_publish_state ORDER BY rowid DESC LIMIT 5').all():[];
     const delivery=has('public_delivery_checks')?db.prepare('SELECT digest,status,attempts,error,expected_commit,deployed_commit,checked_at FROM public_delivery_checks ORDER BY rowid DESC LIMIT 5').all():[];

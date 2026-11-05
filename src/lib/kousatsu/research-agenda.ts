@@ -4,6 +4,7 @@ import {meaningfulTerms} from './relevance';
 import type {ResearchSource} from './runtime-types';
 import type {AnalysisResult,StoredItem} from './types';
 import {interestDelta,type InterestAssessment} from './interest-evaluation';
+import {inquiryKey,reviewInquiries,type InquiryReview} from './inquiry-review';
 
 const day=86400000,hash=(v:string)=>createHash('sha256').update(v).digest('hex');
 const clamp=(n:number)=>Math.max(0,Math.min(100,n));
@@ -41,6 +42,7 @@ export class ResearchAgenda {
       CREATE TABLE IF NOT EXISTS research_inquiries(id TEXT PRIMARY KEY,origin_job TEXT NOT NULL,question TEXT NOT NULL,genre TEXT NOT NULL,terms_json TEXT NOT NULL,references_json TEXT NOT NULL,priority REAL NOT NULL,attempts INTEGER NOT NULL DEFAULT 0,status TEXT NOT NULL DEFAULT 'open',created_at TEXT NOT NULL,updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS research_inquiry_events(id TEXT PRIMARY KEY,inquiry_id TEXT NOT NULL,job_id TEXT,kind TEXT NOT NULL,details_json TEXT NOT NULL,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS research_inquiry_attempts(inquiry_id TEXT NOT NULL,job_id TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(inquiry_id,job_id));
+      CREATE TABLE IF NOT EXISTS research_inquiry_evaluations(inquiry_id TEXT NOT NULL,job_id TEXT NOT NULL,status TEXT NOT NULL,review_json TEXT NOT NULL,created_at TEXT NOT NULL,PRIMARY KEY(inquiry_id,job_id));
       CREATE TABLE IF NOT EXISTS research_slot_plans(operation_id TEXT NOT NULL,slot TEXT NOT NULL,plan_json TEXT NOT NULL,PRIMARY KEY(operation_id,slot));
       CREATE TABLE IF NOT EXISTS research_interest_assessments(job_id TEXT PRIMARY KEY,status TEXT NOT NULL,provider TEXT NOT NULL,issues_json TEXT NOT NULL,candidate_count INTEGER NOT NULL,applied INTEGER NOT NULL,created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS research_interest_activity(interest_key TEXT PRIMARY KEY,active INTEGER NOT NULL CHECK(active IN (0,1)),updated_at TEXT NOT NULL);
@@ -99,14 +101,15 @@ export class ResearchAgenda {
           const terms=[...meaningfulTerms(primary.title)].slice(0,12);
           const questions=[...(analysis.research?.questions??[]).slice(0,2),`「${primary.title}」の判断を再評価する条件: ${quality.reflection.revisionCondition}`].filter(q=>q.trim().length>=12).slice(0,3);
           for(const question of questions){
+            if(this.sameQuestion(question,genre))continue;
             const id=hash(`${primary.id}:${question.normalize('NFKC')}`);
             const added=this.db.prepare('INSERT OR IGNORE INTO research_inquiries VALUES(?,?,?,?,?,?,?,0,\'open\',?,?)')
-              .run(id,row.id,question.slice(0,900),genre,JSON.stringify(terms),JSON.stringify([`${primary.id}:${version}`]),quality.status==='limited'?80:60,row.created_at,at).changes;
+              .run(id,row.id,question.slice(0,900),genre,JSON.stringify(terms),JSON.stringify(items.filter(i=>quality.focusItemIds.includes(i.id)).map(i=>`${i.id}:${i.versionId??i.contentHash}`)),quality.status==='limited'?80:60,row.created_at,at).changes;
             if(added){created++;this.event(id,String(row.id),'created',{reason:'UNRESOLVED_QUESTION',sourceItemId:primary.id,versionId:version},now);}
           }
           // A new source/version can reopen a bounded inquiry; the same evidence
           // receipt never resets its attempts on another poll or crash recovery.
-          if(novel)for(const inquiry of this.inquiries(100).filter(q=>q.origin_job!==row.id&&['exhausted','waiting_evidence'].includes(q.status)&&q.genre===genre)){
+          if(novel)for(const inquiry of this.inquiries(100).filter(q=>q.origin_job!==row.id&&['exhausted','waiting_evidence','partially_resolved'].includes(q.status)&&q.genre===genre)){
             if(inquiry.terms.filter(t=>meaningfulTerms(primary.title).has(t)).length<2)continue;
             const receipt=hash(`${inquiry.id}:new-evidence:${version}`);
             if(this.db.prepare('SELECT id FROM research_inquiry_events WHERE id=?').get(receipt))continue;
@@ -118,21 +121,39 @@ export class ResearchAgenda {
       }
       this.decay(now);
       let finished=0;
-      for(const row of this.db.prepare("SELECT t.*,j.status job_status,c.data_json FROM research_inquiry_attempts t JOIN jobs j ON j.id=t.job_id LEFT JOIN checkpoints c ON c.job_id=j.id AND c.stage='analyze' WHERE t.status='selected' AND j.status IN ('succeeded','needs_review','failed','cancelled')").all()){
+      for(const row of this.db.prepare("SELECT t.*,j.status job_status,c.data_json,v.data_json verification_json FROM research_inquiry_attempts t JOIN jobs j ON j.id=t.job_id LEFT JOIN checkpoints c ON c.job_id=j.id AND c.stage='analyze' LEFT JOIN checkpoints v ON v.job_id=j.id AND v.stage='verify' WHERE t.status='selected' AND j.status IN ('succeeded','needs_review','failed','cancelled')").all()){
         const analysis=row.data_json?JSON.parse(String(row.data_json)) as AnalysisResult:null;
-        // A hypothesis review is evidence for that hypothesis, not an answer to
-        // every inquiry bound to this job. Retain the question until an explicit
-        // inquiry-level answer can be grounded and reviewed.
-        const resolved=false;
+        const verification=row.verification_json?JSON.parse(String(row.verification_json)):null;
+        const candidate=analysis?.research?.inquiryReviews?.find(r=>r.inquiryId===row.inquiry_id);
+        const inquiry=this.inquiries(10000).find(q=>q.id===row.inquiry_id)!;
+        let review:InquiryReview={inquiryId:inquiry.id,question:inquiry.question,criterion:'質問に対応する引用と回答の検査を通過すること。',answer:null,status:'unresolved',reason:'研究が失敗したか、検査済みの質問別回答がない。',evidence:[],remainingQuestions:[inquiry.question],nextQuestions:[],memoryIds:[],limitations:['仮説レビューだけを課題解決とみなさない。'],independentVerification:'not-established'};
+        if(candidate&&candidate.question===inquiry.question&&verification?.status==='passed'&&verification.factCheckStatus!=='contradicted'&&analysis?.quality){
+          const selected=this.db.prepare("SELECT data_json FROM checkpoints WHERE job_id=? AND stage='selected-items'").get(row.job_id);
+          const classified=this.db.prepare("SELECT data_json FROM checkpoints WHERE job_id=? AND stage='classify'").get(row.job_id);
+          if(selected&&classified){
+            const documents=JSON.parse(String(selected.data_json)),claims=JSON.parse(String(classified.data_json)).claims??[];
+            review=reviewInquiries({topic:inquiry.question,inquiries:[{id:inquiry.id,question:inquiry.question,originJob:inquiry.origin_job,references:inquiry.references}],items:documents.items??[],claims,relations:[],coverage:documents.coverage,memories:(analysis.research?.memories??[]).map(m=>({...m} as import('./runtime-types').MemoryContext))},analysis.quality,[{...candidate,claimIds:candidate.evidence?.map(o=>o.claimId)}])[0];
+          }
+        }
+        const resolved=review.status==='resolved';
         const attempts=Number(this.db.prepare('SELECT attempts FROM research_inquiries WHERE id=?').get(row.inquiry_id)?.attempts??0);
-        const status=resolved?'resolved':attempts>=this.settings.maxInquiryAttempts?'exhausted':'open';
+        const status=resolved?'resolved':review.status==='partially_resolved'?'partially_resolved':attempts>=this.settings.maxInquiryAttempts?'exhausted':'open';
+        this.db.prepare('INSERT OR IGNORE INTO research_inquiry_evaluations VALUES(?,?,?,?,?)').run(inquiry.id,row.job_id,review.status,JSON.stringify({...review,relatedJobId:row.job_id,hypothesisReviews:analysis?.quality?.hypothesisReviews??[],viewReviews:analysis?.quality?.viewReviews??[]}),at);
         this.db.prepare('UPDATE research_inquiry_attempts SET status=? WHERE inquiry_id=? AND job_id=?').run(String(row.job_status),row.inquiry_id,row.job_id);
         this.db.prepare('UPDATE research_inquiries SET status=?,updated_at=? WHERE id=?').run(status,at,row.inquiry_id);
-        this.event(String(row.inquiry_id),String(row.job_id),'attempt-finished',{status,jobStatus:row.job_status,hypothesisReviews:analysis?.quality?.hypothesisReviews?.length??0,evidenceConditionMatched:resolved,independentVerification:'unverified'},now);finished++;
+        this.event(String(row.inquiry_id),String(row.job_id),'attempt-finished',{status,jobStatus:row.job_status,review,evidenceConditionMatched:resolved,independentVerification:'unverified'},now);
+        for(const question of review.nextQuestions.slice(0,2)){
+          if(this.sameQuestion(question,inquiry.genre))continue;
+          const id=hash(`${inquiry.genre}:${inquiryKey(question)}`);
+          const added=this.db.prepare("INSERT OR IGNORE INTO research_inquiries VALUES(?,?,?,?,?,?,?,0,'open',?,?)").run(id,row.job_id,question,inquiry.genre,JSON.stringify(inquiry.terms),JSON.stringify(review.evidence.map(o=>`${o.itemId}:${o.versionId}`)),Math.max(20,inquiry.priority-5),at,at).changes;
+          if(added){created++;this.event(id,String(row.job_id),'created',{reason:'INQUIRY_REVIEW_FOLLOW_UP',parentInquiryId:inquiry.id},now);}
+        }
+        finished++;
       }
       return {ingested,created,finished};
     });
   }
+  private sameQuestion(question:string,genre:string){const key=inquiryKey(question);return this.db.prepare('SELECT question FROM research_inquiries WHERE genre=?').all(genre).some(r=>inquiryKey(String(r.question))===key);}
   private event(id:string,job:string|null,kind:string,details:unknown,now:number,receipt=hash(`${id}:${job}:${kind}`)){
     this.db.prepare('INSERT OR IGNORE INTO research_inquiry_events VALUES(?,?,?,?,?,?)').run(receipt,id,job,kind,JSON.stringify(details),new Date(now).toISOString());
   }
@@ -170,7 +191,7 @@ export class ResearchAgenda {
   inquiries(limit=100):Inquiry[]{return this.db.prepare("SELECT * FROM research_inquiries ORDER BY CASE status WHEN 'open' THEN 0 WHEN 'selected' THEN 1 ELSE 2 END,priority DESC,created_at LIMIT ?").all(limit).map(r=>({id:String(r.id),origin_job:String(r.origin_job),question:String(r.question),genre:String(r.genre),terms:JSON.parse(String(r.terms_json)),references:JSON.parse(String(r.references_json)),priority:Number(r.priority),attempts:Number(r.attempts),status:String(r.status),created_at:String(r.created_at),updated_at:String(r.updated_at)}));}
   plan(operation:string,slot:string,sources:ResearchSource[],exploration:number,now=Date.now(),draw=randomInt(1_000_000)/1_000_000):SlotResearchPlan{
     const old=this.db.prepare('SELECT plan_json FROM research_slot_plans WHERE operation_id=? AND slot=?').get(operation,slot);if(old)return JSON.parse(String(old.plan_json));
-    const interests=this.interests(),inquiries=this.inquiries().filter(q=>q.status==='open'&&q.attempts<this.settings.maxInquiryAttempts);
+    const interests=this.interests(),inquiries=this.inquiries().filter(q=>['open','partially_resolved'].includes(q.status)&&q.attempts<this.settings.maxInquiryAttempts);
     const ranked=sources.map(s=>{
       const score=interests.find(i=>i.key===`genre:${s.genre}`)?.score??this.settings.initialScores[s.genre??'']??50;
       const need=Math.max(0,...inquiries.filter(q=>q.genre===s.genre).map(q=>q.priority/20+2/(1+Math.max(0,(now-Date.parse(q.created_at))/day))));
@@ -183,8 +204,9 @@ export class ResearchAgenda {
     this.db.prepare('INSERT OR IGNORE INTO research_slot_plans VALUES(?,?,?)').run(operation,slot,JSON.stringify(plan));return JSON.parse(String(this.db.prepare('SELECT plan_json FROM research_slot_plans WHERE operation_id=? AND slot=?').get(operation,slot)!.plan_json));
   }
   rank(item:StoredItem,genre:string,now=Date.now()){
-    const terms=meaningfulTerms(item.title),open=this.inquiries().filter(q=>q.status==='open'&&q.attempts<this.settings.maxInquiryAttempts&&q.genre===genre);
-    const match=open.map(q=>({q,overlap:q.terms.filter(t=>terms.has(t)).length})).filter(v=>v.overlap>=2).sort((a,b)=>b.overlap-a.overlap||b.q.priority-a.q.priority)[0];
+    const terms=meaningfulTerms(item.title),open=this.inquiries().filter(q=>['open','partially_resolved'].includes(q.status)&&q.attempts<this.settings.maxInquiryAttempts&&q.genre===genre);
+    const series=new Set('apod nasa astronomy picture day january february march april may june july august september october november december'.split(' '));
+    const match=open.map(q=>({q,bound:q.references.some(r=>r.startsWith(item.id+':')),overlap:q.terms.filter(t=>terms.has(t)&&!series.has(t)).length})).filter(v=>v.bound||v.overlap>=2).sort((a,b)=>Number(b.bound)-Number(a.bound)||b.overlap-a.overlap||b.q.priority-a.q.priority)[0];
     const interest=this.interests().find(i=>i.key===`genre:${genre}`)?.score??50;
     const matched=this.interests().filter(i=>i.kind==='theme'&&(terms.has(i.label)||((i.label.includes(' ')||/[\p{Script=Han}\p{Script=Katakana}]/u.test(i.label))&&item.title.normalize('NFKC').toLowerCase().includes(i.label))));
     const theme=matched.length?matched.reduce((sum,i)=>sum+i.score,0)/matched.length:0;
@@ -193,7 +215,7 @@ export class ResearchAgenda {
   }
   bind(jobId:string,inquiryIds:string[],now=Date.now()){
     this.atomic(()=>{for(const id of inquiryIds){
-      const row=this.db.prepare('SELECT * FROM research_inquiries WHERE id=?').get(id);if(!row||row.status!=='open'||Number(row.attempts)>=this.settings.maxInquiryAttempts)continue;
+      const row=this.db.prepare('SELECT * FROM research_inquiries WHERE id=?').get(id);if(!row||!['open','partially_resolved'].includes(String(row.status))||Number(row.attempts)>=this.settings.maxInquiryAttempts)continue;
       if(this.db.prepare("INSERT OR IGNORE INTO research_inquiry_attempts VALUES(?,?,'selected',?)").run(id,jobId,new Date(now).toISOString()).changes){
         this.db.prepare("UPDATE research_inquiries SET status='selected',attempts=attempts+1,updated_at=? WHERE id=?").run(new Date(now).toISOString(),id);
         this.event(id,jobId,'selected',{reason:'RELATED_NEW_DOCUMENT',attempt:Number(row.attempts)+1},now);

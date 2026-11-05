@@ -2,6 +2,7 @@ import {meaningfulTerms,compareRecords} from './relevance';
 import type {AnalysisContext} from './ai';
 import type {QualityAnalysis} from './quality-types';
 import type {StoredItem} from './types';
+import {publisherFamily} from './evidence-review';
 
 export type SourceVerification={
   method:'stored-source-comparison';checkedAt:string;independentVerification:'unverified';
@@ -9,7 +10,7 @@ export type SourceVerification={
   claims:Array<{claimId:string;itemId:string;versionId:string;url:string;quote:string;result:'source-bound-only'|'corroboration-candidate'|'conflict-candidate';comparisons:Array<{itemId:string;versionId:string;url:string;quote:string;kind:'same-publisher'|'syndicated'|'related'|'corroboration-candidate'|'conflict-candidate';independence:'not-established';reason:string}>}>;
 };
 const normalized=(text:string)=>text.normalize('NFKC').toLowerCase().replace(/\s+/g,' ').trim();
-const publisher=(url:string)=>{try{return new URL(url).hostname.toLowerCase().split('.').slice(-2).join('.');}catch{return '';}};
+const publisher=publisherFamily;
 const metrics=(text:string)=>[...text.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(percent|%|kilometers?|km|megawatts?|mw|million|billion|degrees?|meters?)(?=\s|[.,;]|$)/gi)].map(m=>({value:m[1].replaceAll(',',''),unit:m[2].toLowerCase().replace(/s$/,'').replace('percent','%')}));
 
 /** Compare actual stored quotations, not a model's confidence. Different hosts
@@ -37,7 +38,8 @@ export function verifySourceBindings(context:AnalysisContext,quality:QualityAnal
       const quote=match.quote.slice(0,500),same=publisher(primary.url)===publisher(peer.url),exact=normalized(quote)===normalized(observation.quote);
       const left=metrics(observation.quote),right=metrics(quote);
       const comparable=left.filter(a=>right.some(b=>b.unit===a.unit));
-      const conflict=comparable.some(a=>right.some(b=>a.unit===b.unit&&a.value!==b.value));
+      // Multiple quantities with the same unit may describe different cohorts.
+      const conflict=comparable.some(a=>left.filter(b=>a.unit===b.unit).length===1&&right.filter(b=>a.unit===b.unit).length===1&&right.some(b=>a.unit===b.unit&&a.value!==b.value));
       const support=comparable.length>0&&!conflict&&match.common>=Math.max(3,Math.ceil(quoteTerms.size*.5));
       const kind=conflict?'conflict-candidate':same?'same-publisher':exact?'syndicated':support?'corroboration-candidate':'related';
       binding.comparisons.push({itemId:peer.id,versionId:peer.versionId!,url:peer.url,quote,kind,independence:'not-established',reason:same?'同一発表主体の記述を独立した裏付けと数えない。':exact?'同文の引用・転載候補。独立した裏付けと数えない。':conflict?'共通の対象・単位に異なる数値がある。観測時点・条件・転載元の確認が必要で、矛盾成立は未確定。':support?'共通の対象・単位の数値が一致。別発表主体の照合候補であり、独立性と真偽は未確認。':'同じ問題の追加資料候補。主張の支持・反証は未確認。'});

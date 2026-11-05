@@ -52,7 +52,7 @@ export async function runAutonomousCycle(config: AutonomousConfig, options: {sch
   process.env.KOUSATSU_FEED_HOSTS=[...new Set(sources.map(source=>new URL(source.feedUrl).hostname))].join(',');
   const runtime=await ResearchRuntime.open({databasePath:paths.database,outputDirectory:paths.notes,sources,
     providerForJob:jobId=>new ResearchEngine({jobId,database:runtime.database,history,
-      provider:config.ai.provider==='ollama' ? new OllamaProvider({model:config.ai.model,timeoutMs:config.ai.timeoutMs}) : new DeterministicProvider(),
+      provider:config.ai.provider==='ollama' ? new OllamaProvider({model:config.ai.model,timeoutMs:config.ai.timeoutMs,thinking:config.ai.thinking}) : new DeterministicProvider(),
       exploration:config.exploration}),
   });
   const history=new TopicHistory(paths.database);
@@ -100,7 +100,9 @@ export async function runAutonomousCycle(config: AutonomousConfig, options: {sch
       if(publication.status==='retry_wait'||publication.status==='failed'||ticks.some(t=>t.status==='completed'))await backendLog(config,{type:'publication',...publication,notes:bundle.notes});
       if(delivery.status==='retry_wait'||delivery.status==='failed')await backendLog(config,{type:'delivery',...delivery});
     }
-    const failed=ticks.some(t=>t.status==='blocked' || t.status==='retry_wait') || knowledge.conflicts.length>0||publication.status==='failed'||publication.status==='retry_wait'||delivery.status==='failed';
+    const failed=ticks.some(t=>t.status==='blocked' || t.status==='retry_wait') ||
+      outcomes.some(outcome=>outcome.model?.status==='failed'||outcome.verification?.status==='failed') ||
+      knowledge.conflicts.length>0||publication.status==='failed'||publication.status==='retry_wait'||delivery.status==='failed';
     const result={runId,status:failed ? 'attention' : 'succeeded',ticks,knowledge,outcomes,planning:{before:planningBefore,after:planningAfter,counts:agenda.summary().inquiryCounts},publication,delivery};
     if (ticks.some(t=>t.status!=='idle' && t.status!=='busy') || knowledge.repaired || knowledge.conflicts.length) {
       const report=path.join(paths.reports,`run-${runId}.md`);

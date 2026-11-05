@@ -21,6 +21,8 @@ import type {fetchFeed} from '../../src/lib/kousatsu/ingest';
 import type {StoredItem} from '../../src/lib/kousatsu/types';
 import type {AnalysisContext} from '../../src/lib/kousatsu/ai';
 import type {QualityAnalysis} from '../../src/lib/kousatsu/quality-types';
+import {reviewInquiries} from '../../src/lib/kousatsu/inquiry-review';
+import {compareRecords} from '../../src/lib/kousatsu/relevance';
 
 const now=Date.parse(`${jstDay(Date.now())}T06:00:00+09:00`);
 const operation=()=>parseWeeklyOperation({id:'continuous-test',startsAt:`${jstDay(now)}T00:00:00+09:00`,endsAt:null,continuous:true,runTimes:['06:00','18:00','22:00'],maxArticles:1,genres:['science','culture']});
@@ -146,6 +148,40 @@ test('read-only planning inspection neither creates tables nor changes existing 
   const f=await fixture();try{
     const db=new DatabaseSync(f.runtime.database.filePath);try{const before=JSON.stringify(db.prepare('SELECT name FROM sqlite_master ORDER BY name').all());readResearchSummary(f.runtime.database.filePath);assert.equal(JSON.stringify(db.prepare('SELECT name FROM sqlite_master ORDER BY name').all()),before);}finally{db.close();}
   }finally{f.close();}
+});
+
+test('inquiry answers are rechecked, journaled once, survive reopening and feed deduplicated next questions',async()=>{
+ const f=await fixture();let agenda=new ResearchAgenda(f.runtime.database.filePath,f.config.agenda);try{
+  await planWeekly(f.config,f.runtime,f.sources,f.transport,now);const first=await f.runtime.tick({schedule:false});assert.equal(first.status,'completed');agenda.reconcile(f.sources);
+  f.setEdition(2);await planWeekly(f.config,f.runtime,f.sources,f.transport,now+12*3600000);
+  const job=agenda.db.prepare('SELECT id FROM jobs ORDER BY rowid DESC LIMIT 1').get()!,jobId=String(job.id);
+  const bound=agenda.db.prepare('SELECT q.* FROM research_inquiries q JOIN research_inquiry_attempts t ON t.inquiry_id=q.id WHERE t.job_id=?').get(jobId)!;
+  const tick=await f.runtime.tick({schedule:false});assert.equal(tick.status,'completed');
+  const selected=f.runtime.database.getCheckpoint<{items:StoredItem[];coverage:AnalysisContext['coverage']}>(jobId,'selected-items')!,classified=f.runtime.database.getCheckpoint<{claims:AnalysisContext['claims']}>(jobId,'classify')!;
+  const a=f.runtime.database.getCheckpoint<import('../../src/lib/kousatsu/types').AnalysisResult>(jobId,'analyze')!,observation=a.quality!.observations[0];
+  const input:AnalysisContext={topic:String(bound.question),items:selected.items,claims:classified.claims,relations:[],coverage:selected.coverage,inquiries:[{id:String(bound.id),question:String(bound.question),originJob:String(bound.origin_job),references:[]}]};
+  a.research!.inquiryReviews=reviewInquiries(input,a.quality!,[{inquiryId:bound.id,criterion:'新しい資料に測定結果の記載があること。',answer:'研究チームは宇宙飛行士の被ばくが20パーセント低減したと報告している。',status:'partially_resolved',reason:'測定の記述を確認したが独立検証は未完了である。',claimIds:[observation.claimId],remainingQuestions:[String(bound.question)],nextQuestions:['宇宙飛行士の被ばく低減は別の測定でも再現するか。','宇宙飛行士の被ばく低減は別の測定でも再現するか。'],memoryIds:[]}]);
+  assert.equal(a.research!.inquiryReviews[0].status,'partially_resolved');
+  agenda.db.prepare("UPDATE checkpoints SET data_json=? WHERE job_id=? AND stage='analyze'").run(JSON.stringify(a),jobId);
+  agenda.reconcile(f.sources);assert.equal(agenda.inquiries().find(q=>q.id===bound.id)?.status,'partially_resolved');
+  const before=JSON.stringify(agenda.db.prepare('SELECT * FROM research_inquiry_evaluations').all());assert.match(before,/20/);assert.match(before,/relatedJobId/);
+  agenda.close();agenda=new ResearchAgenda(f.runtime.database.filePath,f.config.agenda);agenda.reconcile(f.sources);
+  assert.equal(JSON.stringify(agenda.db.prepare('SELECT * FROM research_inquiry_evaluations').all()),before);
+  assert.equal(agenda.db.prepare('SELECT count(*) n FROM research_inquiries WHERE question=?').get('宇宙飛行士の被ばく低減は別の測定でも再現するか。')?.n,1);
+ }finally{agenda.close();f.close();}
+});
+
+test('a quoted peer document can continue its saved inquiry even when the headline words differ',async()=>{
+ const f=await fixture(),agenda=new ResearchAgenda(f.runtime.database.filePath,f.config.agenda);try{
+  const at=new Date().toISOString();agenda.db.prepare("INSERT INTO research_inquiries VALUES('bound','old','入力条件への感度はどこまで続くか。','science','[\"prompt\",\"sensitivity\"]','[\"peer-id:v1\"]',70,0,'open',?,?)").run(at,at);
+  const rank=agenda.rank({id:'peer-id',title:'Old Ideas Novel Problems',publishedAt:at} as StoredItem,'science');assert.equal(rank.inquiry?.id,'bound');
+ }finally{agenda.close();f.close();}
+});
+
+test('APOD series labels and dates do not join different astronomical subjects into the same issue',()=>{
+ const a={title:'APOD: 2026 November 5 – Enceladus in Silhouette',summary:'NASA Astronomy Picture of the Day',publishedAt:'2026-11-05',canonicalUrl:'https://science.nasa.gov/a'},b={...a,title:'APOD: 2026 November 1 – Colors of the Moon',canonicalUrl:'https://science.nasa.gov/b'};
+ assert.equal(compareRecords(a,b).kind,'unrelated');
+ assert.equal(compareRecords({...a,title:'Enceladus plume observations reveal ice activity'},{...b,title:'Enceladus plume observations compare ice activity'}).kind,'follow_up_candidate');
 });
 
 test('a killed final publication or delivery attempt becomes failed after its lease expires',async()=>{

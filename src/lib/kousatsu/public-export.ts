@@ -8,8 +8,8 @@ import type {ResearchSource} from './runtime-types';
 import {WeeklyStore} from './weekly-store';
 import {auditPublicArticles,publicDecisionCounts} from './public-audit';
 import {ResearchAgenda} from './research-agenda';
+import {publicText,publicUrl,savedReasoning,originalNoteDigest,assertPublicSafety} from './public-projection';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
-const line=(s:string)=>s.replace(/[\r\n]/g,' ').slice(0,2000);
 const excerpt=(s:string)=>s.trim().split(/\s+/).slice(0,20).join(' ').slice(0,180);
 export async function exportPublicResearch(config:AutonomousConfig,sources:ResearchSource[]){
   const file=autonomousPaths(config).database,db=new DatabaseSync(file);
@@ -21,47 +21,44 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const decisions=auditPublicArticles(db);
     for(const d of decisions)db.prepare('INSERT INTO public_article_decisions VALUES(?,?,?,?,?) ON CONFLICT(article_id) DO UPDATE SET kind=excluded.kind,reason=excluded.reason,duplicate_of=excluded.duplicate_of,checked_at=excluded.checked_at WHERE kind<>excluded.kind OR reason<>excluded.reason OR duplicate_of IS NOT excluded.duplicate_of')
       .run(d.articleId,d.kind,d.reason,d.duplicateOf,new Date().toISOString());
-    const rows=db.prepare(`SELECT a.id,a.job_id,a.title,a.created_at,a.provider,a.model,c.data_json,s.data_json selected_json,v.data_json verification_json,j.input_json
-      FROM articles a JOIN jobs j ON j.id=a.job_id JOIN checkpoints c ON c.job_id=a.job_id AND c.stage='analyze'
-      JOIN checkpoints s ON s.job_id=a.job_id AND s.stage='selected-items' JOIN checkpoints v ON v.job_id=a.job_id AND v.stage='verify'
-      WHERE j.status IN ('succeeded','needs_review') ORDER BY a.created_at DESC,a.id`).all();
-    // Freeze public projections. Model changes never rewrite already published views.
+    const rows=db.prepare(`SELECT a.id,a.job_id,a.title,a.markdown,a.created_at,a.provider,a.model,c.data_json,s.data_json selected_json,v.data_json verification_json,j.input_json,j.status job_status
+      FROM articles a JOIN jobs j ON j.id=a.job_id LEFT JOIN checkpoints c ON c.job_id=a.job_id AND c.stage='analyze'
+      LEFT JOIN checkpoints s ON s.job_id=a.job_id AND s.stage='selected-items' LEFT JOIN checkpoints v ON v.job_id=a.job_id AND v.stage='verify'
+      ORDER BY a.created_at DESC,a.id`).all();
     for(const row of rows){
       if(db.prepare('SELECT article_id FROM public_documents WHERE article_id=?').get(row.id))continue;
       if(decisions.find(d=>d.articleId===row.id)?.kind!=='eligible')continue;
-      const analysis=JSON.parse(String(row.data_json)) as AnalysisResult,q=analysis.quality;
-      const verification=JSON.parse(String(row.verification_json));
-      if(!q?.reflection||verification.status!=='passed'||verification.factCheckStatus==='contradicted')continue;
-      const items=(JSON.parse(String(row.selected_json)).items as StoredItem[]).filter(i=>q.focusItemIds.includes(i.id));
-      if(!items.length)continue;
-      // Historical model experiments can contain several notes for one source article.
-      // Keep the frozen published view, or choose the newest eligible view once.
-      const published=db.prepare('SELECT news_json FROM public_documents').all();
+      const analysis=row.data_json?JSON.parse(String(row.data_json)) as AnalysisResult:null,q=analysis?.quality;
+      const verification=row.verification_json?JSON.parse(String(row.verification_json)):null;
+      const input=JSON.parse(String(row.input_json));
+      const items=(row.selected_json?JSON.parse(String(row.selected_json)).items??[]:[]) as StoredItem[];
+      const primary=items.find(i=>q?.focusItemIds.includes(i.id))??items[0];
+      const source=sources.find(s=>s.id===input.source.id)||sources.find(s=>s.feedUrl===input.source.feedUrl),genre=source?.genre??'science';
+      const clean=(v:string)=>publicText(v);
       const revisionOf=decisions.find(d=>d.articleId===row.id)?.revisionOf;
-      if(!revisionOf&&published.some(r=>{const news=JSON.parse(String(r.news_json));return news.id===items[0].id||news.url===items[0].url;}))continue;
-      const view=q.reflection,input=JSON.parse(String(row.input_json));
-      const source=sources.find(s=>s.id===input.source.id)||sources.find(s=>new URL(s.feedUrl).hostname===new URL(input.source.feedUrl).hostname);
-      const genre=source?.genre??'science';
-      // Keep the research view and a short attributed excerpt; raw page bodies stay local.
-      const clean=(value:string)=>{
-        let text=value;for(const observation of q.observations)if(observation.quote.length>80)text=text.replaceAll(observation.quote,'出典の該当記述');
-        return line(text).replace(/(?:[A-Z]:[\\/][^\s。]+)/g,'[ローカル保存先]');
-      };
-      const primary=items[0],observation=q.observations.find(o=>o.itemId===primary.id&&o.kind!=='metadata'),quote=observation?excerpt(observation.quote):'';
-      const markdown=[`# ${line(String(row.title))}`,'',`作成: ${row.created_at}`,`ジャンル: ${genre}`,`生成: ${analysis.provider}/${analysis.model} / ${analysis.research?.model.elapsedMs??'不明'} ms`,'',
-        '## 出典で確認できる主張（独立検証は未実施）','',`[${line(primary.title)}](${primary.url}) — ${line(input.source.name)}`,
-        `公開: ${primary.publishedAt??'不明'} / 取得: ${primary.fetchedAt} / 文書版: ${primary.versionId}`,quote?`\n> ${quote}\n\n※本文からの短い抜粋。発表主体の主張であり独立した事実確認ではありません。`:'本文の確認範囲は限定されています。題名から具体的な結果を補っていません。','',
-        '## 考察の問い','',clean(view.issue),'','## 現時点の見解（推論）','',clean(view.position),'','## 理由','',clean(view.reasoning),'',
-        '## 別の説明','',clean(view.alternative),'','## 見解を修正する条件','',clean(view.revisionCondition),'',
-        `確信度: ${view.confidence}（見解への暫定評価。事実確認の確率ではありません） / 生成: ${view.origin}`,'',
-        '## 仮定・未解決の問い','',...view.assumptions.map(s=>`- ${clean(s)}`),...q.unresolved.slice(0,3).map(s=>`- ${clean(s)}`),'',
-        ...(q.sourceVerification?['## 出典照合（保存済み資料の範囲）','',`照合した主張: ${q.sourceVerification.claims.length}件。独立した事実確認は未完了。`,...q.sourceVerification.claims.map(c=>`- ${c.claimId}: ${c.result}${c.comparisons.length?` / ${c.comparisons.map(p=>`[追加資料](${p.url}): ${p.kind}`).join(' / ')}`:' / 独立した別資料を確認できていない'}`),'']:[]),
-        ...(analysis.research?.questions.length?['## 次に調べること','',...analysis.research.questions.slice(0,3).map(s=>`- ${clean(s)}`),'']:[]),
-        ...(q.priorMemory.some(m=>m.decision==='related')?['## 関連する過去の考察','',...q.priorMemory.filter(m=>m.decision==='related').map(m=>`- ${clean(m.reason)}`),'']:[]),
-        ...(q.viewReviews?.length?['## 過去の見解の再評価','',...q.viewReviews.map(r=>`- ${r.action}: ${clean(r.reason)}`),'']:[]),
-        '取得記事の全文と詳細な実行ログはローカルで保存。未観測の結果は補っていません。',''].join('\n');
-      const payload={id:String(row.id),title:String(row.title),markdown,genre,...(revisionOf?{revisionOf}:{}),provider:analysis.provider,model:analysis.model,status:'generated',artifact:'matching',verification:{status:'passed',scope:'structure-and-references',factCheckStatus:'unverified'}};
-      const news={id:primary.id,title:primary.title,source:input.source.name,url:primary.url,publishedAt:primary.publishedAt??null,fetchedAt:primary.fetchedAt,summary:quote,content:quote,truncated:true,genre};
+      const reviewNeeded=verification?.status!=='passed'||verification?.factCheckStatus==='contradicted'||analysis?.research?.model.status==='failed'||q?.modelIssues.length;
+      const label=reviewNeeded?'要確認・追加調査が必要':q?.reflection?'未検証の暫定見解':'旧形式・未検証';
+      const reasoning=savedReasoning(String(row.markdown));
+      // Saved prose remains as written. Omit source-body dumps and runtime logs,
+      // not counterarguments, uncertainty, legacy views or failed-check notes.
+      const fallback=!reasoning?clean(analysis?.summary??'保存された記録は旧形式で、公開可能な考察本文を抽出できていない。原記録は保全している。'):reasoning;
+      const sourcesForNote=items.flatMap(i=>{const url=publicUrl(i.url);return url?[{title:clean(i.title),url}]:[];});
+      const relatedMemoryJobs=[...new Set(analysis?.research?.memories.map(m=>m.jobId)??[])];
+      const related=rows.filter(r=>relatedMemoryJobs.includes(String(r.job_id))).map(r=>String(r.id));
+      const inquiries=db.prepare("SELECT name FROM sqlite_master WHERE name='research_inquiries'").get()?db.prepare('SELECT id,question,status FROM research_inquiries WHERE origin_job=? OR id IN (SELECT inquiry_id FROM research_inquiry_attempts WHERE job_id=?) ORDER BY created_at LIMIT 20').all(row.job_id,row.job_id):[];
+      const markdown=[`# ${clean(String(row.title))}`,'',`作成: ${row.created_at}`,`研究テーマ: ${clean(analysis?.research?.topic??input.topic)}`,`ジャンル: ${genre}`,`検証状態: ${label}。独立した事実確認は未実施。`,'',
+        '保存時の考察を掲載しています。品質検査の不合格・未解決の結論も含みます。長い出典原文と内部実行記録は公開版では省略しています。','',fallback,'',
+        ...(q?.reflection?['## 見解を修正する条件','',clean(q.reflection.revisionCondition),'']:[]),
+        '## 参考情報','',...sourcesForNote.map(i=>`- [${i.title}](${i.url})`),'',
+        ...(related.length?['## 関連する過去の考察','',...related.map(id=>`- 考察ID: ${id}`),'']:[]),
+        ...(inquiries.length?['## 関連する研究課題','',...inquiries.map(i=>`- ${clean(String(i.question))}（${i.status}）`),'']:[]),
+      ].join('\n');
+      const payload={id:String(row.id),title:clean(String(row.title)),markdown,genre,...(revisionOf?{revisionOf}:{}),provider:String(row.provider),model:String(row.model),status:reviewNeeded?'needs_review':'generated',artifact:'matching',
+        verification:{status:verification?.status??'failed',scope:'structure-and-references',factCheckStatus:verification?.factCheckStatus??'unverified',issues:[]},
+        validationLabel:label,sourceNoteDigest:originalNoteDigest(String(row.markdown)),sources:sourcesForNote,relatedNoteIds:related,relatedInquiries:inquiries.map(i=>({id:i.id,question:clean(String(i.question)),status:i.status}))};
+      const quote=q?.observations.find(o=>o.itemId===primary?.id&&o.kind!=='metadata');
+      const short=quote?clean(excerpt(quote.quote)):'';
+      const news={id:primary?.id??String(row.id),title:clean(primary?.title??String(row.title)),source:clean(input.source.name),url:publicUrl(primary?.url??input.source.feedUrl)??'',publishedAt:primary?.publishedAt??null,fetchedAt:primary?.fetchedAt??row.created_at,summary:short,content:short,truncated:true,genre};
       db.prepare('INSERT OR IGNORE INTO public_documents VALUES(?,?,?,?)').run(row.id,JSON.stringify(payload),JSON.stringify(news),row.created_at);
     }
     const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id').all();
@@ -71,7 +68,7 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const latest=documents[0]?.created_at??config.operation?.startsAt??new Date(0).toISOString();
     let research:unknown=undefined;
     if(db.prepare("SELECT name FROM sqlite_master WHERE name='research_interests'").get()){
-      const agenda=new ResearchAgenda(file,config.agenda,{readOnly:true});try{const summary=agenda.summary();research={openInquiries:(summary.inquiryCounts.open??0)+(summary.inquiryCounts.selected??0),exhaustedInquiries:(summary.inquiryCounts.exhausted??0)+(summary.inquiryCounts.waiting_evidence??0),interestScores:agenda.interests().filter(i=>i.kind==='genre').map(i=>({genre:i.label,score:i.score})),lastSelection:summary.lastPlan?{sources:summary.lastPlan.sources.map(s=>({id:s.id,score:s.score,candidateLimit:s.candidateLimit}))}:null};}finally{agenda.close();}
+      const agenda=new ResearchAgenda(file,config.agenda,{readOnly:true});try{const summary=agenda.summary();research={openInquiries:(summary.inquiryCounts.open??0)+(summary.inquiryCounts.selected??0)+(summary.inquiryCounts.partially_resolved??0),exhaustedInquiries:(summary.inquiryCounts.exhausted??0)+(summary.inquiryCounts.waiting_evidence??0),interestScores:agenda.interests().filter(i=>i.kind==='genre').map(i=>({genre:i.label,score:i.score})),lastSelection:summary.lastPlan?{sources:summary.lastPlan.sources.map(s=>({id:s.id,score:s.score,candidateLimit:s.candidateLimit}))}:null};}finally{agenda.close();}
     }
     const snapshot={initialized:documents.length>0,sources:sources.map(s=>({id:s.id,name:s.name,enabled:s.enabled,genre:s.genre,topic:s.topic,intervalMinutes:s.intervalMinutes})),
       worker:{active:false,lastSeenAt:latest},notes:documents.map(r=>{const p=JSON.parse(String(r.payload_json));return {id:p.id,jobId:p.id,title:p.title,createdAt:r.created_at,genre:p.genre,status:p.status,provider:p.provider,model:p.model,published:true};}),
@@ -92,8 +89,10 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
         issues:(model?.error??'').split(';').map(s=>s.trim()).filter(Boolean).map(s=>/^[A-Z][A-Z_]+$/.test(s)?s:s.includes('Timeout')?'MODEL_TIMEOUT':'MODEL_UNAVAILABLE')};
       const news=JSON.parse(String(row.news_json));
       const checks=analysis?.quality?.sourceVerification;
-      files[`public/research/notes/${row.article_id}.json`]=JSON.stringify({...payload,generation,sources:[{title:news.title,url:news.url}],...(checks?{sourceVerification:{scope:checks.method,checkedClaims:checks.claims.length,conflictCandidates:checks.claims.filter(c=>c.result==='conflict-candidate').length,independentVerification:'unverified'}}:{})})+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;
+      files[`public/research/notes/${row.article_id}.json`]=JSON.stringify({...payload,generation,sources:payload.sources??[{title:news.title,url:news.url}],...(checks?{sourceVerification:{scope:checks.method,checkedClaims:checks.claims.length,conflictCandidates:checks.claims.filter(c=>c.result==='conflict-candidate').length,independentVerification:'unverified'}}:{})})+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;
     }
+    assertPublicSafety(files);
+    if(documents.length!==rows.filter(r=>String(r.markdown).trim()).length)throw Error('PUBLIC_ARCHIVE_COUNT_MISMATCH');
     db.exec('COMMIT');
     const directory=path.join(config.dataDirectory,'Publishing','export');
     for(const [relative,contents]of Object.entries(files)){

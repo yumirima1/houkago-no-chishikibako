@@ -1,11 +1,18 @@
 import type {AnalysisContext} from './ai';
 import type {GroundedObservation,Reflection,QualityAnalysis} from './quality-types';
 import {meaningfulTerms} from './relevance';
+import {sourceQuantities} from './evidence-review';
+import {prematurelyCompletedEvent} from './future-event';
 
 const compact=(value:string)=>value.replace(/\s+/g,' ').trim();
 const japanese=(value:unknown):value is string=>typeof value==='string' && value.trim().length>=8 && value.length<=1000 && /[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(value);
 const fields=['issue','position','reasoning','alternative','revisionCondition'] as const;
 const hasStance=(value:string)=>/私は|私の|したい|重視|優先|鍵|核心|注目|選ぶ|と捉え|と見な|と考え|と見る|とみる|位置づけ|よりも|よりは|より.{0,16}(?:重視|優先|価値|選ぶ)|ではなく|でなく|両立|べき|こだわ|価値は|重要なのは|(?:原因|制約|仕組み|構造|ボトルネック).{0,16}(?:ある|変わ|効く|可能性|かもしれ)/.test(value);
+
+export function unspecifiedRevisionEvidence(value:string) {
+  return /(?:資料|情報)が(?:得られ|入手でき|公開され)/.test(value)&&
+    !/(?:という|示す|示した|確認した|確認できる|実証した|否定する|裏付ける)(?:観測・)?(?:観測|資料|情報)/.test(value);
+}
 
 /** These are analytical lenses, not extra source facts. Every lens supplies an
  * answer and a competing mechanism that could change the answer. */
@@ -99,7 +106,11 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
     reasoning:`${scope==='headline'?'題名で提示された問いを出発点にした。本文で起きたことの説明ではなく、この問いをどう捉えるかの見解である。':scope==='no-source'?'外部資料がないため、調査方針についての見解として述べる。':`原文の「${compact(anchor!.quote).slice(0,180)}${anchor!.quote.length>180?'…':''}」という記述を出発点にした。`}${lens.reasoning}`,
     confidence:body?.4:scope==='article'?.3:.15,origin:'rules',scope};
   const raw=(proposal as {reflection?:Partial<Reflection>}|null)?.reflection;
-  if(!raw)return {reflection:fallback,issues:[] as string[]};
+  const unavailable=():Reflection=>({issue:`「${title}」について今回の資料から何を判断できるか。`,
+    position:'モデルの見解を採用できず、考察の生成は未完了である。',reasoning:'保存済みの原文と処理の失敗記録を保持し、内容の補完は行っていない。',
+    alternative:'別の説明を比較できるモデル出力は得られていない。',revisionCondition:'モデルの失敗原因を解消し、原文に対応する見解と反対仮説を再検証する。',
+    premiseClaimIds,assumptions:[],confidence:0,origin:'rules',scope});
+  if(!raw)return {reflection:context.groundedRequest?unavailable():fallback,issues:context.groundedRequest?['REFLECTION_MISSING_MODEL']:[] as string[]};
   const supplied={...raw};
   for(const field of fields)if(typeof supplied[field]==='string')supplied[field]=supplied[field]!.replace(/^\s*\d{1,2}[.)]\s+/,'');
   const issues:string[]=[];
@@ -112,6 +123,12 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
   if(!ids.length||ids.length>4||ids.some(id=>!observations.some(o=>o.claimId===id)))issues.push('REFLECTION_UNKNOWN_PREMISE');
   if(!fields.every(field=>japanese(supplied[field])))issues.push('REFLECTION_INCOMPLETE');
   const fragments=new Set(fields.filter(field=>typeof supplied[field]==='string'&&/[:：]$|以下.{0,30}(?:あります|あると考えます|示します)[。]?$/.test(supplied[field]!.trim())));
+  if(context.groundedRequest)for(const field of fields){
+    const value=supplied[field];if(typeof value!=='string')continue;
+    if(!/[。！？]$/.test(value.trim()))fragments.add(field);
+    const sentences=value.split(/[。！？]/).map(s=>s.trim()).filter(s=>s.length>=15);
+    if(new Set(sentences).size<sentences.length)issues.push('REFLECTION_REPETITION');
+  }
   if(fragments.size)issues.push('REFLECTION_FRAGMENT');
   if(typeof supplied.position==='string' && /(?:判断|断定|評価)でき[なず]|保留|情報.*不足|分から|わから/.test(supplied.position) &&
       !/重視|優先|有用|価値|鍵|注目|選ぶ|捉え|位置づけ/.test(supplied.position))issues.push('REFLECTION_DEFERRAL_ONLY');
@@ -122,9 +139,15 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
   }
   if(japanese(supplied.position)&&japanese(supplied.reasoning)&&compact(supplied.position)===compact(supplied.reasoning))issues.push('REFLECTION_CIRCULAR_REASON');
   if(japanese(supplied.alternative)&&!/原因|制約|説明|かも|なら|場合|一方|ただし|しかし|むしろ|一因|可能性|と仮定|評価|異な|限ら|重視|優先/.test(supplied.alternative))issues.push('REFLECTION_NONALTERNATIVE');
-  if(japanese(supplied.revisionCondition)&&!/(?:評価|見解|考え|見方|意見|優先|結論|解釈|判断|範囲|確信|仮説|予測).{0,18}(?:変え|変わ|修正|撤回|弱め|見直|再考|下げ|狭め|棄却|否定|切り替|改め|異な)|別の(?:評価|見解|考え|見方|意見|結論|解釈|判断)/.test(supplied.revisionCondition))issues.push('REFLECTION_NONREVISING_CONDITION');
+  if(context.groundedRequest&&japanese(supplied.alternative)&&!/もし|なら|れば|場合|とすれば|とすると|かもしれ|可能性|主因|主要な制約/.test(supplied.alternative))issues.push('REFLECTION_NONALTERNATIVE');
+  if(japanese(supplied.revisionCondition)&&!/(?:評価|見解|考え|見方|意見|優先|結論|解釈|判断|範囲|確信|仮説|予測).{0,18}(?:変え|変わ|修正|撤回|弱め|弱ま|見直|再考|下げ|下が|狭め|狭ま|棄却|否定|切り替|改め|異な)|別の(?:評価|見解|考え|見方|意見|結論|解釈|判断)/.test(supplied.revisionCondition))issues.push('REFLECTION_NONREVISING_CONDITION');
+  if(context.groundedRequest&&japanese(supplied.revisionCondition)&&unspecifiedRevisionEvidence(supplied.revisionCondition))
+    issues.push('REFLECTION_NONREVISING_CONDITION');
   const basis=observations.filter(o=>ids?.includes(o.claimId)).map(o=>o.quote).join(' ');
-  const numbers:string[]=basis.match(/\d+(?:[.,]\d+)*/g)??[];
+  const readAt=Math.max(...context.items.map(item=>Date.parse(item.fetchedAt)).filter(Number.isFinite));
+  if(context.groundedRequest&&fields.some(field=>typeof supplied[field]==='string'&&prematurelyCompletedEvent(supplied[field]!,basis,readAt)))
+    issues.push('REFLECTION_EVENT_PREMATURE_COMPLETION');
+  const numbers=sourceQuantities(basis);
   const conditional=(value:string)=>/仮に|もし|と仮定|を仮定/.test(value)&&/なら|場合|仮定|とすれば/.test(value);
   const headlineFacts=new Set<string>();
   if(scope==='headline') {
@@ -135,10 +158,12 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
     if(headlineFacts.has('position'))headlineFacts.add('reasoning');
     if(headlineFacts.size)issues.push('REFLECTION_HEADLINE_AS_FACT');
   }
-  const inventedNumber=(value:string)=>(value.match(/\d+(?:[.,]\d+)*/g)??[]).some(n=>!numbers.includes(n));
+  const referenceIds=new Set([...context.claims.map(c=>c.id),...context.items.map(i=>i.id),...(context.memories??[]).map(m=>m.id)]);
+  const inventedNumber=(value:string)=>sourceQuantities([...referenceIds].reduce((text,id)=>text.split(id).join(''),value)).some(n=>!numbers.includes(n));
   const experiments:string[]=[];
   for(const field of fields){
     const value=supplied[field];if(typeof value!=='string')continue;
+    if((value.match(/\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b/gi)??[]).some(id=>!referenceIds.has(id)))issues.push('REFLECTION_UNKNOWN_REFERENCE');
     if(/https?:\/\/|www\./i.test(value))issues.push('REFLECTION_UNTRACKED_URL');
     if(inventedNumber(value)) {
       if(conditional(value))experiments.push(`数値条件を置いた思考実験であり、出典の観測値ではない: ${value}`);
@@ -150,6 +175,7 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
   // Keep sound portions of an incomplete proposal. A rejected factual detail is
   // replaced with a contextual view, never with an empty conclusion.
   if(issues.length){
+    if(context.groundedRequest)return {reflection:unavailable(),issues:[...new Set(issues)]};
     if(!issues.some(issue=>/UNKNOWN_PREMISE|UNKNOWN_MEMORY/.test(issue))) {
       for(const field of fields){
         const value=supplied[field];

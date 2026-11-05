@@ -2,11 +2,13 @@ import type { AnalysisContext } from './ai';
 import type { DocumentCoverage, GroundedModelProposal, GroundedObservation, QualityAnalysis, TestedHypothesis } from './quality-types';
 import { compareRecords, meaningfulTerms } from './relevance';
 import {formReflection,reviewViews} from './reflection';
+import {sourceQuantities} from './evidence-review';
+import {decisionEvaluationMatches,renderDecisionEvaluation,decisionSourceIssues} from './decision-evaluation';
 
 const normalize=(value:string)=>value.normalize('NFKC').replace(/\s+/g,' ').trim();
 const japanese=(value:string)=>/[\p{Script=Hiragana}\p{Script=Katakana}]/u.test(value);
 const tentative=(value:string)=>/可能性|かもしれ|仮説|とは限ら|考えられ|未確認|断定でき|保留/.test(value);
-const numbers=(value:string):string[]=>value.match(/\d+(?:[.,]\d+)*/g) ?? [];
+const numbers=sourceQuantities;
 const text=(value:unknown)=>typeof value==='string' && value.trim().length>0 && value.length<=1800;
 
 /** Referential checks cannot prove semantic truth. Unsupported factual prose is
@@ -15,7 +17,7 @@ export function auditGroundedProposal(context:AnalysisContext,proposal:unknown,c
   const issues:string[]=[];
   const claimById=new Map(context.claims.map(claim=>[claim.id,claim]));
   const allText=context.claims.map(claim=>claim.text).join(' ');
-  const bodyIds=new Set(coverage.filter(c=>c.kind!=='metadata').map(c=>c.itemId));
+  const bodyIds=new Set(coverage.filter(c=>c.kind!=='metadata'&&c.status==='available').map(c=>c.itemId));
   const supplied=proposal as Partial<GroundedModelProposal>|null;
   if(!supplied || !Array.isArray(supplied.observations) || !Array.isArray(supplied.conclusions) || !Array.isArray(supplied.hypotheses)) {
     return {issues:['MODEL_SOURCE_BINDINGS_REQUIRED'],conclusions:[],hypotheses:[] as TestedHypothesis[]};
@@ -57,16 +59,23 @@ export function auditGroundedProposal(context:AnalysisContext,proposal:unknown,c
   return {issues:[...new Set(issues)],conclusions,hypotheses};
 }
 
+/** One bounded evidence selection is shared by inference and verification. */
+export function selectGroundedClaims(context:AnalysisContext,focusItemIds:string[]){
+  const focus=new Set(focusItemIds),seen=new Set<string>();
+  const eligible=context.claims.filter(c=>c.itemId&&focus.has(c.itemId)&&c.versionId&&['source_claim','unverified'].includes(c.classification))
+    .filter(c=>{const value=`${c.itemId}:${normalize(c.text)}`;if(seen.has(value))return false;seen.add(value);return true;});
+  return [0,1,2,3].flatMap(index=>focusItemIds.flatMap(id=>eligible.filter(c=>c.itemId===id).slice(index,index+1)));
+}
+
 export function buildQualityAnalysis(context:AnalysisContext,question:string,focusItemIds:string[],proposal?:unknown):QualityAnalysis {
   const focus=new Set(focusItemIds);
   const coverage=context.coverage ?? context.items.map(item=>({itemId:item.id,versionId:item.versionId!,url:item.url,fetchedAt:item.fetchedAt,
     kind:item.summary || item.content ? 'feed-summary' as const : 'metadata' as const,status:'available' as const}));
   const relevantCoverage=coverage.filter(c=>focus.has(c.itemId));
   const bodyAvailable=relevantCoverage.some(c=>c.kind==='article-body' && c.status==='available');
-  const seen=new Set<string>();
-  const observations:GroundedObservation[]=context.claims.filter(claim=>claim.itemId && focus.has(claim.itemId) && claim.versionId &&
-    ['source_claim','unverified'].includes(claim.classification))
-    .filter(claim=>{const value=normalize(claim.text);if(seen.has(value))return false;seen.add(value);return true;}).slice(0,8)
+  // Interleave sources so that one publisher cannot use every evidence slot.
+  const balanced=selectGroundedClaims(context,focusItemIds);
+  const observations:GroundedObservation[]=balanced
     .map(claim=>({claimId:claim.id,itemId:claim.itemId!,versionId:claim.versionId!,quote:claim.text,
       url:context.items.find(item=>item.id===claim.itemId)!.url,kind:coverage.find(c=>c.itemId===claim.itemId)?.kind ?? 'metadata',confidence:'source-only'}));
   const audit=proposal===undefined ? {issues:[],conclusions:[],hypotheses:[]} : auditGroundedProposal({...context,
@@ -82,7 +91,7 @@ export function buildQualityAnalysis(context:AnalysisContext,question:string,foc
     const relation=compareRecords(items[i],items[j]);
     if(['same_document','follow_up_candidate','same_issue_candidate'].includes(relation.kind))comparisons.push({leftItemId:items[i].id,rightItemId:items[j].id,kind:relation.kind,reason:relation.reason});
   }
-  const formed=formReflection({...context,items:focusItemIds.flatMap(id=>context.items.filter(item=>item.id===id))},observations,proposal);
+  const formed=formReflection({...context,claims:context.claims.filter(c=>focus.has(c.itemId!)),items:focusItemIds.flatMap(id=>context.items.filter(item=>item.id===id))},observations,proposal);
   const quality:QualityAnalysis={schema:2,question,focusItemIds,coverage:relevantCoverage,observations,reflection:formed.reflection,
     conclusions:bodyAvailable ? audit.conclusions : [],hypotheses:bodyAvailable ? audit.hypotheses : [],
     unresolved,comparisons,modelIssues:[...audit.issues,...formed.issues],status:bodyAvailable && allowed.length ? 'grounded' : context.items.length ? 'limited' : 'deferred',
@@ -106,6 +115,24 @@ export function buildQualityAnalysis(context:AnalysisContext,question:string,foc
   const counter=context.claims.filter(c=>c.classification==='contradiction'&&c.itemId&&focus.has(c.itemId));
   quality.reflection!.counterClaimIds=counter.map(c=>c.id);
   if(counter.length)quality.reflection!.confidence=Math.min(.25,quality.reflection!.confidence);
+  const decision=(proposal as GroundedModelProposal|undefined)?.decisionEvaluation;
+  if(decision){
+    if(quality.reflection?.origin==='model'&&decisionEvaluationMatches(decision,quality.reflection)){
+      quality.decisionEvaluation=decision;
+      quality.modelIssues.push(...decisionSourceIssues(context,decision));
+    }
+    else quality.modelIssues.push('DECISION_EVALUATION_MISMATCH');
+    if(bodyAvailable&&!quality.modelIssues.length&&decision.selectedId){
+      const rendered=renderDecisionEvaluation(decision),selected=decision.candidates.find(c=>c.id===decision.selectedId)!,other=decision.candidates.find(c=>c.id!==decision.selectedId)!;
+      // Connect the already explicit comparative assumption to the existing
+      // hypothesis memory/review lifecycle; do not claim that a score tests it.
+      quality.hypotheses.push({text:rendered.reflection.assumption,premiseClaimIds:rendered.premiseClaimIds,
+        prediction:`同じ「${decision.scenario}」で同じ「${decision.criterion.outcome}」を比べると、「${selected.action}」が「${other.action}」を上回る。`,
+        falsification:`同じ「${decision.scenario}」で同じ「${decision.criterion.outcome}」を比べると、「${selected.action}」が「${other.action}」を上回らない。`,
+        alternative:rendered.reflection.alternative,requiredEvidence:`同じ利用場面・結果を基準とする両案の比較観測が必要である。${selected.uncertainty} ${other.uncertainty}`,
+        confidence:.2,status:'unverified'});
+    }
+  }
   quality.viewReviews=reviewViews(context,quality);
   return quality;
 }

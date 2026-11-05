@@ -3,11 +3,13 @@ import {DatabaseSync} from 'node:sqlite';
 import {safeDiagnostic} from './research-engine';
 import {randomUUID} from 'node:crypto';
 import {publicationEvent} from './publication-history';
+import {assertPublicSafety} from './public-projection';
 type Publication={repository:'yumirima1/houkago-no-chishikibako';branch:string;enabled:boolean};
 function archiveNotes(files:Record<string,string>){
   const snapshot=JSON.parse(files['public/research/snapshot.json']??'null');
   const notes=snapshot?.notes as Array<{id:string}>|undefined;
   if(!Array.isArray(notes)||!notes.length)throw Error('PUBLICATION_EMPTY_ARCHIVE');
+  if(snapshot.archive&&snapshot.archive.saved!==notes.length)throw Error('PUBLICATION_ARCHIVE_GAP');
   if(new Set(notes.map(n=>n.id)).size!==notes.length)throw Error('PUBLICATION_DUPLICATE_NOTE');
   for(const note of notes){
     if(typeof note.id!=='string'||!/^[-a-f0-9]+$/.test(note.id))throw Error('PUBLICATION_NOTE_INVALID');
@@ -22,6 +24,7 @@ export async function publishResearch(file:string,publication:Publication,bundle
   if(publication.repository!=='yumirima1/houkago-no-chishikibako'||!/^[-\w/]+$/.test(publication.branch))throw Error('PUBLICATION_TARGET_INVALID');
   if(Object.keys(bundle.files).some(p=>!/^public\/research\/(snapshot\.json|notes\/[a-f0-9-]+\.(json|md))$/.test(p)))throw Error('PUBLICATION_PATH_REJECTED');
   const notes=archiveNotes(bundle.files);
+  assertPublicSafety(bundle.files);
   const db=new DatabaseSync(file);db.exec('PRAGMA busy_timeout=5000');
   const owner=randomUUID();
   try{
