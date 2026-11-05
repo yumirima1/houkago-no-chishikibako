@@ -1776,7 +1776,7 @@
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
-    "nextRunAt": "2026-11-05T13:00:00.000Z",
+    "nextRunAt": "2026-11-06T09:00:00.000Z",
     "lastRunAt": "2026-11-05T09:06:36.728Z",
     "days": [
       {
@@ -3586,25 +3586,25 @@
       {
         "day": "2026-11-05@22:00",
         "dueAt": "2026-11-05T13:00:00.000Z",
-        "state": "pending",
+        "state": "missed",
         "sourceFailures": 0,
         "success": 0,
         "failed": 0,
         "pending": 0,
         "startedAt": null,
-        "finishedAt": null,
+        "finishedAt": "2026-11-05T23:13:12.839Z",
         "articles": []
       },
       {
         "day": "2026-11-06@06:00",
         "dueAt": "2026-11-05T21:00:00.000Z",
-        "state": "pending",
+        "state": "budget_exhausted",
         "sourceFailures": 0,
         "success": 0,
         "failed": 0,
         "pending": 0,
         "startedAt": null,
-        "finishedAt": null,
+        "finishedAt": "2026-11-05T23:13:12.839Z",
         "articles": []
       },
       {
@@ -3838,6 +3838,42 @@
       {
         "day": "2026-11-12@22:00",
         "dueAt": "2026-11-12T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-13@06:00",
+        "dueAt": "2026-11-12T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-13@18:00",
+        "dueAt": "2026-11-13T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-13@22:00",
+        "dueAt": "2026-11-13T13:00:00.000Z",
         "state": "pending",
         "sourceFailures": 0,
         "success": 0,
