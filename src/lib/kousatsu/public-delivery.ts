@@ -28,7 +28,14 @@ export async function verifyPublicDelivery(file:string,bundle:{digest:string;fil
     publicationEvent(db,'delivery',bundle.digest,attempt,'running',now);
     try{
       const base='https://yumirima1.github.io/houkago-no-chishikibako/';
-      const get=async(relative:string)=>{db.prepare('UPDATE public_delivery_lease SET expires_at=? WHERE id=1 AND owner=?').run(Date.now()+300000,owner);const response=await (options.fetch??fetch)(new URL(relative,base),{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});if(!response.ok)throw Error(`PUBLIC_DELIVERY_HTTP_${response.status}`);return response.text();};
+      const get=async(relative:string)=>{
+        const request=()=>{db.prepare('UPDATE public_delivery_lease SET expires_at=? WHERE id=1 AND owner=?').run(Date.now()+300000,owner);return (options.fetch??fetch)(new URL(relative,base),{cache:'no-store',redirect:'error',signal:AbortSignal.timeout(20000)});};
+        let response=await request();
+        // Pages can briefly return an upstream 503 while a new file is warming.
+        // Retry this idempotent read once; whole-delivery attempts remain capped.
+        if([502,503,504].includes(response.status)){await response.body?.cancel();await new Promise(resolve=>setTimeout(resolve,500));response=await request();}
+        if(!response.ok)throw Error(`PUBLIC_DELIVERY_HTTP_${response.status}`);return response.text();
+      };
       const info=JSON.parse(await get(`build-info.json?verify=${now}`));
       if(info.branch!=='main'||info.target!=='github-pages'||typeof info.commit!=='string')throw Error('PUBLIC_DELIVERY_WRONG_BUILD');
       if(digest(await get(`research/snapshot.json?verify=${now}`))!==digest(bundle.files['public/research/snapshot.json']))throw Error('PUBLIC_DELIVERY_PENDING_SNAPSHOT');

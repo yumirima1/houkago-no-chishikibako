@@ -720,6 +720,13 @@ export class KousatsuDatabase {
     const row=this.db.prepare('SELECT coverage_json FROM research_content_provenance WHERE version_id=?').get(versionId);
     return row?JSON.parse(String(row.coverage_json)) as import('./quality-types').DocumentCoverage:null;
   }
+  referencingItems(url:string,limit=20):StoredItem[]{
+    if(!this.db.prepare("SELECT name FROM sqlite_master WHERE name='research_content_provenance'").get())return [];
+    const rows=this.db.prepare(`SELECT i.id FROM items i JOIN research_content_provenance p ON p.version_id=i.current_version_id
+      WHERE EXISTS(SELECT 1 FROM json_each(CASE WHEN json_valid(p.coverage_json) THEN p.coverage_json ELSE '{}' END,'$.metadata.primaryLinks') l WHERE l.value=?)
+      ORDER BY i.id LIMIT ?`).all(url,Math.max(1,Math.min(30,limit)));
+    return rows.flatMap(r=>{const item=this.getItem(String(r.id));return item?[item]:[];});
+  }
 
   getItemVersion(versionId: string): StoredItem | null {
     const row = this.db.prepare("SELECT *,item_id AS id,id AS current_version_id FROM item_versions WHERE id=?")

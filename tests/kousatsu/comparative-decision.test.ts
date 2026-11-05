@@ -67,7 +67,7 @@ test('the actual HTTP provider maps the new internal plan to the existing stored
  const result=await provider.proposeGrounded(context);
  assert.deepEqual(result.reflection?.premiseClaimIds,['claim']);assert.equal(result.reflection?.reasoning,evaluateDecision(evaluatedPlan,['E1']).reflection.reasoning);assert.deepEqual(result.reflection?.memoryIds,[]);assert.equal(result.reflection?.position,renderComparativeDecision(plan).position);
  assert(!prompt.includes('過去の未検証の立場'));assert(!prompt.includes('過去の未検証の誤った結論'));assert(format);
- assert.equal(JSON.stringify(context),before);assert.equal(provider.calls[0].promptVersion,34);assert.equal(provider.rawCalls[0].references?.E1,'claim');
+ assert.equal(JSON.stringify(context),before);assert.equal(provider.calls[0].promptVersion,35);assert.equal(provider.rawCalls[0].references?.E1,'claim');
  assert.equal(provider.calls[0].options.num_predict,4000);assert.equal(provider.calls[0].options.num_ctx,10240);
 });
 
@@ -76,11 +76,12 @@ test('qualified past views and a bound inquiry reach the model as untrusted hist
  const server=createServer((req,res)=>{let body='';req.setEncoding('utf8');req.on('data',c=>body+=c);req.on('end',()=>{
   const request=JSON.parse(body);prompt=request.prompt;
   const properties=request.format.properties;assert(properties.課題判定);assert.deepEqual(properties.考察.properties.過去の見解ID.items.enum,['M1']);
-  res.setHeader('Content-Type','application/json');res.end(JSON.stringify({done_reason:'stop',response:JSON.stringify({考察:{判断の比較:evaluatedPlan,仮定:[],確信度:.4,過去の見解ID:['M1']},課題判定:[{inquiryId:'Q1',criterion:'資料の観測条件を確認すること。',answer:'研究は既存試料での観測を報告している。',status:'partially_resolved',reason:'新しい材料の便益をまだ測定していないため。',claimIds:['E1'],remainingQuestions:['新材料の出力の安定性はどう変わるか。'],nextQuestions:[],memoryIds:['M1']}]})}));
+  res.setHeader('Content-Type','application/json');res.end(JSON.stringify({done_reason:'stop',response:JSON.stringify({考察:{判断の比較:evaluatedPlan,仮定:['別に出力した未監査の優先判断。'],確信度:.4,過去の見解ID:['M1']},課題判定:[{inquiryId:'Q1',criterion:'資料の観測条件を確認すること。',answer:'研究は既存試料での観測を報告している。',status:'partially_resolved',reason:'新しい材料の便益をまだ測定していないため。',claimIds:['E1'],remainingQuestions:['新材料の出力の安定性はどう変わるか。'],nextQuestions:[],memoryIds:['M1']}]})}));
  });});
  await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>{server.closeAllConnections();server.close();});const address=server.address();assert(address&&typeof address!=='string');
  const context={topic:'利用範囲',items:[{id:'document',title:'固体からの波放射',url:'https://example.org/research',canonicalUrl:'https://example.org/research'}],claims:[{id:'claim',itemId:'document',text:'研究は既存試料での観測を報告している。'}],relations:[],inquiries:[{id:'question-real',question:'新しい材料の出力は安定するか。',originJob:'prior',references:['document:v']}],memories:[{id:'memory-real',jobId:'prior',kind:'interpretation',verificationStatus:'passed',factCheckStatus:'unverified',references:[{itemId:'document',versionId:'v',claimIds:['old-claim']}],text:'前回の暫定見解。',quality:{reflection:{position:'前回は材料の比較を優先した。',reasoning:'用途別の測定が不足していた。',revisionCondition:'測定条件が揃えば見直す。'},hypotheses:[],unresolved:['新材料の実測は未確認。']}}]} as unknown as AnalysisContext;
  const provider=new OllamaProvider({model:'fixture',endpoint:`http://127.0.0.1:${address.port}`,timeoutMs:2000}),result=await provider.proposeGrounded(context);
  assert.match(prompt,/前回は材料の比較を優先した/);assert.match(prompt,/独立証拠ではない/);assert.match(prompt,/新材料の実測は未確認/);
  assert.deepEqual(result.reflection?.memoryIds,['memory-real']);assert.equal((result.inquiryReviews as Array<{inquiryId:string}>)[0].inquiryId,'question-real');
+ assert.equal(result.reflection?.assumptions.length,1);assert(!result.reflection?.assumptions.some(s=>s.includes('未監査')));
 });

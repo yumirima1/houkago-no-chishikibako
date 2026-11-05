@@ -1,6 +1,6 @@
 import {createHash,randomInt} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
-import {meaningfulTerms} from './relevance';
+import {meaningfulTerms,researchSubjectTerms} from './relevance';
 import type {ResearchSource} from './runtime-types';
 import type {AnalysisResult,StoredItem} from './types';
 import {interestDelta,type InterestAssessment} from './interest-evaluation';
@@ -110,7 +110,7 @@ export class ResearchAgenda {
           // A new source/version can reopen a bounded inquiry; the same evidence
           // receipt never resets its attempts on another poll or crash recovery.
           if(novel)for(const inquiry of this.inquiries(100).filter(q=>q.origin_job!==row.id&&['exhausted','waiting_evidence','partially_resolved'].includes(q.status)&&q.genre===genre)){
-            if(inquiry.terms.filter(t=>meaningfulTerms(primary.title).has(t)).length<2)continue;
+            if(!inquiry.references.some(r=>r.startsWith(primary.id+':'))&&inquiry.terms.filter(t=>researchSubjectTerms(primary.title).has(t)).length<2)continue;
             const receipt=hash(`${inquiry.id}:new-evidence:${version}`);
             if(this.db.prepare('SELECT id FROM research_inquiry_events WHERE id=?').get(receipt))continue;
             this.db.prepare("UPDATE research_inquiries SET attempts=0,status='open',updated_at=? WHERE id=?").run(at,inquiry.id);
@@ -205,8 +205,9 @@ export class ResearchAgenda {
   }
   rank(item:StoredItem,genre:string,now=Date.now()){
     const terms=meaningfulTerms(item.title),open=this.inquiries().filter(q=>['open','partially_resolved'].includes(q.status)&&q.attempts<this.settings.maxInquiryAttempts&&q.genre===genre);
+    const subjects=researchSubjectTerms(item.title);
     const series=new Set('apod nasa astronomy picture day january february march april may june july august september october november december'.split(' '));
-    const match=open.map(q=>({q,bound:q.references.some(r=>r.startsWith(item.id+':')),overlap:q.terms.filter(t=>terms.has(t)&&!series.has(t)).length})).filter(v=>v.bound||v.overlap>=2).sort((a,b)=>Number(b.bound)-Number(a.bound)||b.overlap-a.overlap||b.q.priority-a.q.priority)[0];
+    const match=open.map(q=>({q,bound:q.references.some(r=>r.startsWith(item.id+':')),overlap:q.terms.filter(t=>subjects.has(t)&&!series.has(t)).length})).filter(v=>v.bound||v.overlap>=2).sort((a,b)=>Number(b.bound)-Number(a.bound)||b.overlap-a.overlap||b.q.priority-a.q.priority)[0];
     const interest=this.interests().find(i=>i.key===`genre:${genre}`)?.score??50;
     const matched=this.interests().filter(i=>i.kind==='theme'&&(terms.has(i.label)||((i.label.includes(' ')||/[\p{Script=Han}\p{Script=Katakana}]/u.test(i.label))&&item.title.normalize('NFKC').toLowerCase().includes(i.label))));
     const theme=matched.length?matched.reduce((sum,i)=>sum+i.score,0)/matched.length:0;

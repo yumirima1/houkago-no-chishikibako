@@ -18,9 +18,12 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      full_ui: ${{ steps.scope.outputs.full_ui }}
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 2
           # The room does not use legacy audio/model archives or private runtime data.
           sparse-checkout: |
             /*
@@ -46,7 +49,15 @@ jobs:
       - run: npm run build:pages
       - run: node scripts/verify-pages-artifact.mjs
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:pages
+      - name: Select browser checks for changed paths
+        id: scope
+        run: node --import tsx scripts/pages-test-scope.mjs >> "$GITHUB_OUTPUT"
+      - name: Check the complete room interface
+        if: steps.scope.outputs.full_ui == 'true'
+        run: npm run test:pages
+      - name: Check every archived consideration and the reading flow
+        if: steps.scope.outputs.full_ui != 'true'
+        run: npm run test:pages -- tests/pages/archive-coverage.spec.ts tests/pages/research.spec.ts
       - uses: actions/upload-artifact@v5
         if: failure()
         with:
@@ -73,7 +84,7 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
   verify-public:
-    needs: deploy
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -86,7 +97,12 @@ jobs:
       - name: Verify the deployed archive
         env:
           PAGES_TEST_URL: ${{ needs.deploy.outputs.page_url }}
-        run: npm run test:pages
+        run: |
+          if [ "${{ needs.build.outputs.full_ui }}" = "true" ]; then
+            npm run test:pages
+          else
+            npm run test:pages -- tests/pages/archive-coverage.spec.ts tests/pages/research.spec.ts
+          fi
       - uses: actions/upload-artifact@v5
         if: always()
         with:

@@ -2,7 +2,7 @@ import { createHash, randomInt, randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { type AnalysisContext, type KousatsuAiProvider } from './ai';
 import { buildQualityAnalysis,selectGroundedClaims } from './quality-analysis';
-import { compareRecords, meaningfulTerms } from './relevance';
+import { meaningfulTerms,specificResearchPeer } from './relevance';
 import {reflectionQuestion} from './reflection';
 import type { KousatsuDatabase } from './database';
 import type { AnalysisResult } from './types';
@@ -37,8 +37,8 @@ export function selectResearchTopic(context: AnalysisContext, history: string[],
   const index = exploratory ? Math.min(pool.length-1,Math.floor(draw / Math.max(exploration,0.000001) * pool.length)) : 0;
   const topic = pool[index];
   const primary=proposals.find(p=>p.topic===topic)!.item;
-  const focusItemIds=[primary.id,...context.items.filter(item=>item.id!==primary.id &&
-    ['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(primary,item).kind)).slice(0,2).map(item=>item.id)];
+    const focusItemIds=[primary.id,...context.items.filter(item=>item.id!==primary.id &&
+    specificResearchPeer(primary,item)).slice(0,2).map(item=>item.id)];
   return {topic,candidates,draw,focusItemIds,reason: `${exploratory ? '出来事を含む問いから探索抽選' : '本文の充足度と取得順を優先'}。直近6回の問いを可能な範囲で除外。候補${candidates.length}件、探索率${exploration}。`};
 }
 
@@ -115,11 +115,11 @@ export function safeDiagnostic(error: unknown) {
 /** A stable provider identity keeps retries compatible even if Ollama is offline. */
 export class ResearchEngine implements KousatsuAiProvider {
   readonly id='autonomous';
-  readonly model='research-v11';
+  readonly model='research-v12';
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:11,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:12,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
     const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
@@ -134,7 +134,7 @@ export class ResearchEngine implements KousatsuAiProvider {
     const current=new Set(context.items.map(item => item.id));
     const matches=keys.flatMap(key => this.options.database.search(key,10));
     const counterSearch=[...new Map(matches.filter(item => !current.has(item.id) && focus.some(f=>
-      ['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(f,item).kind))).map(item => [item.id,item])).values()].slice(0,4)
+      specificResearchPeer(f,item))).map(item => [item.id,item])).values()].slice(0,4)
       .map(item => ({itemId:item.id,versionId:item.versionId!,title:item.title,url:item.url,
         excerpt:(item.summary ?? item.title).slice(0,300),reason:'同じ対象・問題の追加資料候補。論理的な反証と情報源の独立性は未確認。'}));
     const started=Date.now();
@@ -145,7 +145,7 @@ export class ResearchEngine implements KousatsuAiProvider {
       memories:(context.memories??[]).filter(m=>m.quality?.reflection&&m.references.some(ref=>{
         if(focusIds.includes(ref.itemId))return true;
         const old=this.options.database.getItemVersion(ref.versionId);
-        return old&&focus.some(item=>['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(old,item).kind));
+        return old&&focus.some(item=>specificResearchPeer(old,item));
       })).slice(0,2)};
     selected.claims=selectGroundedClaims(selected,focusIds);
     let summaries:SourceSummary[]=[],summaryIssues:string[]=[],summaryWarnings:string[]=[],summaryMs=0,generationMs=0;
@@ -183,7 +183,7 @@ export class ResearchEngine implements KousatsuAiProvider {
       if(!memory?.quality)continue;
       for(const reference of memory.references) {
         const old=this.options.database.getItemVersion(reference.versionId);
-        const currentItem=old && focus.find(item=>['same_document','follow_up_candidate','same_issue_candidate'].includes(compareRecords(old,item).kind));
+        const currentItem=old && focus.find(item=>specificResearchPeer(old,item));
         if(!old || !currentItem)continue;
         entry.decision='related';
         entry.reason=`過去の根拠「${old.title}」（版 ${old.versionId}）と今回の「${currentItem.title}」（版 ${currentItem.versionId}）は同じ対象の候補。${old.canonicalUrl===currentItem.canonicalUrl ? (old.content===currentItem.content ? '保存本文は同じであり、新しい裏付けとは数えない。' : '保存本文に変更があるため旧解釈を再評価する。') : '別文書の続報候補であり、同一事件・独立性・支持と反証の成立は未確認。'}`;

@@ -74,3 +74,8 @@ test('secret-bearing public bundles and inconsistent archive totals are rejected
  const gap={...bundle,files:{...bundle.files,'public/research/snapshot.json':JSON.stringify({notes:[{id:'a-b'}],archive:{saved:2}})}};
  await assert.rejects(publishResearch('unused',pub,gap),/PUBLICATION_ARCHIVE_GAP/);
 });
+
+test('a transient Pages upstream error is retried once without declaring unchecked content delivered',async()=>{
+ const f=await fixture();let failed=false;const get:typeof fetch=async url=>{const p=new URL(String(url)).pathname;if(!failed){failed=true;return new Response('',{status:503});}return p.endsWith('build-info.json')?Response.json({branch:'main',target:'github-pages',commit:'remote'}):new Response(bundle.files[p.includes('snapshot')?'public/research/snapshot.json':p.endsWith('.md')?'public/research/notes/a-b.md':'public/research/notes/a-b.json']);};
+ try{assert.equal((await verifyPublicDelivery(f.file,bundle,'remote',{fetch:get})).status,'succeeded');assert.equal(f.db.prepare('SELECT attempts FROM public_delivery_checks').get()?.attempts,1);}finally{f.db.close();}
+});

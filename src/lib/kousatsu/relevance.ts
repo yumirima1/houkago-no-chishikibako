@@ -32,3 +32,12 @@ export function compareRecords(left: Pick<StoredItem,'title'|'summary'|'publishe
   return {kind:common.length ? 'lexical_overlap' : 'unrelated',score,common,
     reason:common.length ? `語句一致のみ: ${common.join('、')}。研究上の関連性は不明。` : '具体的な対象・出来事の対応が不足。関連なし。'};
 }
+
+const genericResearchTerms=new Set('ai artificial intelligence llm llms language large model models evaluation evaluations benchmark benchmarks dataset datasets data research study studies paper papers performance method methods approach approaches learning system systems open source 評価 モデル ベンチマーク データ 研究 学習 論文 結果 比較 手法'.split(' '));
+export function researchSubjectTerms(value:string){return new Set([...meaningfulTerms(value)].filter(t=>!genericResearchTerms.has(t)));}
+/** Generic research vocabulary is a search lead, not enough to choose evidence. */
+export function specificResearchPeer(left:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>,right:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>){
+  const relation=compareRecords(left,right);
+  if(relation.kind==='same_document')return true;
+  return ['follow_up_candidate','same_issue_candidate'].includes(relation.kind)&&relation.common.filter(t=>!genericResearchTerms.has(t)).length>=2;
+}
