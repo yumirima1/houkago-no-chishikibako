@@ -175,8 +175,8 @@ export class OllamaProvider implements KousatsuAiProvider {
         promptVersion: 34,
         comparisonRenderVersion:3,
         think: this.thinking,
-        contextWindow: 8192,
-        outputLimit: this.thinking?3200:1600,
+        contextWindow: this.thinking?10240:8192,
+        outputLimit: this.thinking?4000:1600,
         transportVersion: 1,
       }))
       .digest("hex");
@@ -341,7 +341,12 @@ export class OllamaProvider implements KousatsuAiProvider {
 
   private async generate(prompt:string,format:unknown,grounded=false,phase:ModelCallMetrics['phase']='analysis',deadline=Date.now()+this.timeoutMs,thinking=this.thinking):Promise<string> {
     const started=Date.now();
-    const options={temperature:grounded?0.3:0.2,num_ctx:8192,num_predict:phase==='summary'?1100:thinking?3200:1600};
+    // Reasoning and final JSON share num_predict. A real inquiry/history run
+    // reached 3200 before finishing its JSON (4669 input tokens). Keep the same
+    // wall-clock deadline and reserve context for a complete bounded response.
+    // Keep one context size across summary, reasoning and local repair so the
+    // model does not reload merely because a phase disables thinking.
+    const options={temperature:grounded?0.3:0.2,num_ctx:this.thinking?10240:8192,num_predict:phase==='summary'?1100:thinking?4000:1600};
     const metric:ModelCallMetrics={phase,model:this.model,promptVersion:34,promptHash:promptDigest(prompt),inputCharacters:prompt.length,outputCharacters:0,elapsedMs:0,attempts:0,status:'failed',options,thinking:phase==='analysis'&&thinking};
     this.calls.push(metric);
     const rawCall:{metrics:ModelCallMetrics;prompt:string;response?:string}={metrics:metric,prompt};

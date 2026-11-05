@@ -68,6 +68,7 @@ test('the actual HTTP provider maps the new internal plan to the existing stored
  assert.deepEqual(result.reflection?.premiseClaimIds,['claim']);assert.equal(result.reflection?.reasoning,evaluateDecision(evaluatedPlan,['E1']).reflection.reasoning);assert.deepEqual(result.reflection?.memoryIds,[]);assert.equal(result.reflection?.position,renderComparativeDecision(plan).position);
  assert(!prompt.includes('過去の未検証の立場'));assert(!prompt.includes('過去の未検証の誤った結論'));assert(format);
  assert.equal(JSON.stringify(context),before);assert.equal(provider.calls[0].promptVersion,34);assert.equal(provider.rawCalls[0].references?.E1,'claim');
+ assert.equal(provider.calls[0].options.num_predict,4000);assert.equal(provider.calls[0].options.num_ctx,10240);
 });
 
 test('qualified past views and a bound inquiry reach the model as untrusted history and restore exact IDs',async t=>{

@@ -17,8 +17,8 @@ async function endpoint(t:TestContext,reply:(request:Record<string,unknown>,inde
 }
 const summary=(text:string)=>({summaries:{D1:{facts:[{claimId:'E1',text}]}}});
 test('a rejected fragment is corrected once, retaining both responses and the validation diagnosis',async t=>{
- const server=await endpoint(t,(_,i)=>summary(i===1?'研究チームはLLMの評価結果を用いて':'研究チームはLLMの評価がプロンプトによって変動すると報告している。'));
- const provider=new OllamaProvider({model:'fixture',endpoint:server.url,timeoutMs:2000});
+ const server=await endpoint(t,(request,i)=>{assert.equal(request.think,false);assert.equal((request.options as {num_ctx:number}).num_ctx,10240);return summary(i===1?'研究チームはLLMの評価結果を用いて':'研究チームはLLMの評価がプロンプトによって変動すると報告している。');});
+ const provider=new OllamaProvider({model:'fixture',endpoint:server.url,timeoutMs:2000,thinking:true});
  const result=await provider.summarizeGrounded(context),audit=auditSourceSummaries(context,result);
  assert.deepEqual(audit.fatalIssues,[]);assert.equal(server.calls(),2);assert.equal(provider.rawCalls.length,2);
  assert(provider.rawCalls[0].metrics.validationIssues?.some(i=>i.startsWith('SUMMARY_FRAGMENT:')));
