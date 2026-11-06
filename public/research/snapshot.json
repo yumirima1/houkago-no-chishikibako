@@ -3882,6 +3882,42 @@
         "startedAt": null,
         "finishedAt": null,
         "articles": []
+      },
+      {
+        "day": "2026-11-14@06:00",
+        "dueAt": "2026-11-13T21:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-14@18:00",
+        "dueAt": "2026-11-14T09:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
+      },
+      {
+        "day": "2026-11-14@22:00",
+        "dueAt": "2026-11-14T13:00:00.000Z",
+        "state": "pending",
+        "sourceFailures": 0,
+        "success": 0,
+        "failed": 0,
+        "pending": 0,
+        "startedAt": null,
+        "finishedAt": null,
+        "articles": []
       }
     ]
   },
