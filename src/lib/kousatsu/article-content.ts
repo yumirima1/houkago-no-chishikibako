@@ -10,6 +10,8 @@ import type { DocumentCoverage } from './quality-types';
 const now=()=>new Date().toISOString();
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
 const extractorVersion=4;
+const ndlArticle=(url:URL)=>url.hostname==='current.ndl.go.jp'&&/^\/car\/\d+\/?$/.test(url.pathname);
+const versionFor=(url:string)=>ndlArticle(new URL(url))?5:extractorVersion;
 const clean=(value:string)=>value.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/\r\n?/g,'\n').replace(/[ \t]+/g,' ').replace(/ *\n */g,'\n').replace(/\n{3,}/g,'\n\n').trim();
 export type PageDocument={id:string;url:string;finalUrl:string;title:string;text:string;fetchedAt:string;links:Array<{url:string;text:string}>;metadata?:DocumentCoverage['metadata']};
 export type PageResult={status:'available'|'failed'|'denied'|'disabled';document?:PageDocument;error?:string;cached?:boolean;failureKind?:DocumentCoverage['failureKind']};
@@ -24,7 +26,7 @@ export function extractArticle(html:string,url:string) {
     publishedAt:date(meta('meta[property="article:published_time"]')??meta('meta[name="date"]')??meta('meta[name="citation_date"]')),
     modifiedAt:date(meta('meta[property="article:modified_time"]')),
     primaryLinks:[],
-    extractorVersion,
+    extractorVersion:versionFor(url),
     ...(meta('meta[name="citation_title"]')?{documentKind:'paper' as const}:{}),
   };
   // Only a structured Event startDate is an event time. A publication date is not.
@@ -40,6 +42,25 @@ export function extractArticle(html:string,url:string) {
   if([...document.querySelectorAll('meta[name="robots"]')].some(meta=>/\bnoarchive\b/i.test(meta.getAttribute('content') ?? ''))) throw new Error('ARTICLE_ARCHIVING_DENIED');
   const base=document.createElement('base');base.setAttribute('href',url);document.head?.prepend(base);
   Object.defineProperty(document,'documentURI',{value:url,configurable:true});
+  const backgroundLinks:Array<{url:string;text:string}>=[];
+  // The portal's Readability result can merge other news widgets into a short
+  // Japanese article. Keep its explicit content container; reference indexes
+  // remain discovery metadata, not assertions made by the current article.
+  if(ndlArticle(new URL(url))){
+    const entry=document.querySelector('article .entry-content');
+    if(!entry)throw Error('ARTICLE_BODY_NDL_CONTENT_MISSING');
+    const paragraph=entry.cloneNode(true) as typeof entry;
+    let referenceList=false;
+    for(const reference of [...paragraph.children]){
+      if(/^\s*参考[：:]/.test(reference.textContent??''))referenceList=true;
+      else if(referenceList&&(reference.tagName!=='P'||!reference.querySelector('a[href]')))referenceList=false;
+      if(!referenceList)continue;
+      for(const anchor of reference.querySelectorAll('a[href]'))try{const link=new URL(anchor.getAttribute('href')!,url);if(link.protocol==='https:')backgroundLinks.push({url:canonicalizeUrl(link.href),text:'参考（別記事）: '+clean(reference.textContent??'').replace(/https?:\/\/\S+/g,'').slice(0,160)});}catch{/* malformed reference is not followed */}
+      reference.remove();
+    }
+    const content=document.createElement('article'),heading=document.createElement('h1');heading.textContent=document.title;
+    content.appendChild(heading);content.appendChild(paragraph);document.body.replaceChildren(content);
+  }
   // NASA's APOD redesign places its explanation in the media hero. Readability
   // otherwise prefers the recurring credits sidebar over the actual article.
   if(new URL(url).hostname==='science.nasa.gov'&&new URL(url).pathname.startsWith('/image-article/apod-')){
@@ -70,7 +91,7 @@ export function extractArticle(html:string,url:string) {
   }).filter(link=>link.text.length>=3 && !/\.(jpg|jpeg|png|gif|mp4|mp3|pdf)(\?|$)/i.test(link.url));
   const unique=[...new Map(links.map(link=>[link.url,link])).values()].slice(0,40);
   metadata.primaryLinks=unique.filter(link=>new URL(link.url).hostname!==new URL(url).hostname||/doi\.org|arxiv\.org\/abs\/|論文|原資料|報告書|研究成果|paper|study|report|source|詳細/i.test(link.url+' '+link.text)).map(link=>link.url);
-  metadata.referenceLinks=unique;
+  metadata.referenceLinks=[...new Map([...unique,...backgroundLinks].map(link=>[link.url,link])).values()].slice(0,40);
   return {title:clean(article?.title ?? ''),text:text.slice(0,120000),links:unique,metadata};
 }
 
@@ -145,7 +166,7 @@ export class ArticleContentStore {
       .run(now(),new Date(Date.now()-120000).toISOString());
     const attemptsToday=Number(this.db.prepare('SELECT count(*) n FROM research_page_attempts WHERE url=? AND started_at>=?').get(url.href,day)?.n);
     const cachedDocument=cached?.document_id?this.document(String(cached.document_id)):null;
-    const currentExtractor=!cachedDocument||cachedDocument.metadata?.extractorVersion===extractorVersion;
+    const currentExtractor=!cachedDocument||cachedDocument.metadata?.extractorVersion===versionFor(url.href);
     if(attemptsToday>=3&&!currentExtractor)return {status:'failed',error:'ARTICLE_BODY_EXTRACTOR_UPGRADE_DAILY_LIMIT',failureKind:'extraction',cached:true};
     if(cached && currentExtractor && (String(cached.next_at)>now() || attemptsToday>=3)) {
       const doc=cached.document_id ? this.document(String(cached.document_id)) : null;
