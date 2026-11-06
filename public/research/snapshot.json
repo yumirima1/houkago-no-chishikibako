@@ -84,9 +84,20 @@
   ],
   "worker": {
     "active": false,
-    "lastSeenAt": "2026-11-05T23:04:29.397Z"
+    "lastSeenAt": "2026-11-06T21:07:10.870Z"
   },
   "notes": [
+    {
+      "id": "51181183-35e0-46ad-8326-42e32f526a4e",
+      "jobId": "51181183-35e0-46ad-8326-42e32f526a4e",
+      "title": "「NASA Announces X-70 Experimental Aircraft to Advance Flight Research」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "createdAt": "2026-11-06T21:07:10.870Z",
+      "genre": "science",
+      "status": "needs_review",
+      "provider": "ollama",
+      "model": "gemma4:e4b",
+      "published": true
+    },
     {
       "id": "2792d907-2977-44d8-ac08-7ed325a91e49",
       "jobId": "2792d907-2977-44d8-ac08-7ed325a91e49",
@@ -783,6 +794,18 @@
   ],
   "news": [
     {
+      "id": "ae93d9a3-b18e-4624-b177-fd5d87c339d5",
+      "title": "NASA Announces X-70 Experimental Aircraft to Advance Flight Research",
+      "source": "NASA News Releases",
+      "url": "https://www.nasa.gov/news-release/nasa-announces-x-70-experimental-aircraft-to-advance-flight-research/",
+      "publishedAt": "2026-11-05T01:43:21.000Z",
+      "fetchedAt": "2026-11-06T21:00:45.354Z",
+      "summary": "This high-performance, highly adaptable research platform is designed to accelerate the development and testing of advanced aviation technologies.",
+      "content": "This high-performance, highly adaptable research platform is designed to accelerate the development and testing of advanced aviation technologies.",
+      "truncated": true,
+      "genre": "science"
+    },
+    {
       "id": "78758294-c42d-4cd9-9e4d-4c80ab993b05",
       "title": "Old Ideas, Novel Problems: The Instability of LLM-Based Novelty Evaluation",
       "source": "Hugging Face Blog",
@@ -1180,6 +1203,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "700dcea6-3c2a-4e08-9ea7-c729f3c40d93",
+      "topic": "「NASA Announces X-70 Experimental Aircraft to Advance Flight Research」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "status": "needs_review",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-11-06T21:00:45.499Z"
+    },
     {
       "id": "2e5c7574-f234-49b9-813e-33e8b2a7bc1f",
       "topic": "「APOD: 2026 November 5 – Enceladus in Silhouette」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
@@ -1776,8 +1808,8 @@
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
-    "nextRunAt": "2026-11-06T21:00:00.000Z",
-    "lastRunAt": "2026-11-05T09:06:36.728Z",
+    "nextRunAt": "2026-11-07T09:00:00.000Z",
+    "lastRunAt": "2026-11-06T21:00:38.531Z",
     "days": [
       {
         "day": "2026-10-27@22:00",
@@ -3634,14 +3666,86 @@
       {
         "day": "2026-11-07@06:00",
         "dueAt": "2026-11-06T21:00:00.000Z",
-        "state": "pending",
+        "state": "succeeded",
         "sourceFailures": 0,
-        "success": 0,
+        "success": 1,
         "failed": 0,
         "pending": 0,
-        "startedAt": null,
-        "finishedAt": null,
-        "articles": []
+        "startedAt": "2026-11-06T21:00:38.531Z",
+        "finishedAt": "2026-11-06T21:07:10.933Z",
+        "articles": [
+          {
+            "jobId": "700dcea6-3c2a-4e08-9ea7-c729f3c40d93",
+            "genre": "science",
+            "title": "NASA Announces X-70 Experimental Aircraft to Advance Flight Research",
+            "status": "needs_review",
+            "queue": "done",
+            "error": null,
+            "attempts": 1,
+            "nextAttemptAt": "2026-11-06T21:00:45.499Z",
+            "model": {
+              "requested": "ollama/gemma4:e4b",
+              "used": "ollama/gemma4:e4b",
+              "elapsedMs": 385169,
+              "error": null,
+              "status": "succeeded",
+              "responseReceived": true,
+              "method": "model",
+              "timings": {
+                "retrievalMs": 57,
+                "summaryMs": 63231,
+                "generationMs": 321786,
+                "validationMs": 143
+              },
+              "calls": [
+                {
+                  "phase": "summary",
+                  "model": "gemma4:e4b",
+                  "promptVersion": 35,
+                  "promptHash": "5a5ba9e2e5e0072c3a6d927e94430d4cbf7e291353aaa11d74aeb680a99d63e6",
+                  "inputCharacters": 4467,
+                  "outputCharacters": 323,
+                  "elapsedMs": 63223,
+                  "attempts": 1,
+                  "status": "succeeded",
+                  "options": {
+                    "temperature": 0.3,
+                    "num_ctx": 10240,
+                    "num_predict": 1100
+                  },
+                  "thinking": false,
+                  "promptTokens": 1324,
+                  "outputTokens": 142,
+                  "totalMs": 63208.9923,
+                  "loadMs": 37571.1603,
+                  "evaluationMs": 14784.172
+                },
+                {
+                  "phase": "analysis",
+                  "model": "gemma4:e4b",
+                  "promptVersion": 35,
+                  "promptHash": "512702e41e61ab88bd095cafafb68b5a22b92a7b031f12f247d67a0780218558",
+                  "inputCharacters": 5566,
+                  "outputCharacters": 1601,
+                  "elapsedMs": 321784,
+                  "attempts": 1,
+                  "status": "succeeded",
+                  "options": {
+                    "temperature": 0.3,
+                    "num_ctx": 10240,
+                    "num_predict": 4000
+                  },
+                  "thinking": true,
+                  "promptTokens": 2283,
+                  "outputTokens": 2535,
+                  "totalMs": 321765.6803,
+                  "loadMs": 4.7074,
+                  "evaluationMs": 304622.584
+                }
+              ]
+            }
+          }
+        ]
       },
       {
         "day": "2026-11-07@18:00",
@@ -3922,8 +4026,8 @@
     ]
   },
   "research": {
-    "openInquiries": 60,
-    "exhaustedInquiries": 29,
+    "openInquiries": 53,
+    "exhaustedInquiries": 36,
     "interestScores": [
       {
         "genre": "science",
@@ -3958,18 +4062,18 @@
       "sources": [
         {
           "id": "jaxa-ja",
-          "score": 69.5,
-          "candidateLimit": 8
+          "score": 71,
+          "candidateLimit": 9
         },
         {
           "id": "nasa-science",
-          "score": 69.5,
-          "candidateLimit": 8
+          "score": 71,
+          "candidateLimit": 9
         },
         {
           "id": "riken-ja",
-          "score": 69.5,
-          "candidateLimit": 8
+          "score": 71,
+          "candidateLimit": 9
         },
         {
           "id": "fed-economy",
@@ -3980,12 +4084,12 @@
     }
   },
   "archive": {
-    "saved": 63,
-    "selected": 63,
+    "saved": 64,
+    "selected": 64,
     "excluded": {}
   },
   "system": {
-    "readAt": "2026-11-05T23:04:29.397Z",
+    "readAt": "2026-11-06T21:07:10.870Z",
     "supervisorActive": false,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
