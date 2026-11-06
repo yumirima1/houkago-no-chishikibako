@@ -31,9 +31,13 @@ test('a persistently invalid summary remains rejected after its single repair',a
  assert(auditSourceSummaries(context,await provider.summarizeGrounded(context)).fatalIssues.length>0);assert.equal(server.calls(),2);
 });
 test('summary repair shares the original deadline instead of receiving another full timeout',async t=>{
- const server=await endpoint(t,()=>summary('研究チームはLLMの評価結果を用いて'),70);
- const provider=new OllamaProvider({model:'fixture',endpoint:server.url,timeoutMs:120});
- await assert.rejects(provider.summarizeGrounded(context),/timeout|abort/i);assert.equal(server.calls(),2);
+ let clock=Date.now();t.mock.method(Date,'now',()=>clock);
+ const durations:number[]=[],timeout=AbortSignal.timeout.bind(AbortSignal);
+ t.mock.method(AbortSignal,'timeout',(ms:number)=>{durations.push(ms);return timeout(ms);});
+ const server=await endpoint(t,(_request,index)=>{if(index===1)clock+=800;return summary('研究チームはLLMの評価結果を用いて');},300);
+ const provider=new OllamaProvider({model:'fixture',endpoint:server.url,timeoutMs:1000});
+ await assert.rejects(provider.summarizeGrounded(context),/timeout|abort/i);
+ assert.equal(provider.rawCalls.length,2);assert.deepEqual(durations,[1000,200]);
 });
 test('comparison repair restores an omitted citation without replacing the evaluated actions or their reason',async t=>{
  const peer={...item,id:'document-b',versionId:'version-b',url:'https://example.org/b',canonicalUrl:'https://example.org/b',content:quote+'研究チームはOpenReviewから評価用データを構築したと報告している。'};

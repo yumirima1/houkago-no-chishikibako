@@ -9,6 +9,7 @@ import {WeeklyStore} from './weekly-store';
 import {auditPublicArticles,publicDecisionCounts} from './public-audit';
 import {ResearchAgenda} from './research-agenda';
 import {publicText,publicUrl,savedReasoning,originalNoteDigest,assertPublicSafety} from './public-projection';
+import {publicEvidence,appendPublicEvidence,isEvidenceOnlyAppend,publicSourceWarnings} from './public-evidence';
 const hash=(s:string)=>createHash('sha256').update(s).digest('hex');
 const excerpt=(s:string)=>s.trim().split(/\s+/).slice(0,20).join(' ').slice(0,180);
 export async function exportPublicResearch(config:AutonomousConfig,sources:ResearchSource[]){
@@ -26,7 +27,8 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       LEFT JOIN checkpoints s ON s.job_id=a.job_id AND s.stage='selected-items' LEFT JOIN checkpoints v ON v.job_id=a.job_id AND v.stage='verify'
       ORDER BY a.created_at DESC,a.id`).all();
     for(const row of rows){
-      if(db.prepare('SELECT article_id FROM public_documents WHERE article_id=?').get(row.id))continue;
+      const frozen=db.prepare('SELECT payload_json FROM public_documents WHERE article_id=?').get(row.id);
+      if(frozen){const payload=JSON.parse(String(frozen.payload_json));if(payload.sourceNoteDigest&&payload.sourceNoteDigest!==originalNoteDigest(String(row.markdown)))throw Error('PUBLIC_SOURCE_NOTE_CONFLICT');continue;}
       if(decisions.find(d=>d.articleId===row.id)?.kind!=='eligible')continue;
       const analysis=row.data_json?JSON.parse(String(row.data_json)) as AnalysisResult:null,q=analysis?.quality;
       const verification=row.verification_json?JSON.parse(String(row.verification_json)):null;
@@ -62,6 +64,8 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       db.prepare('INSERT OR IGNORE INTO public_documents VALUES(?,?,?,?)').run(row.id,JSON.stringify(payload),JSON.stringify(news),row.created_at);
     }
     const documents=db.prepare('SELECT * FROM public_documents ORDER BY created_at DESC,article_id').all();
+    const savedAnalyses=new Map(documents.map(row=>{const r=db.prepare("SELECT c.data_json FROM checkpoints c JOIN articles a ON a.job_id=c.job_id WHERE a.id=? AND c.stage='analyze'").get(row.article_id);return [String(row.article_id),r?JSON.parse(String(r.data_json)) as AnalysisResult:null] as const;}));
+    const warnings=new Map(documents.map(row=>[String(row.article_id),publicSourceWarnings(savedAnalyses.get(String(row.article_id))?.quality)]));
     if(!documents.length)throw Error('PUBLIC_EXPORT_EMPTY: previous public files retained');
     let operation:unknown=null;
     if(config.operation){const store=new WeeklyStore(file);try{const state=store.snapshot(config.operation);operation={...state,days:state.days.map(d=>({...d,collection:undefined,articles:d.articles.map(a=>({...a,error:a.error?'処理失敗。ローカルログに詳細を記録。':null,model:a.model?{...a.model,error:a.model.error?'MODEL_FAILED_OR_LIMITED':null}:null}))}))};}finally{store.close();}}
@@ -71,7 +75,7 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
       const agenda=new ResearchAgenda(file,config.agenda,{readOnly:true});try{const summary=agenda.summary();research={openInquiries:(summary.inquiryCounts.open??0)+(summary.inquiryCounts.selected??0)+(summary.inquiryCounts.partially_resolved??0),exhaustedInquiries:(summary.inquiryCounts.exhausted??0)+(summary.inquiryCounts.waiting_evidence??0),interestScores:agenda.interests().filter(i=>i.kind==='genre').map(i=>({genre:i.label,score:i.score})),lastSelection:summary.lastPlan?{sources:summary.lastPlan.sources.map(s=>({id:s.id,score:s.score,candidateLimit:s.candidateLimit}))}:null};}finally{agenda.close();}
     }
     const snapshot={initialized:documents.length>0,sources:sources.map(s=>({id:s.id,name:s.name,enabled:s.enabled,genre:s.genre,topic:s.topic,intervalMinutes:s.intervalMinutes})),
-      worker:{active:false,lastSeenAt:latest},notes:documents.map(r=>{const p=JSON.parse(String(r.payload_json));return {id:p.id,jobId:p.id,title:p.title,createdAt:r.created_at,genre:p.genre,status:p.status,provider:p.provider,model:p.model,published:true};}),
+      worker:{active:false,lastSeenAt:latest},notes:documents.map(r=>{const p=JSON.parse(String(r.payload_json));return {id:p.id,jobId:p.id,title:p.title,createdAt:r.created_at,genre:p.genre,status:warnings.get(String(r.article_id))?.length?'needs_review':p.status,provider:p.provider,model:p.model,published:true};}),
       news:[...new Map(documents.map(r=>{const n=JSON.parse(String(r.news_json));return [n.id,n] as const;}).reverse()).values()].reverse(),jobs:documents.map(r=>{
         const job=db.prepare('SELECT j.* FROM jobs j JOIN articles a ON a.job_id=j.id WHERE a.id=?').get(r.article_id)!;
         const note=JSON.parse(String(r.payload_json));return {id:String(job.id),topic:note.title,status:String(job.status),stage:job.current_stage,error:null,queue:'done',createdAt:job.created_at};
@@ -81,15 +85,21 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const files:Record<string,string>={'public/research/snapshot.json':JSON.stringify(snapshot,null,2)+'\n'};
     for(const row of documents){
       const payload=JSON.parse(String(row.payload_json));
-      const analysisRow=db.prepare("SELECT c.data_json FROM checkpoints c JOIN articles a ON a.job_id=c.job_id WHERE a.id=? AND c.stage='analyze'").get(row.article_id);
-      const analysis=analysisRow?JSON.parse(String(analysisRow.data_json)) as AnalysisResult:null;
+      const analysis=savedAnalyses.get(String(row.article_id))??null;
+      const evidence=publicEvidence(analysis?.quality?.observations??[],id=>{
+        const claim=db.prepare('SELECT c.text,c.item_id,c.version_id,v.source_id,v.url,v.title FROM claims c LEFT JOIN item_versions v ON v.id=c.version_id WHERE c.id=?').get(id);
+        return claim?{text:String(claim.text),itemId:String(claim.item_id),versionId:String(claim.version_id),...(claim.source_id?{sourceId:String(claim.source_id),url:String(claim.url),title:String(claim.title)}:{})}:null;
+      });
+      const sourceWarnings=warnings.get(String(row.article_id))??[];
+      const markdown=appendPublicEvidence(payload.markdown,evidence,sourceWarnings);
+      const supplemental=sourceWarnings.length?{status:'needs_review',validationLabel:'要確認・保存後の出典再検査で問題を検出',qualityReview:{scope:'source-paraphrase-and-legacy-comparison',warnings:sourceWarnings}}:{};
       const model=analysis?.research?.model;
       const generation={origin:analysis?.quality?.reflection?.origin??'rules',requested:model?.requested??null,used:model?.used??null,elapsedMs:model?.elapsedMs??null,
         ...(model?.status?{modelStatus:model.status}:{}),
         issues:(model?.error??'').split(';').map(s=>s.trim()).filter(Boolean).map(s=>/^[A-Z][A-Z_]+$/.test(s)?s:s.includes('Timeout')?'MODEL_TIMEOUT':'MODEL_UNAVAILABLE')};
       const news=JSON.parse(String(row.news_json));
       const checks=analysis?.quality?.sourceVerification;
-      files[`public/research/notes/${row.article_id}.json`]=JSON.stringify({...payload,generation,sources:payload.sources??[{title:news.title,url:news.url}],...(checks?{sourceVerification:{scope:checks.method,checkedClaims:checks.claims.length,conflictCandidates:checks.claims.filter(c=>c.result==='conflict-candidate').length,independentVerification:'unverified'}}:{})})+'\n';files[`public/research/notes/${row.article_id}.md`]=payload.markdown;
+      files[`public/research/notes/${row.article_id}.json`]=JSON.stringify({...payload,...supplemental,markdown,evidence:evidence.entries,unavailableEvidenceIds:evidence.unavailable,generation,sources:payload.sources??[{title:news.title,url:news.url}],...(checks?{sourceVerification:{scope:checks.method,checkedClaims:checks.claims.length,conflictCandidates:checks.claims.filter(c=>c.result==='conflict-candidate').length,independentVerification:'unverified'}}:{})})+'\n';files[`public/research/notes/${row.article_id}.md`]=markdown;
     }
     assertPublicSafety(files);
     if(documents.length!==rows.filter(r=>String(r.markdown).trim()).length)throw Error('PUBLIC_ARCHIVE_COUNT_MISMATCH');
@@ -97,7 +107,7 @@ export async function exportPublicResearch(config:AutonomousConfig,sources:Resea
     const directory=path.join(config.dataDirectory,'Publishing','export');
     for(const [relative,contents]of Object.entries(files)){
       const target=path.join(directory,relative);await mkdir(path.dirname(target),{recursive:true});
-      if(relative.endsWith('.md'))try{if(await readFile(target,'utf8')!==contents)throw Error('PUBLIC_ARTIFACT_CONFLICT: '+relative);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
+      if(relative.endsWith('.md'))try{const previous=await readFile(target,'utf8');if(previous!==contents&&!isEvidenceOnlyAppend(previous,contents))throw Error('PUBLIC_ARTIFACT_CONFLICT: '+relative);}catch(e){if((e as NodeJS.ErrnoException).code!=='ENOENT')throw e;}
       const temp=target+`.${randomUUID()}.tmp`;await writeFile(temp,contents);await rename(temp,target);
     }
     return {files,directory,digest:hash(JSON.stringify(files)),notes:documents.length,operation};

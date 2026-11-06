@@ -133,6 +133,9 @@ test('all saved views include legacy and failed-check notes sharing a source, wi
     const note=JSON.parse(bundle.files[`public/research/notes/${articleId}.json`]);assert.equal(note.status,'needs_review');assert.equal(note.verification.status,'failed');assert.match(note.markdown,/別の説明が残る/);
     assert.equal(JSON.stringify(db.prepare('SELECT * FROM articles ORDER BY id').all()),before);
     assert.equal((await exportPublicResearch(config,f.sources)).digest,bundle.digest);
+    db.prepare('UPDATE articles SET markdown=? WHERE id=?').run('Unexpected replacement of a saved note',firstId);
+    await assert.rejects(exportPublicResearch(config,f.sources),/PUBLIC_SOURCE_NOTE_CONFLICT/);
+    assert.equal(await readFile(path.join(bundle.directory,`public/research/notes/${firstId}.md`),'utf8'),bundle.files[`public/research/notes/${firstId}.md`]);
   }finally{db.close();}
  }finally{f.close();}
 });

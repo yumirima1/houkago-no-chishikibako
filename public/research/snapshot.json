@@ -93,7 +93,7 @@
       "title": "「APOD: 2026 November 5 – Enceladus in Silhouette」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
       "createdAt": "2026-11-05T23:04:29.397Z",
       "genre": "science",
-      "status": "generated",
+      "status": "needs_review",
       "provider": "ollama",
       "model": "gemma4:e4b",
       "published": true
@@ -401,7 +401,7 @@
       "title": "「松竹大谷図書館、江戸時代のおもちゃ絵「組上燈籠絵」をリデザインし現代版ワークショップキットを制作：特別イベントも開催」について、自分の見方を変えるのはどんな情報か。",
       "createdAt": "2026-10-29T10:33:05.611Z",
       "genre": "culture",
-      "status": "generated",
+      "status": "needs_review",
       "provider": "ollama",
       "model": "gemma4:e4b",
       "published": true

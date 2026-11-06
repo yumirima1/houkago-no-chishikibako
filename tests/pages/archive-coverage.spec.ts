@@ -22,6 +22,10 @@ test('every saved public consideration is listed, opens by its own ID, and has m
   await expect(page.getByRole('heading',{level:1,name:readableTitle(note.title),exact:true})).toBeVisible();
   await expect(page.getByRole('link',{name:'Markdownをダウンロード ↓',exact:true})).toHaveAttribute('href',new RegExp(`${id}\\.md$`));
   if(note.validationLabel)await expect(page.locator('[data-document-content]')).toContainText(note.validationLabel);
+  if(Array.isArray(note.evidence))for(const evidence of note.evidence){
+    await expect(page.locator('[data-document-content]')).toContainText(evidence.claimId);
+    await expect(page.locator('[data-document-content]')).toContainText(evidence.versionId);
+  }
   checked.push(id);await page.getByRole('button',{name:'一覧に戻る',exact:true}).click();await expect(list).toBeVisible();
  }
  await info.attach('complete-archive-coverage',{body:JSON.stringify({url:baseURL,expected:ids.length,checked,duplicates:0}),contentType:'application/json'});
