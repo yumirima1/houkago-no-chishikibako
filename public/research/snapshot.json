@@ -1776,7 +1776,7 @@
     },
     "timezone": "Asia/Tokyo",
     "state": "active",
-    "nextRunAt": "2026-11-06T09:00:00.000Z",
+    "nextRunAt": "2026-11-06T13:00:00.000Z",
     "lastRunAt": "2026-11-05T09:06:36.728Z",
     "days": [
       {
@@ -3610,13 +3610,13 @@
       {
         "day": "2026-11-06@18:00",
         "dueAt": "2026-11-06T09:00:00.000Z",
-        "state": "pending",
+        "state": "budget_exhausted",
         "sourceFailures": 0,
         "success": 0,
         "failed": 0,
         "pending": 0,
         "startedAt": null,
-        "finishedAt": null,
+        "finishedAt": "2026-11-06T09:00:00.186Z",
         "articles": []
       },
       {
