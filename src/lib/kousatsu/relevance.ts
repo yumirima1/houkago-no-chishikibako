@@ -33,11 +33,17 @@ export function compareRecords(left: Pick<StoredItem,'title'|'summary'|'publishe
     reason:common.length ? `語句一致のみ: ${common.join('、')}。研究上の関連性は不明。` : '具体的な対象・出来事の対応が不足。関連なし。'};
 }
 
-const genericResearchTerms=new Set('ai artificial intelligence llm llms language large model models evaluation evaluations benchmark benchmarks dataset datasets data research study studies paper papers performance method methods approach approaches learning system systems open source 評価 モデル ベンチマーク データ 研究 学習 論文 結果 比較 手法'.split(' '));
+const genericResearchTerms=new Set('ai artificial intelligence llm llms language large model models evaluation evaluations benchmark benchmarks dataset datasets data research study studies paper papers performance method methods approach approaches learning system systems open source library libraries national 評価 モデル ベンチマーク データ 研究 学習 論文 結果 比較 手法 図書館 国立 資料 文化'.split(' '));
+function namedInstitutions(item:Pick<StoredItem,'title'|'summary'>){
+ const names=(s:string)=>(s.normalize('NFKC').match(/[\p{Script=Han}\p{Script=Katakana}ーA-Za-z]{2,}(?:図書館|大学|研究所)/gu)??[]).filter(n=>!['国立図書館','市立図書館','公共図書館','大学図書館','中央図書館'].includes(n));
+ const title=names(item.title);return title.length?title:names((item.summary??'').slice(0,350));
+}
 export function researchSubjectTerms(value:string){return new Set([...meaningfulTerms(value)].filter(t=>!genericResearchTerms.has(t)));}
 /** Generic research vocabulary is a search lead, not enough to choose evidence. */
 export function specificResearchPeer(left:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>,right:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>){
   const relation=compareRecords(left,right);
   if(relation.kind==='same_document')return true;
+  const a=namedInstitutions(left),b=namedInstitutions(right);
+  if(a.length&&b.length&&!a.some(name=>b.includes(name)))return false;
   return ['follow_up_candidate','same_issue_candidate'].includes(relation.kind)&&relation.common.filter(t=>!genericResearchTerms.has(t)).length>=2;
 }

@@ -120,7 +120,9 @@ export class ArticleContentStore {
     const row=this.db.prepare('SELECT * FROM research_page_documents WHERE id=?').get(id);
     const metadata=row?this.db.prepare('SELECT metadata_json FROM research_page_metadata WHERE document_id=?').get(id):undefined;
     const parsed=metadata?JSON.parse(String(metadata.metadata_json)):undefined;
-    return row ? {id:String(row.id),url:String(row.url),finalUrl:String(row.final_url),title:String(row.title),text:String(row.body),fetchedAt:String(row.fetched_at),links:parsed?.referenceLinks??JSON.parse(String(row.links_json)),...(parsed?{metadata:parsed}:{})} : null;
+    const references=row?(parsed?.referenceLinks??JSON.parse(String(row.links_json))):[];
+    const links=row&&ndlArticle(new URL(String(row.url)))?references.filter((link:{text:string})=>!link.text.startsWith('参考（別記事）: ')):references;
+    return row ? {id:String(row.id),url:String(row.url),finalUrl:String(row.final_url),title:String(row.title),text:String(row.body),fetchedAt:String(row.fetched_at),links,...(parsed?{metadata:parsed}:{})} : null;
   }
   coverage(item:StoredItem):DocumentCoverage {
     const row=item.versionId ? this.db.prepare('SELECT coverage_json FROM research_content_provenance WHERE version_id=?').get(item.versionId) : undefined;
