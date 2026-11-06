@@ -1,7 +1,7 @@
 import type {AnalysisContext} from './ai';
 import type {GroundedObservation,Reflection,QualityAnalysis} from './quality-types';
 import {meaningfulTerms} from './relevance';
-import {sourceQuantities} from './evidence-review';
+import {sourceNumbersSupported} from './evidence-review';
 import {prematurelyCompletedEvent} from './future-event';
 
 const compact=(value:string)=>value.replace(/\s+/g,' ').trim();
@@ -147,7 +147,6 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
   const readAt=Math.max(...context.items.map(item=>Date.parse(item.fetchedAt)).filter(Number.isFinite));
   if(context.groundedRequest&&fields.some(field=>typeof supplied[field]==='string'&&prematurelyCompletedEvent(supplied[field]!,basis,readAt)))
     issues.push('REFLECTION_EVENT_PREMATURE_COMPLETION');
-  const numbers=sourceQuantities(basis);
   const conditional=(value:string)=>/仮に|もし|と仮定|を仮定/.test(value)&&/なら|場合|仮定|とすれば/.test(value);
   const headlineFacts=new Set<string>();
   if(scope==='headline') {
@@ -159,7 +158,7 @@ export function formReflection(context:AnalysisContext,observations:GroundedObse
     if(headlineFacts.size)issues.push('REFLECTION_HEADLINE_AS_FACT');
   }
   const referenceIds=new Set([...context.claims.map(c=>c.id),...context.items.map(i=>i.id),...(context.memories??[]).map(m=>m.id)]);
-  const inventedNumber=(value:string)=>sourceQuantities([...referenceIds].reduce((text,id)=>text.split(id).join(''),value)).some(n=>!numbers.includes(n));
+  const inventedNumber=(value:string)=>!sourceNumbersSupported([...referenceIds].reduce((text,id)=>text.split(id).join(''),value),basis);
   const experiments:string[]=[];
   for(const field of fields){
     const value=supplied[field];if(typeof value!=='string')continue;

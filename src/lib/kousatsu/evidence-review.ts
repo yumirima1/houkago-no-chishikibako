@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {sourceDatePrecisionSupported,withoutSupportedCalendarDates} from './source-date';
 import type {AnalysisContext} from './ai';
 import type {QualityAnalysis} from './quality-types';
 
@@ -34,7 +35,7 @@ export const sourceQuantities=(value:string):string[]=>{
   const words=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve'];
   return normalize(value).replace(/\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b/gi,'').replace(/\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/gi,word=>String(words.indexOf(word.toLowerCase()))).match(/\d+(?:[.,]\d+)*/g)??[];
 };
-const quantities=sourceQuantities;
+export const sourceNumbersSupported=(text:string,source:string)=>sourceDatePrecisionSupported(source,text)&&sourceQuantities(withoutSupportedCalendarDates(source,text)).every(n=>sourceQuantities(source).includes(n));
 const percentageValues=(value:string)=>[...normalize(value).matchAll(/(\d+(?:\.\d+)?)\s*(?:%|percent(?!age? points?| points?)|パーセント(?!ポイント)|パーセンテージ(?!ポイント|点))/gi)].map(m=>m[1]);
 export const percentageUnitsSupported=(text:string,source:string)=>percentageValues(text).every(n=>percentageValues(source).includes(n));
 /** Preserve explicit units too: an existing number cannot move from a fee to a capacity. */
@@ -64,6 +65,7 @@ export function summaryDocuments(context:AnalysisContext){
 /** Narrow semantic hazards with explicit source wording, also applied to old memory. */
 export function summaryMeaningIssues(source:string,text:string){
   const issues:string[]=[];
+  if(!sourceDatePrecisionSupported(source,text))issues.push('SUMMARY_DATE_PRECISION_INVENTED');
   const bases=[...source.matchAll(/\b(?:based|headquartered) in ([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+){0,3})\b/g)].map(m=>m[1]);
   if(bases.length===1&&/(?:を|に)拠点|本拠地|本社/.test(text)&&!text.includes(bases[0]))issues.push('SUMMARY_LOCATION_BINDING_LOST');
   const correlation=/\b(?:correlat\w*|associat\w*)\b|相関|関連性/i.test(source);
@@ -89,7 +91,8 @@ export function auditSourceSummaries(context:AnalysisContext,raw:unknown) {
     const facts:SourceSummary['facts']=[];
     for(const fact of row.facts){
       const claim=context.claims.find(c=>c.id===fact?.claimId&&c.itemId===item.id);
-      if(!claim||!ja(fact.text)||fact.text.length>200||/https?:\/\//i.test(fact.text)||!quantities(fact.text).every(n=>quantities(claim.text).includes(n))||!percentageUnitsSupported(fact.text,claim.text)||!quantityUnitsSupported(fact.text,claim.text)){
+      if(claim&&ja(fact.text)&&!sourceDatePrecisionSupported(claim.text,fact.text)){issues.push(`SUMMARY_DATE_PRECISION_INVENTED:${claim.id}`);continue;}
+      if(!claim||!ja(fact.text)||fact.text.length>200||/https?:\/\//i.test(fact.text)||!sourceNumbersSupported(fact.text,claim.text)||!percentageUnitsSupported(fact.text,claim.text)||!quantityUnitsSupported(fact.text,claim.text)){
         issues.push(`SUMMARY_UNSUPPORTED_FACT:${item.id}`);continue;
       }
       if(fact.text.length>=80&&normalize(claim.text).includes(normalize(fact.text))){issues.push(`SUMMARY_COPIED_SOURCE:${claim.id}`);continue;}
@@ -128,6 +131,7 @@ export function auditSourceSummaries(context:AnalysisContext,raw:unknown) {
   // all diagnostics, and fail if any document has no accepted facts or if any
   // other source/translation constraint failed.
   const recoverable=new Set(summaries.filter(s=>s.facts.length>0).map(s=>`SUMMARY_UNSUPPORTED_FACT:${s.itemId}`));
+  for(const summary of summaries)for(const claim of context.claims.filter(c=>c.itemId===summary.itemId))recoverable.add(`SUMMARY_DATE_PRECISION_INVENTED:${claim.id}`);
   return {summaries,issues:uniqueIssues,fatalIssues:uniqueIssues.filter(issue=>!recoverable.has(issue)),
     warnings:uniqueIssues.filter(issue=>recoverable.has(issue))};
 }
@@ -164,9 +168,9 @@ export function evaluateEvidence(context:AnalysisContext,quality:QualityAnalysis
         !ja(comparison.agreement)||(!ja(comparison.difference)&&!/^特になし。?$/.test(comparison.difference??''))||!Array.isArray(ids)||ids.length<2||ids.length>8||claims.length!==ids.length||
         !claims.some(c=>c.itemId===comparison.leftItemId)||!claims.some(c=>c.itemId===comparison.rightItemId)||
         ![comparison.leftItemId,comparison.rightItemId].every(itemId=>agreementClaims.some(c=>c.itemId===itemId)&&
-          quantities(comparison.agreement).every(n=>quantities(agreementClaims.filter(c=>c.itemId===itemId).map(c=>c.text).join(' ')).includes(n))&&
+          sourceNumbersSupported(comparison.agreement,agreementClaims.filter(c=>c.itemId===itemId).map(c=>c.text).join(' '))&&
           percentageUnitsSupported(comparison.agreement,agreementClaims.filter(c=>c.itemId===itemId).map(c=>c.text).join(' ')))||
-        !quantities(comparison.difference).every(n=>quantities(differenceClaims.map(c=>c.text).join(' ')).includes(n))||!percentageUnitsSupported(comparison.difference,differenceClaims.map(c=>c.text).join(' '))||
+        !sourceNumbersSupported(comparison.difference,differenceClaims.map(c=>c.text).join(' '))||!percentageUnitsSupported(comparison.difference,differenceClaims.map(c=>c.text).join(' '))||
         !namesSupported(comparison.agreement,`${titles} ${agreementClaims.map(c=>c.text).join(' ')}`)||!namesSupported(comparison.difference,`${titles} ${differenceClaims.map(c=>c.text).join(' ')}`)){
         summaryIssues.push('COMPARISON_UNGROUNDED');continue;
       }
