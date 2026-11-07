@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { ArticleContentStore, type PageResult } from './article-content';
 import { canonicalizeUrl, fetchFeed } from './ingest';
-import { compareRecords, meaningfulTerms,specificResearchPeer } from './relevance';
+import { compareRecords, meaningfulTerms,specificResearchPeer,isAffiliationProfile } from './relevance';
 import type { SourceInput, StoredItem } from './types';
 import type {KousatsuDatabase} from './database';
 
@@ -15,7 +15,7 @@ export async function prepareResearchDocuments(file:string,items:StoredItem[],so
   const primary=items[0];
   const references=(item:StoredItem,target:StoredItem)=>item.versionId&&options.database?.documentCoverage(item.versionId)?.metadata?.primaryLinks?.includes(target.canonicalUrl);
   const linked=(item:StoredItem)=>Boolean(references(primary,item)||references(item,primary));
-  const relevant=(item:StoredItem)=>linked(item)||specificResearchPeer(primary,item);
+  const relevant=(item:StoredItem)=>!isAffiliationProfile(item.canonicalUrl)&&(linked(item)||specificResearchPeer(primary,item));
   const related=items.slice(1).filter(relevant);
   const chosen=[primary,...related].slice(0,policy.maxArticles);
   const store=new ArticleContentStore(file,transport);
@@ -31,6 +31,7 @@ export async function prepareResearchDocuments(file:string,items:StoredItem[],so
     const configured=[source,...(options.sources??[]).filter(s=>s.id!==source.id)];
     const sourceFor=(url:string)=>configured.find(s=>s.articlePolicy?.enabled&&s.articlePolicy.allowedHosts.includes(new URL(url).hostname));
     const links=entries.flatMap(entry=>entry.result.document?.links ?? []).filter(link=>{
+      if(isAffiliationProfile(link.url)){followUp.push({url:link.url,status:'excluded',reason:'所属機関の紹介ページへの参照を保持し、研究結果の比較資料には採用しない。'});return false;}
       if(visited.has(link.url) || !sourceFor(link.url)||/\/(?:subscribe|newsletter|privacy|contact|tags?|category)\b/i.test(new URL(link.url).pathname))return false;
       const common=[...meaningfulTerms(link.text)].filter(term=>focusTerms.has(term));
       const fromBody=[...meaningfulTerms(link.text)].filter(term=>bodyTerms.has(term));
@@ -52,7 +53,7 @@ export async function prepareResearchDocuments(file:string,items:StoredItem[],so
       const queries=[{query:keys.join(' '),purpose:'related' as const},
         {query:keys.slice(0,3).join(' ')+' limitations criticism failed 検証 限界 異論',purpose:'counterevidence' as const}];
       const candidates=new Map<string,StoredItem>();
-      const citing=options.database.referencingItems(primary.canonicalUrl).filter(item=>!visited.has(item.canonicalUrl));
+      const citing=options.database.referencingItems(primary.canonicalUrl).filter(item=>!visited.has(item.canonicalUrl)&&relevant(item));
       for(const item of citing)candidates.set(item.id,item);
       discovery.push({query:`参照関係: ${primary.canonicalUrl}`,purpose:'related',status:citing.length?'found':'not-found',itemIds:citing.map(i=>i.id)});
       for(const query of queries){

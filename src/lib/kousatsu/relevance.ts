@@ -39,10 +39,15 @@ function namedInstitutions(item:Pick<StoredItem,'title'|'summary'>){
  const title=names(item.title);return title.length?title:names((item.summary??'').slice(0,350));
 }
 export function researchSubjectTerms(value:string){return new Set([...meaningfulTerms(value)].filter(t=>!genericResearchTerms.has(t)));}
+/** Affiliation links are preserved as provenance, but centre profiles are not studies. */
+export function isAffiliationProfile(value:string){
+ try{const url=new URL(value);return (url.hostname==='riken.jp'||url.hostname.endsWith('.riken.jp'))&&/^\/(?:en\/)?research\/labs(?:\/|$)/.test(url.pathname);}catch{return false;}
+}
 /** Generic research vocabulary is a search lead, not enough to choose evidence. */
 export function specificResearchPeer(left:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>,right:Pick<StoredItem,'title'|'summary'|'publishedAt'|'canonicalUrl'>){
   const relation=compareRecords(left,right);
   if(relation.kind==='same_document')return true;
+  if(isAffiliationProfile(left.canonicalUrl)||isAffiliationProfile(right.canonicalUrl))return false;
   const a=namedInstitutions(left),b=namedInstitutions(right);
   if(a.length&&b.length&&!a.some(name=>b.includes(name)))return false;
   return ['follow_up_candidate','same_issue_candidate'].includes(relation.kind)&&relation.common.filter(t=>!genericResearchTerms.has(t)).length>=2;
