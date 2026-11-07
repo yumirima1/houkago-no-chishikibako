@@ -13,6 +13,18 @@ const normalized=(text:string)=>text.normalize('NFKC').toLowerCase().replace(/\s
 const publisher=publisherFamily;
 const metrics=(text:string)=>[...text.matchAll(/\b(\d+(?:[.,]\d+)?)\s*(percent|%|kilometers?|km|megawatts?|mw|million|billion|degrees?|meters?)(?=\s|[.,;]|$)/gi)].map(m=>({value:m[1].replaceAll(',',''),unit:m[2].toLowerCase().replace(/s$/,'').replace('percent','%')}));
 
+/** The rendered comparisons must use the same pinned, bounded candidates that
+ * the pipeline subsequently validates. A wider search result is only a lead. */
+export function pinnedComparisonSources(selected:StoredItem[],candidates:Array<{itemId:string;versionId:string;url:string}>,readVersion:(id:string)=>StoredItem|null|undefined){
+ const seen=new Set(selected.map(item=>`${item.id}:${item.versionId}`)),result=[...selected];
+ for(const candidate of candidates){
+  const item=readVersion(candidate.versionId),key=`${candidate.itemId}:${candidate.versionId}`;
+  if(!item||item.id!==candidate.itemId||item.versionId!==candidate.versionId||item.url!==candidate.url||seen.has(key))continue;
+  seen.add(key);result.push(item);
+ }
+ return result;
+}
+
 /** Compare actual stored quotations, not a model's confidence. Different hosts
  * and matching statements are leads; neither proves editorial independence or truth. */
 export function verifySourceBindings(context:AnalysisContext,quality:QualityAnalysis,candidates:StoredItem[],now=Date.now()):SourceVerification{

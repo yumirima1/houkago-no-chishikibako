@@ -6,7 +6,7 @@ import { meaningfulTerms,specificResearchPeer } from './relevance';
 import {reflectionQuestion} from './reflection';
 import type { KousatsuDatabase } from './database';
 import type { AnalysisResult } from './types';
-import {verifySourceBindings} from './source-verification';
+import {verifySourceBindings,pinnedComparisonSources} from './source-verification';
 import {extractInterestCandidates,readInterestBasis,assessInterests} from './interest-evaluation';
 import {auditSourceSummaries,evaluateEvidence,type SourceSummary} from './evidence-review';
 import {reviewInquiries,type InquiryContext} from './inquiry-review';
@@ -119,7 +119,7 @@ export class ResearchEngine implements KousatsuAiProvider {
   readonly configurationFingerprint: string;
   constructor(private readonly options: {jobId: string; database: KousatsuDatabase; history: TopicHistory;
     provider: KousatsuAiProvider; exploration: number}) {
-    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:12,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
+    this.configurationFingerprint=createHash('sha256').update(JSON.stringify({engine:12,sourceComparisonVersion:2,provider:options.provider.configurationFingerprint ?? options.provider.model,exploration:options.exploration})).digest('hex');
   }
   async analyze(context: AnalysisContext): Promise<AnalysisResult> {
     const plan=this.options.database.getJob(this.options.jobId)?.input.researchPlan;
@@ -173,7 +173,7 @@ export class ResearchEngine implements KousatsuAiProvider {
       if(!context.coverage?.some(c=>c.itemId===focus[0]?.id&&c.kind==='article-body'&&c.status==='available'))quality.modelIssues.push('PRIMARY_BODY_REQUIRED');
     }
     quality.discovery=context.discovery;
-    quality.sourceVerification=verifySourceBindings(context,quality,[...context.items,...matches]);
+    quality.sourceVerification=verifySourceBindings(context,quality,pinnedComparisonSources(context.items,counterSearch,id=>this.options.database.getItemVersion(id)));
     const sourceConflicts=quality.sourceVerification.claims.filter(c=>c.result==='conflict-candidate');
     if(sourceConflicts.length){quality.unresolved.push(`保存済みの別資料と数値が異なる主張が${sourceConflicts.length}件ある。観測条件と独立性の確認が必要。`);quality.reflection!.confidence=Math.min(.25,quality.reflection!.confidence);}
     else quality.unresolved.push('保存済み資料の照合では、独立性を確定した別ソースの裏付けは得られていない。未照合は反証ではない。');
