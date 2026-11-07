@@ -84,9 +84,20 @@
   ],
   "worker": {
     "active": false,
-    "lastSeenAt": "2026-11-06T21:07:10.870Z"
+    "lastSeenAt": "2026-11-07T06:53:30.991Z"
   },
   "notes": [
+    {
+      "id": "f49636ca-13f4-4652-b65f-0214a7d6b2f9",
+      "jobId": "f49636ca-13f4-4652-b65f-0214a7d6b2f9",
+      "title": "「機械学習で酵素の強さと能力の高さを両立化」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "createdAt": "2026-11-07T06:53:30.991Z",
+      "genre": "science",
+      "status": "needs_review",
+      "provider": "ollama",
+      "model": "gemma4:e4b",
+      "published": true
+    },
     {
       "id": "51181183-35e0-46ad-8326-42e32f526a4e",
       "jobId": "51181183-35e0-46ad-8326-42e32f526a4e",
@@ -794,6 +805,18 @@
   ],
   "news": [
     {
+      "id": "016ba11a-219f-429d-bb20-d3cc4d64134d",
+      "title": "機械学習で酵素の強さと能力の高さを両立化",
+      "source": "理化学研究所 プレスリリース",
+      "url": "https://www.riken.jp/press/2026/20261106_3/index.html",
+      "publishedAt": "2026-11-05T15:00:00.000Z",
+      "fetchedAt": "2026-11-07T06:45:19.423Z",
+      "summary": "理化学研究所（理研）環境資源科学研究センター バイオものづくりデザイン研究チームの白井 智量 チームディレクター、小川 友希 研究員、細胞生産研究チーム（研究当時）の近藤 昭彦 チームディレクター（研究当時）の研究チームは酵素の環境変化に強い「安定性」や物質変換の能力である高い「反応性」などの複数機能を、機械学習[1]を用いて同時に最適化する技術を開発しまし",
+      "content": "理化学研究所（理研）環境資源科学研究センター バイオものづくりデザイン研究チームの白井 智量 チームディレクター、小川 友希 研究員、細胞生産研究チーム（研究当時）の近藤 昭彦 チームディレクター（研究当時）の研究チームは酵素の環境変化に強い「安定性」や物質変換の能力である高い「反応性」などの複数機能を、機械学習[1]を用いて同時に最適化する技術を開発しまし",
+      "truncated": true,
+      "genre": "science"
+    },
+    {
       "id": "ae93d9a3-b18e-4624-b177-fd5d87c339d5",
       "title": "NASA Announces X-70 Experimental Aircraft to Advance Flight Research",
       "source": "NASA News Releases",
@@ -1203,6 +1226,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "caadf3fa-6dd8-46a1-b93d-b2977d36083a",
+      "topic": "「機械学習で酵素の強さと能力の高さを両立化」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "status": "needs_review",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-11-07T06:45:18.158Z"
+    },
     {
       "id": "700dcea6-3c2a-4e08-9ea7-c729f3c40d93",
       "topic": "「NASA Announces X-70 Experimental Aircraft to Advance Flight Research」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
@@ -4084,12 +4116,12 @@
     }
   },
   "archive": {
-    "saved": 64,
-    "selected": 64,
+    "saved": 65,
+    "selected": 65,
     "excluded": {}
   },
   "system": {
-    "readAt": "2026-11-06T21:07:10.870Z",
+    "readAt": "2026-11-07T06:53:30.991Z",
     "supervisorActive": false,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
