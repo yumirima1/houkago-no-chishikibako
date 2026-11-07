@@ -84,9 +84,20 @@
   ],
   "worker": {
     "active": false,
-    "lastSeenAt": "2026-11-07T06:53:30.991Z"
+    "lastSeenAt": "2026-11-07T07:03:15.762Z"
   },
   "notes": [
+    {
+      "id": "ea0da455-c1d4-4d64-8273-0f5baf1594fa",
+      "jobId": "ea0da455-c1d4-4d64-8273-0f5baf1594fa",
+      "title": "「欧州委員会（EC）が設立したオープンアクセス出版プラットフォーム“Open Research Europe”（ORE）の参加資格が拡大」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "createdAt": "2026-11-07T07:03:15.762Z",
+      "genre": "culture",
+      "status": "needs_review",
+      "provider": "ollama",
+      "model": "gemma4:e4b",
+      "published": true
+    },
     {
       "id": "f49636ca-13f4-4652-b65f-0214a7d6b2f9",
       "jobId": "f49636ca-13f4-4652-b65f-0214a7d6b2f9",
@@ -805,6 +816,18 @@
   ],
   "news": [
     {
+      "id": "68bf16e5-53fa-449d-a83c-a957d8768970",
+      "title": "欧州委員会（EC）が設立したオープンアクセス出版プラットフォーム“Open Research Europe”（ORE）の参加資格が拡大",
+      "source": "国立国会図書館 カレントアウェアネス-R",
+      "url": "https://current.ndl.go.jp/car/286865",
+      "publishedAt": "2026-11-05T09:06:15.000Z",
+      "fetchedAt": "2026-11-07T06:54:49.762Z",
+      "summary": "2026年11月2日、欧州における人文・社会科学分野のオープンな学術コミュニケーション発展のための研究基盤OPERASのブログにおいて、欧州委員会（EC）が設立したオープンアクセス出版プラットフォーム“Open Research Europe”（ORE）の参加資格が拡大され、OREの資金提供の対象となっている11か国に拠点を置く研究機関に所属する250万人以",
+      "content": "2026年11月2日、欧州における人文・社会科学分野のオープンな学術コミュニケーション発展のための研究基盤OPERASのブログにおいて、欧州委員会（EC）が設立したオープンアクセス出版プラットフォーム“Open Research Europe”（ORE）の参加資格が拡大され、OREの資金提供の対象となっている11か国に拠点を置く研究機関に所属する250万人以",
+      "truncated": true,
+      "genre": "culture"
+    },
+    {
       "id": "016ba11a-219f-429d-bb20-d3cc4d64134d",
       "title": "機械学習で酵素の強さと能力の高さを両立化",
       "source": "理化学研究所 プレスリリース",
@@ -1226,6 +1249,15 @@
     }
   ],
   "jobs": [
+    {
+      "id": "4d85a6c8-de7e-4d96-a283-67a662bd1cf1",
+      "topic": "「欧州委員会（EC）が設立したオープンアクセス出版プラットフォーム“Open Research Europe”（ORE）の参加資格が拡大」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
+      "status": "needs_review",
+      "stage": "export",
+      "error": null,
+      "queue": "done",
+      "createdAt": "2026-11-07T06:54:48.240Z"
+    },
     {
       "id": "caadf3fa-6dd8-46a1-b93d-b2977d36083a",
       "topic": "「機械学習で酵素の強さと能力の高さを両立化」を手掛かりに、資料の具体的な内容から何が分かり、どの条件では別の説明が成り立つか。",
@@ -4116,12 +4148,12 @@
     }
   },
   "archive": {
-    "saved": 65,
-    "selected": 65,
+    "saved": 66,
+    "selected": 66,
     "excluded": {}
   },
   "system": {
-    "readAt": "2026-11-07T06:53:30.991Z",
+    "readAt": "2026-11-07T07:03:15.762Z",
     "supervisorActive": false,
     "pollSeconds": 60,
     "maxJobsPerCycle": 3,
